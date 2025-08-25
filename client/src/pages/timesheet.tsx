@@ -247,10 +247,20 @@ export default function TimesheetPage() {
           
           if (isNightDuty) {
             // Mark rescue coverage for weeknights only (Monday-Thursday)
-            if (dayKey === 'monday') setValue("rescueCoverageMonday", true);
-            else if (dayKey === 'tuesday') setValue("rescueCoverageTuesday", true);
-            else if (dayKey === 'wednesday') setValue("rescueCoverageWednesday", true);
-            else if (dayKey === 'thursday') setValue("rescueCoverageThursday", true);
+            console.log(`Night duty detected on ${dayKey}, setting rescue coverage`);
+            if (dayKey === 'monday') {
+              setValue("rescueCoverageMonday", true);
+              console.log('Set Monday rescue coverage');
+            } else if (dayKey === 'tuesday') {
+              setValue("rescueCoverageTuesday", true);
+              console.log('Set Tuesday rescue coverage');
+            } else if (dayKey === 'wednesday') {
+              setValue("rescueCoverageWednesday", true);
+              console.log('Set Wednesday rescue coverage');
+            } else if (dayKey === 'thursday') {
+              setValue("rescueCoverageThursday", true);
+              console.log('Set Thursday rescue coverage');
+            }
           } else {
             // Regular shift - populate daily time entry
             // Convert UTC times to local time strings
