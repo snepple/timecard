@@ -73,3 +73,21 @@ export const insertTimesheetSchema = createInsertSchema(timesheets).omit({
 
 export type InsertTimesheet = z.infer<typeof insertTimesheetSchema>;
 export type Timesheet = typeof timesheets.$inferSelect;
+
+// Employee Numbers table for supervisor management
+export const employeeNumbers = pgTable("employee_numbers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  employeeName: varchar("employee_name").notNull(),
+  employeeNumber: varchar("employee_number").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertEmployeeNumberSchema = createInsertSchema(employeeNumbers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type EmployeeNumber = typeof employeeNumbers.$inferSelect;
+export type InsertEmployeeNumber = z.infer<typeof insertEmployeeNumberSchema>;

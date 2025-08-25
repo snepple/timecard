@@ -1,7 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertTimesheetSchema } from "@shared/schema";
+import { insertTimesheetSchema, employeeNumbers, insertEmployeeNumberSchema } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import nodemailer from "nodemailer";
 
@@ -267,6 +269,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching employee shifts:", error);
       res.status(500).json({ message: "Failed to fetch employee shifts" });
+    }
+  });
+
+  // Employee Numbers Management Routes
+  
+  // Get all employee numbers
+  app.get("/api/employee-numbers", async (req, res) => {
+    try {
+      const employees = await db.select().from(employeeNumbers).orderBy(desc(employeeNumbers.createdAt));
+      res.json(employees);
+    } catch (error) {
+      console.error("Error fetching employee numbers:", error);
+      res.status(500).json({ message: "Failed to fetch employee numbers" });
+    }
+  });
+
+  // Create employee number
+  app.post("/api/employee-numbers", async (req, res) => {
+    try {
+      const validatedData = insertEmployeeNumberSchema.parse(req.body);
+      const [employee] = await db.insert(employeeNumbers).values(validatedData).returning();
+      res.json(employee);
+    } catch (error) {
+      console.error("Error creating employee number:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Validation error", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create employee number" });
+      }
+    }
+  });
+
+  // Update employee number
+  app.put("/api/employee-numbers/:id", async (req, res) => {
+    try {
+      const validatedData = insertEmployeeNumberSchema.parse(req.body);
+      const [employee] = await db
+        .update(employeeNumbers)
+        .set({ ...validatedData, updatedAt: new Date() })
+        .where(eq(employeeNumbers.id, req.params.id))
+        .returning();
+      
+      if (!employee) {
+        res.status(404).json({ message: "Employee number not found" });
+        return;
+      }
+      
+      res.json(employee);
+    } catch (error) {
+      console.error("Error updating employee number:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Validation error", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update employee number" });
+      }
+    }
+  });
+
+  // Delete employee number
+  app.delete("/api/employee-numbers/:id", async (req, res) => {
+    try {
+      const [employee] = await db
+        .delete(employeeNumbers)
+        .where(eq(employeeNumbers.id, req.params.id))
+        .returning();
+      
+      if (!employee) {
+        res.status(404).json({ message: "Employee number not found" });
+        return;
+      }
+      
+      res.json({ message: "Employee number deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting employee number:", error);
+      res.status(500).json({ message: "Failed to delete employee number" });
     }
   });
 
