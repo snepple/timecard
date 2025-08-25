@@ -9,13 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { calculateHours, populateWeekDates } from "@/lib/time-calculations";
 import { generateTimeSheetPDF } from "@/lib/pdf-generator";
 import { apiRequest } from "@/lib/queryClient";
 import SignaturePad from "@/components/ui/signature-pad";
 import { getCurrentWeekEndingDate, isSaturday, getNextSaturday, getPreviousSaturday } from "@/lib/date-utils";
-import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle } from "lucide-react";
+import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle, Check, ChevronsUpDown } from "lucide-react";
 
 const timesheetSchema = z.object({
   employeeName: z.string().min(1, "Employee name is required"),
@@ -111,6 +113,7 @@ export default function TimesheetPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedEmployeeNumber, setSelectedEmployeeNumber] = useState<string>("");
   const [currentTimesheet, setCurrentTimesheet] = useState<any>(null);
+  const [employeeSearchOpen, setEmployeeSearchOpen] = useState(false);
 
   // Fetch schedule data (employees and shifts)
   const scheduleQuery = useQuery<ScheduleData>({
@@ -302,6 +305,10 @@ export default function TimesheetPage() {
       if (weekEnding) {
         autoPopulateFromSchedule(employeeNumber, weekEnding);
       }
+    } else {
+      // Clear fields if no employee selected
+      setValue("employeeName", "");
+      setValue("employeeNumber", "");
     }
   };
 
@@ -533,27 +540,6 @@ export default function TimesheetPage() {
     }
   };
 
-  const handleAutoFillDates = () => {
-    const weekEnding = getValues("weekEnding");
-    if (!weekEnding) {
-      toast({
-        title: "Error",
-        description: "Please select a week ending date first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const dates = populateWeekDates(weekEnding);
-    DAYS_OF_WEEK.forEach(({ key }, index) => {
-      setValue(`${key}Date` as keyof TimesheetFormData, dates[index]);
-    });
-
-    toast({
-      title: "Success",
-      description: "Week dates auto-filled successfully!",
-    });
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -604,25 +590,55 @@ export default function TimesheetPage() {
               <div className="mb-6">
                 <Label htmlFor="employeeSelect" className="flex items-center mb-2">
                   <Users className="text-primary mr-2 h-4 w-4" />
-                  Select Employee from Schedule
+                  Select Your Name
                   {scheduleQuery.isLoading && <RefreshCw className="ml-2 h-4 w-4 animate-spin" />}
                 </Label>
-                <Select 
-                  value={selectedEmployeeNumber} 
-                  onValueChange={handleEmployeeSelect}
-                  disabled={scheduleQuery.isLoading || !scheduleQuery.data?.employees?.length}
-                >
-                  <SelectTrigger data-testid="select-employee">
-                    <SelectValue placeholder="Choose an employee from the schedule" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {scheduleQuery.data?.employees?.map((employee) => (
-                      <SelectItem key={employee.employeeNumber} value={employee.employeeNumber}>
-                        {employee.fullName} (#{employee.employeeNumber})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={employeeSearchOpen} onOpenChange={setEmployeeSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={employeeSearchOpen}
+                      className="w-full justify-between"
+                      disabled={scheduleQuery.isLoading || !scheduleQuery.data?.employees?.length}
+                      data-testid="select-employee"
+                    >
+                      {selectedEmployeeNumber
+                        ? scheduleQuery.data?.employees?.find((employee) => employee.employeeNumber === selectedEmployeeNumber)?.fullName + ` (#${selectedEmployeeNumber})`
+                        : "Choose your name from the list"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search employees..." />
+                      <CommandList>
+                        <CommandEmpty>No employee found.</CommandEmpty>
+                        <CommandGroup>
+                          {scheduleQuery.data?.employees
+                            ?.sort((a, b) => a.fullName.localeCompare(b.fullName))
+                            ?.map((employee) => (
+                              <CommandItem
+                                key={employee.employeeNumber}
+                                value={`${employee.fullName} ${employee.employeeNumber}`}
+                                onSelect={() => {
+                                  handleEmployeeSelect(employee.employeeNumber);
+                                  setEmployeeSearchOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={`mr-2 h-4 w-4 ${
+                                    selectedEmployeeNumber === employee.employeeNumber ? "opacity-100" : "opacity-0"
+                                  }`}
+                                />
+                                {employee.fullName} (#{employee.employeeNumber})
+                              </CommandItem>
+                            ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 {scheduleQuery.error && (
                   <p className="text-sm text-destructive mt-1">
                     Failed to load employee schedule. Manual entry available below.
@@ -680,15 +696,6 @@ export default function TimesheetPage() {
                     data-testid="input-week-ending"
                   />
                 </div>
-                <Button
-                  type="button"
-                  onClick={handleAutoFillDates}
-                  className="h-fit"
-                  data-testid="button-auto-fill-dates"
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Auto-Fill Dates
-                </Button>
               </div>
             </CardContent>
           </Card>
@@ -763,8 +770,8 @@ export default function TimesheetPage() {
               <h2 className="text-lg font-semibold text-secondary mb-4" data-testid="heading-rescue-coverage">
                 Weeknight Rescue Coverage
               </h2>
-              <p className="text-sm text-gray-600 mb-4">
-                ***Weeknight Rescue Coverage will be paid out in monthly check***
+              <p className="text-xs text-gray-600 mb-4 italic">
+                Weeknight Rescue Coverage will be paid out in monthly check
               </p>
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
