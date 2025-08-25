@@ -18,7 +18,7 @@ import { generateTimeSheetPDF } from "@/lib/pdf-generator";
 import { apiRequest } from "@/lib/queryClient";
 import SignaturePad from "@/components/ui/signature-pad";
 import { getCurrentWeekEndingDate, isSaturday, getNextSaturday, getPreviousSaturday } from "@/lib/date-utils";
-import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle, Check, ChevronsUpDown, RotateCcw } from "lucide-react";
+import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle, Check, ChevronsUpDown, RotateCcw, LogOut } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const timesheetSchema = z.object({
@@ -126,7 +126,11 @@ interface ScheduleData {
   lastUpdated: string;
 }
 
-export default function TimesheetPage() {
+interface TimesheetPageProps {
+  logout?: () => void;
+}
+
+export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
   const { toast } = useToast();
   const [signatureData, setSignatureData] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -780,14 +784,27 @@ export default function TimesheetPage() {
                 <p className="text-blue-100 text-sm" data-testid="header-subtitle">Weekly Time Sheet</p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="p-2 hover:bg-blue-700 rounded-full text-white"
-              data-testid="button-help"
-            >
-              <HelpCircle className="text-xl" />
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-2 hover:bg-blue-700 rounded-full text-white"
+                data-testid="button-help"
+              >
+                <HelpCircle className="text-xl" />
+              </Button>
+              {logout && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={logout}
+                  className="p-2 hover:bg-blue-700 rounded-full text-white"
+                  data-testid="logout-button"
+                >
+                  <LogOut className="text-xl" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </header>
