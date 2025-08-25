@@ -219,17 +219,33 @@ export default function TimesheetPage() {
       
       // Populate from shifts
       shifts.forEach((shift) => {
-        const shiftDate = new Date(shift.date);
+        // Use the date string directly to avoid timezone issues
+        const shiftDate = new Date(shift.date + 'T12:00:00'); // Add noon time to avoid timezone edge cases
         const dayOfWeek = shiftDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
         const dayKey = DAYS_OF_WEEK[dayOfWeek]?.key;
+        
+        console.log(`Processing shift for ${shift.date}: dayOfWeek=${dayOfWeek}, dayKey=${dayKey}`);
         
         if (dayKey) {
           // Convert UTC times to local time strings
           const startTime = new Date(shift.startTime);
           const endTime = new Date(shift.endTime);
           
-          const startTimeStr = startTime.toTimeString().substring(0, 5); // HH:MM
-          const endTimeStr = endTime.toTimeString().substring(0, 5); // HH:MM
+          // Use proper locale time formatting to handle timezone conversion
+          const startTimeStr = startTime.toLocaleTimeString('en-US', { 
+            hour12: false, 
+            hour: '2-digit', 
+            minute: '2-digit',
+            timeZone: 'America/New_York' // Assuming Eastern time for Oakland
+          });
+          const endTimeStr = endTime.toLocaleTimeString('en-US', { 
+            hour12: false, 
+            hour: '2-digit', 
+            minute: '2-digit',
+            timeZone: 'America/New_York'
+          });
+          
+          console.log(`Setting ${dayKey}: ${startTimeStr} - ${endTimeStr} (${shift.duration}h)`);
           
           setValue(`${dayKey}StartTime` as keyof TimesheetFormData, startTimeStr);
           setValue(`${dayKey}EndTime` as keyof TimesheetFormData, endTimeStr);
