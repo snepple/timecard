@@ -418,7 +418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(employeeNumbers.employeeNumber, employeeNumber));
 
       // Set up email transport
-      const transporter = nodemailer.createTransporter({
+      const transporter = nodemailer.createTransport({
         host: "smtp.gmail.com",
         port: 587,
         secure: false,
