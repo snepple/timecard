@@ -278,11 +278,8 @@ export default function TimesheetPage() {
           const startTime = new Date(shift.startTime);
           const endTime = new Date(shift.endTime);
           
-          // Check for night duty/rescue coverage
-          const startHour = startTime.getUTCHours();
-          const endHour = endTime.getUTCHours();
-          const isNightDuty = (shift.position && shift.position.toLowerCase().includes('night duty')) ||
-                              (startHour >= 18 || startHour <= 6) && (endHour >= 0 && endHour <= 12);
+          // Check for night duty/rescue coverage - ONLY by explicit "Night Duty" label
+          const isNightDuty = shift.position && shift.position.toLowerCase().includes('night duty');
           
           if (isNightDuty) {
             hasNightDuty = true;
@@ -341,14 +338,14 @@ export default function TimesheetPage() {
           });
           
           // Check if there's already a shift for this timesheet day (from previous combined shifts)
-          const existingStartTime = watchedValues[`${dayKey}StartTime` as keyof TimesheetFormData] as string;
-          const existingEndTime = watchedValues[`${dayKey}EndTime` as keyof TimesheetFormData] as string;
-          const existingHours = watchedValues[`${dayKey}TotalHours` as keyof TimesheetFormData] as number || 0;
+          const currentStartTime = getValues(`${dayKey}StartTime` as keyof TimesheetFormData) as string;
+          const currentEndTime = getValues(`${dayKey}EndTime` as keyof TimesheetFormData) as string;
+          const currentHours = getValues(`${dayKey}TotalHours` as keyof TimesheetFormData) as number || 0;
           
-          if (existingStartTime && existingEndTime) {
+          if (currentStartTime && currentEndTime) {
             // Combine with existing shift for this timesheet day
-            const existingStart = new Date(`1970-01-01T${existingStartTime}:00`);
-            const existingEnd = new Date(`1970-01-01T${existingEndTime}:00`);
+            const existingStart = new Date(`1970-01-01T${currentStartTime}:00`);
+            const existingEnd = new Date(`1970-01-01T${currentEndTime}:00`);
             const newStart = new Date(`1970-01-01T${startTimeStr}:00`);
             const newEnd = new Date(`1970-01-01T${endTimeStr}:00`);
             
@@ -360,7 +357,7 @@ export default function TimesheetPage() {
             
             setValue(`${dayKey}StartTime` as keyof TimesheetFormData, finalStartStr);
             setValue(`${dayKey}EndTime` as keyof TimesheetFormData, finalEndStr);
-            setValue(`${dayKey}TotalHours` as keyof TimesheetFormData, existingHours + totalDuration);
+            setValue(`${dayKey}TotalHours` as keyof TimesheetFormData, currentHours + totalDuration);
           } else {
             // First shift for this timesheet day
             setValue(`${dayKey}StartTime` as keyof TimesheetFormData, startTimeStr);

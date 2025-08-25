@@ -4,8 +4,8 @@ export function calculateHours(startTime: string, endTime: string): number {
   const start = new Date(`2000-01-01T${startTime}`);
   const end = new Date(`2000-01-01T${endTime}`);
   
-  // Handle overnight shifts
-  if (end < start) {
+  // Handle overnight shifts OR when start and end times are identical (24-hour shift)
+  if (end <= start) {
     end.setDate(end.getDate() + 1);
   }
   
