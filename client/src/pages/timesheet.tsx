@@ -133,10 +133,16 @@ export default function TimesheetPage() {
     refetchOnWindowFocus: true,
   });
 
-  // Update employee number mutation
+  // Update or create employee number mutation
   const updateEmployeeNumberMutation = useMutation({
     mutationFn: async ({ id, employeeNumber }: { id: string; employeeNumber: string }) => {
-      return apiRequest("PUT", `/api/employee-numbers/${id}`, { employeeName: tempEmployeeData?.name, employeeNumber });
+      if (id) {
+        // Update existing employee
+        return apiRequest("PUT", `/api/employee-numbers/${id}`, { employeeName: tempEmployeeData?.name, employeeNumber });
+      } else {
+        // Create new employee
+        return apiRequest("POST", "/api/employee-numbers", { employeeName: tempEmployeeData?.name, employeeNumber });
+      }
     },
     onSuccess: () => {
       // Force refresh the employee numbers data
@@ -347,23 +353,19 @@ export default function TimesheetPage() {
       // Check if this employee exists in the database and has an employee number
       const dbEmployee = employeeNumbersQuery.data?.find(emp => emp.employeeName === employee.fullName);
       
-      console.log("Database employee:", dbEmployee); // Debug log
-      console.log("Schedule employee:", employee); // Debug log
-      
       if (dbEmployee && dbEmployee.employeeNumber && dbEmployee.employeeNumber.trim() !== "") {
         // Employee has an ID in database, use it
-        console.log("Using database employee number:", dbEmployee.employeeNumber);
         setValue("employeeNumber", dbEmployee.employeeNumber);
       } else if (dbEmployee && (!dbEmployee.employeeNumber || dbEmployee.employeeNumber.trim() === "")) {
         // Employee exists in database but no employee number - prompt for it
-        console.log("Employee exists but no number, prompting");
         setTempEmployeeData({ id: dbEmployee.id, name: employee.fullName });
         setShowEmployeeIdPrompt(true);
         setValue("employeeNumber", ""); // Clear until they provide ID
       } else {
-        // Employee not in database - use schedule employee number
-        console.log("Using schedule employee number:", employee.employeeNumber);
-        setValue("employeeNumber", employee.employeeNumber);
+        // Employee not in database - prompt for employee ID and add to database
+        setTempEmployeeData({ id: "", name: employee.fullName });
+        setShowEmployeeIdPrompt(true);
+        setValue("employeeNumber", ""); // Clear until they provide ID
       }
       
       // Auto-populate from schedule if week ending is set

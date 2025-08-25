@@ -368,14 +368,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const emp of scheduleData.employees) {
         const fullName = `${emp.firstName} ${emp.lastName}`;
         if (!existingNames.has(fullName)) {
-          const [newEmployee] = await db
-            .insert(employeeNumbers)
-            .values({ 
-              employeeName: fullName, 
-              employeeNumber: "" // Will be filled when they create timesheet
-            })
-            .returning();
-          newEmployees.push(newEmployee);
+          try {
+            const [newEmployee] = await db
+              .insert(employeeNumbers)
+              .values({ 
+                employeeName: fullName, 
+                employeeNumber: "" // Will be filled when they create timesheet
+              })
+              .returning();
+            newEmployees.push(newEmployee);
+          } catch (insertError) {
+            // Skip if employee already exists (race condition)
+            console.log(`Employee ${fullName} already exists, skipping`);
+          }
         }
       }
       
