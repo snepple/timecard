@@ -287,7 +287,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all employee numbers
   app.get("/api/employee-numbers", async (req, res) => {
     try {
-      const employees = await db.select().from(employeeNumbers).orderBy(desc(employeeNumbers.createdAt));
+      const employees = await storage.getEmployeeNumbers();
       res.json(employees);
     } catch (error) {
       console.error("Error fetching employee numbers:", error);
@@ -360,17 +360,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get employee email by employee number
   app.get("/api/employee-numbers/:employeeNumber/email", async (req, res) => {
     try {
-      const [employee] = await db
-        .select({ email: employeeNumbers.email })
-        .from(employeeNumbers)
-        .where(eq(employeeNumbers.employeeNumber, req.params.employeeNumber));
-      
-      if (!employee) {
-        res.status(404).json({ message: "Employee not found" });
-        return;
-      }
-      
-      res.json({ email: employee.email });
+      const email = await storage.getEmployeeEmail(req.params.employeeNumber);
+      res.json({ email: email || null });
     } catch (error) {
       console.error("Error fetching employee email:", error);
       res.status(500).json({ message: "Failed to fetch employee email" });
@@ -387,17 +378,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      const [employee] = await db
-        .update(employeeNumbers)
-        .set({ email, updatedAt: new Date() })
-        .where(eq(employeeNumbers.employeeNumber, req.params.employeeNumber))
-        .returning();
-      
-      if (!employee) {
-        res.status(404).json({ message: "Employee not found" });
-        return;
-      }
-      
+      await storage.updateEmployeeEmail(req.params.employeeNumber, email);
       res.json({ message: "Email updated successfully" });
     } catch (error) {
       console.error("Error updating employee email:", error);

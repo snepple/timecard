@@ -1,5 +1,7 @@
-import { type Timesheet, type InsertTimesheet } from "@shared/schema";
+import { type Timesheet, type InsertTimesheet, type EmployeeNumber, type InsertEmployeeNumber, timesheets, employeeNumbers } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<any | undefined>;
@@ -12,7 +14,11 @@ export interface IStorage {
   getTimesheetsByEmployee(employeeNumber: string): Promise<Timesheet[]>;
   updateTimesheet(id: string, timesheet: Partial<InsertTimesheet>): Promise<Timesheet | undefined>;
   
-  // Employee email operations
+  // Employee number operations
+  getEmployeeNumbers(): Promise<EmployeeNumber[]>;
+  getEmployeeNumber(id: string): Promise<EmployeeNumber | undefined>;
+  createEmployeeNumber(employee: InsertEmployeeNumber): Promise<EmployeeNumber>;
+  updateEmployeeNumber(id: string, employee: Partial<InsertEmployeeNumber>): Promise<EmployeeNumber | undefined>;
   getEmployeeEmail(employeeNumber: string): Promise<string | undefined>;
   updateEmployeeEmail(employeeNumber: string, email: string): Promise<void>;
   
@@ -55,6 +61,7 @@ export class MemStorage implements IStorage {
     const timesheet: Timesheet = {
       ...insertTimesheet,
       id,
+      status: insertTimesheet.status || "draft",
       createdAt: new Date().toISOString(),
     };
     this.timesheets.set(id, timesheet);
@@ -139,6 +146,31 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getEmployeeNumbers(): Promise<EmployeeNumber[]> {
+    return [];
+  }
+
+  async getEmployeeNumber(id: string): Promise<EmployeeNumber | undefined> {
+    return undefined;
+  }
+
+  async createEmployeeNumber(employee: InsertEmployeeNumber): Promise<EmployeeNumber> {
+    const id = randomUUID();
+    const newEmployee: EmployeeNumber = {
+      ...employee,
+      id,
+      employeeNumber: employee.employeeNumber || "",
+      email: employee.email || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    return newEmployee;
+  }
+
+  async updateEmployeeNumber(id: string, employee: Partial<InsertEmployeeNumber>): Promise<EmployeeNumber | undefined> {
+    return undefined;
+  }
+
   async getEmployeeEmail(employeeNumber: string): Promise<string | undefined> {
     // For MemStorage, we don't have persistent employee data, so return undefined
     return undefined;
@@ -150,4 +182,120 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  async getUser(id: string): Promise<any | undefined> {
+    // Auth operations - placeholder for now
+    return undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<any | undefined> {
+    // Auth operations - placeholder for now
+    return undefined;
+  }
+
+  async createUser(user: any): Promise<any> {
+    // Auth operations - placeholder for now
+    return user;
+  }
+
+  // Timesheet operations
+  async createTimesheet(insertTimesheet: InsertTimesheet): Promise<Timesheet> {
+    const [timesheet] = await db.insert(timesheets).values(insertTimesheet).returning();
+    return timesheet;
+  }
+
+  async getTimesheet(id: string): Promise<Timesheet | undefined> {
+    const [timesheet] = await db.select().from(timesheets).where(eq(timesheets.id, id));
+    return timesheet;
+  }
+
+  async getTimesheetsByEmployee(employeeNumber: string): Promise<Timesheet[]> {
+    return await db.select().from(timesheets).where(eq(timesheets.employeeNumber, employeeNumber));
+  }
+
+  async updateTimesheet(id: string, updates: Partial<InsertTimesheet>): Promise<Timesheet | undefined> {
+    const [updated] = await db.update(timesheets).set(updates).where(eq(timesheets.id, id)).returning();
+    return updated;
+  }
+
+  // Employee number operations
+  async getEmployeeNumbers(): Promise<EmployeeNumber[]> {
+    return await db.select().from(employeeNumbers);
+  }
+
+  async getEmployeeNumber(id: string): Promise<EmployeeNumber | undefined> {
+    const [employee] = await db.select().from(employeeNumbers).where(eq(employeeNumbers.id, id));
+    return employee;
+  }
+
+  async createEmployeeNumber(employee: InsertEmployeeNumber): Promise<EmployeeNumber> {
+    const [newEmployee] = await db.insert(employeeNumbers).values(employee).returning();
+    return newEmployee;
+  }
+
+  async updateEmployeeNumber(id: string, employee: Partial<InsertEmployeeNumber>): Promise<EmployeeNumber | undefined> {
+    const [updated] = await db.update(employeeNumbers)
+      .set({ ...employee, updatedAt: new Date() })
+      .where(eq(employeeNumbers.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getEmployeeEmail(employeeNumber: string): Promise<string | undefined> {
+    const [employee] = await db.select({ email: employeeNumbers.email })
+      .from(employeeNumbers)
+      .where(eq(employeeNumbers.employeeNumber, employeeNumber));
+    return employee?.email || undefined;
+  }
+
+  async updateEmployeeEmail(employeeNumber: string, email: string): Promise<void> {
+    await db.update(employeeNumbers)
+      .set({ email, updatedAt: new Date() })
+      .where(eq(employeeNumbers.employeeNumber, employeeNumber));
+  }
+
+  // Approval workflow operations
+  async submitTimesheet(id: string): Promise<Timesheet | undefined> {
+    const [updated] = await db.update(timesheets)
+      .set({ status: "submitted", submittedAt: new Date() })
+      .where(eq(timesheets.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getPendingTimesheets(): Promise<Timesheet[]> {
+    return await db.select().from(timesheets).where(eq(timesheets.status, "submitted"));
+  }
+
+  async approveTimesheet(id: string, supervisorName: string, comments?: string): Promise<Timesheet | undefined> {
+    const [updated] = await db.update(timesheets)
+      .set({
+        status: "approved",
+        approvedBy: supervisorName,
+        approvedAt: new Date(),
+        supervisorComments: comments || null,
+      })
+      .where(eq(timesheets.id, id))
+      .returning();
+    return updated;
+  }
+
+  async rejectTimesheet(id: string, supervisorName: string, comments: string): Promise<Timesheet | undefined> {
+    const [updated] = await db.update(timesheets)
+      .set({
+        status: "rejected",
+        approvedBy: supervisorName,
+        approvedAt: new Date(),
+        supervisorComments: comments,
+      })
+      .where(eq(timesheets.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getTimesheetsByStatus(status: string): Promise<Timesheet[]> {
+    return await db.select().from(timesheets).where(eq(timesheets.status, status));
+  }
+}
+
+export const storage = new DatabaseStorage();

@@ -138,6 +138,7 @@ export default function TimesheetPage() {
   const [employeeIdInput, setEmployeeIdInput] = useState("");
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [employeeEmail, setEmployeeEmail] = useState("");
+  const [currentEmployeeEmail, setCurrentEmployeeEmail] = useState("");
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [previewPdfData, setPreviewPdfData] = useState<string | null>(null);
 
@@ -319,7 +320,7 @@ export default function TimesheetPage() {
         
         // Determine which timesheet day this belongs to based on 7am boundaries
         // Convert to Eastern time for proper 7am calculation
-        const startTimeET = new Date(combinedStartTime!.toLocaleString("en-US", {timeZone: "America/New_York"}));
+        const startTimeET = new Date((combinedStartTime as Date).toLocaleString("en-US", {timeZone: "America/New_York"}));
         const startHour = startTimeET.getHours();
         
         // Get the calendar date this shift starts on
@@ -878,6 +879,56 @@ export default function TimesheetPage() {
                       <p className="text-sm text-gray-600">Employee #: {watchedValues.employeeNumber || selectedEmployeeNumber}</p>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Email Address Field */}
+              {selectedEmployeeNumber && (
+                <div className="mt-4">
+                  <Label htmlFor="employeeEmail" className="flex items-center mb-2">
+                    <Mail className="text-primary mr-2 h-4 w-4" />
+                    Email Address
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="employeeEmail"
+                      type="email"
+                      value={currentEmployeeEmail}
+                      onChange={(e) => setCurrentEmployeeEmail(e.target.value)}
+                      placeholder="Enter your email address"
+                      className="flex-1"
+                      data-testid="input-employee-email"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          await apiRequest("PUT", `/api/employee-numbers/${selectedEmployeeNumber}/email`, { 
+                            email: currentEmployeeEmail 
+                          });
+                          toast({
+                            title: "Email updated",
+                            description: "Your email address has been saved.",
+                          });
+                        } catch (error) {
+                          toast({
+                            title: "Error",
+                            description: "Failed to update email address.",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                      disabled={!currentEmployeeEmail || !/\S+@\S+\.\S+/.test(currentEmployeeEmail)}
+                      data-testid="button-save-email"
+                    >
+                      Save
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    This email will be used for timesheet notifications and submissions.
+                  </p>
                 </div>
               )}
               
