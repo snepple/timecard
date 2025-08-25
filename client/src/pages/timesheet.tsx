@@ -227,39 +227,7 @@ export default function TimesheetPage() {
     }
   }, [watchedValues.weekEnding, setValue]);
 
-  // Save to localStorage
-  useEffect(() => {
-    const subscription = watch((value) => {
-      if (value.employeeName || value.employeeNumber) {
-        localStorage.setItem("timesheet-draft", JSON.stringify(value));
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [watch]);
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem("timesheet-draft");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        Object.keys(parsed).forEach((key) => {
-          if (parsed[key] !== undefined && parsed[key] !== "") {
-            setValue(key as keyof TimesheetFormData, parsed[key]);
-          }
-        });
-        if (parsed.selectedEmployee) {
-          setSelectedEmployeeNumber(parsed.selectedEmployee);
-        }
-        toast({
-          title: "Draft loaded",
-          description: "Your previous timesheet draft has been loaded.",
-        });
-      } catch (error) {
-        console.error("Error loading saved draft:", error);
-      }
-    }
-  }, [setValue, toast]);
 
   // Auto-populate timecard when employee is selected
   const autoPopulateFromSchedule = async (employeeNumber: string, weekEnding: string) => {
