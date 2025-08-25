@@ -16,6 +16,7 @@ export default function SignaturePad({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
+  const lastPointRef = useRef<{x: number, y: number} | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -36,18 +37,40 @@ export default function SignaturePad({
     // Scale the context to match device pixel ratio
     context.scale(window.devicePixelRatio, window.devicePixelRatio);
 
-    // Configure drawing context
+    // Configure drawing context for smoother lines
     context.strokeStyle = "#000";
     context.lineWidth = 2;
     context.lineCap = "round";
     context.lineJoin = "round";
+    context.globalCompositeOperation = "source-over";
 
     // Clear canvas with white background
     context.fillStyle = "#fff";
     context.fillRect(0, 0, displayWidth, displayHeight);
   }, [width, height]);
 
-  const startDrawing = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+  const getEventPos = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+
+    const rect = canvas.getBoundingClientRect();
+    let x, y;
+
+    if ('touches' in event && event.touches.length > 0) {
+      x = event.touches[0].clientX - rect.left;
+      y = event.touches[0].clientY - rect.top;
+    } else if ('clientX' in event) {
+      x = event.clientX - rect.left;
+      y = event.clientY - rect.top;
+    } else {
+      x = 0;
+      y = 0;
+    }
+
+    return { x, y };
+  };
+
+  const startDrawing = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
     event.preventDefault();
     setIsDrawing(true);
     
@@ -57,22 +80,14 @@ export default function SignaturePad({
     const context = canvas.getContext("2d");
     if (!context) return;
 
-    const rect = canvas.getBoundingClientRect();
-    let x, y;
-
-    if ('touches' in event) {
-      x = event.touches[0].clientX - rect.left;
-      y = event.touches[0].clientY - rect.top;
-    } else {
-      x = event.clientX - rect.left;
-      y = event.clientY - rect.top;
-    }
+    const { x, y } = getEventPos(event);
+    lastPointRef.current = { x, y };
 
     context.beginPath();
     context.moveTo(x, y);
   };
 
-  const draw = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+  const draw = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
     event.preventDefault();
     if (!isDrawing) return;
 
@@ -82,24 +97,23 @@ export default function SignaturePad({
     const context = canvas.getContext("2d");
     if (!context) return;
 
-    const rect = canvas.getBoundingClientRect();
-    let x, y;
-
-    if ('touches' in event) {
-      x = event.touches[0].clientX - rect.left;
-      y = event.touches[0].clientY - rect.top;
-    } else {
-      x = event.clientX - rect.left;
-      y = event.clientY - rect.top;
+    const { x, y } = getEventPos(event);
+    
+    // Draw smooth line from last point to current point
+    if (lastPointRef.current) {
+      context.beginPath();
+      context.moveTo(lastPointRef.current.x, lastPointRef.current.y);
+      context.lineTo(x, y);
+      context.stroke();
     }
-
-    context.lineTo(x, y);
-    context.stroke();
+    
+    lastPointRef.current = { x, y };
     setHasSignature(true);
   };
 
   const stopDrawing = () => {
     setIsDrawing(false);
+    lastPointRef.current = null;
     captureSignature();
   };
 
@@ -133,6 +147,10 @@ export default function SignaturePad({
             hasSignature ? 'bg-white' : ''
           }`}
           style={{ height: `${height}px`, minHeight: '200px' }}
+          onPointerDown={startDrawing}
+          onPointerMove={draw}
+          onPointerUp={stopDrawing}
+          onPointerLeave={stopDrawing}
           onMouseDown={startDrawing}
           onMouseMove={draw}
           onMouseUp={stopDrawing}
