@@ -281,23 +281,25 @@ export default function TimesheetPage() {
 
   // Handle week ending change
   const handleWeekEndingChange = (weekEnding: string) => {
+    let finalWeekEnding = weekEnding;
+    
     // Validate it's a Saturday
     if (!isSaturday(weekEnding)) {
       const nextSaturday = getNextSaturday(weekEnding);
+      finalWeekEnding = nextSaturday;
       setValue("weekEnding", nextSaturday);
       toast({
         title: "Date adjusted",
         description: "Week ending date must be a Saturday. Date adjusted to next Saturday.",
         variant: "destructive",
       });
-      return;
+    } else {
+      setValue("weekEnding", weekEnding);
     }
     
-    setValue("weekEnding", weekEnding);
-    
-    // Auto-populate from schedule if employee is selected
+    // Auto-populate from schedule if employee is selected (use the final week ending date)
     if (selectedEmployeeNumber) {
-      autoPopulateFromSchedule(selectedEmployeeNumber, weekEnding);
+      autoPopulateFromSchedule(selectedEmployeeNumber, finalWeekEnding);
     }
   };
 
