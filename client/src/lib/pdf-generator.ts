@@ -243,11 +243,11 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
         const base64Data = data.signatureData.replace(/^data:image\/[a-z]+;base64,/, '');
         const signatureImage = await pdfDoc.embedPng(base64Data);
         
-        // Position signature on the signature line (adjusted coordinates)
+        // Position signature right above the signature line
         const pageHeight = firstPage.getSize().height;
         firstPage.drawImage(signatureImage, {
           x: 135, // Align with signature line
-          y: pageHeight - 200, // Position on signature line (approximately 200 points from top)
+          y: pageHeight - 260, // Move further down to be above signature line
           width: 150,
           height: 25,
         });
