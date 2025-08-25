@@ -97,11 +97,27 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
       color: rgb(0, 0, 0),
     });
     
+    // Underline for Name field
+    page.drawLine({
+      start: { x: 85, y: height - 125 },
+      end: { x: 320, y: height - 125 },
+      thickness: 1,
+      color: rgb(0, 0, 0),
+    });
+    
     page.drawText(`Number: ${data.employeeNumber}`, {
       x: 350,
       y: height - 120,
       size: 12,
       font: helveticaFont,
+      color: rgb(0, 0, 0),
+    });
+    
+    // Underline for Number field
+    page.drawLine({
+      start: { x: 400, y: height - 125 },
+      end: { x: 520, y: height - 125 },
+      thickness: 1,
       color: rgb(0, 0, 0),
     });
     
@@ -113,8 +129,16 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
       color: rgb(0, 0, 0),
     });
     
+    // Underline for Week Ending field
+    page.drawLine({
+      start: { x: 140, y: height - 155 },
+      end: { x: 280, y: height - 155 },
+      thickness: 1,
+      color: rgb(0, 0, 0),
+    });
+    
     // Signature line
-    page.drawText('Signature: ___________________________', {
+    page.drawText('Signature:', {
       x: 50,
       y: height - 180,
       size: 12,
@@ -122,8 +146,68 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
       color: rgb(0, 0, 0),
     });
     
+    // Signature underline
+    page.drawLine({
+      start: { x: 110, y: height - 185 },
+      end: { x: 280, y: height - 185 },
+      thickness: 1,
+      color: rgb(0, 0, 0),
+    });
+    
     // Table headers - positioned exactly like template
     const tableStartY = height - 220;
+    
+    // Draw table border (top border)
+    page.drawLine({
+      start: { x: 40, y: tableStartY + 15 },
+      end: { x: 520, y: tableStartY + 15 },
+      thickness: 1,
+      color: rgb(0, 0, 0),
+    });
+    
+    // Draw vertical lines for table columns
+    page.drawLine({
+      start: { x: 40, y: tableStartY + 15 },
+      end: { x: 40, y: tableStartY - 200 },
+      thickness: 1,
+      color: rgb(0, 0, 0),
+    });
+    
+    page.drawLine({
+      start: { x: 120, y: tableStartY + 15 },
+      end: { x: 120, y: tableStartY - 200 },
+      thickness: 1,
+      color: rgb(0, 0, 0),
+    });
+    
+    page.drawLine({
+      start: { x: 190, y: tableStartY + 15 },
+      end: { x: 190, y: tableStartY - 200 },
+      thickness: 1,
+      color: rgb(0, 0, 0),
+    });
+    
+    page.drawLine({
+      start: { x: 280, y: tableStartY + 15 },
+      end: { x: 280, y: tableStartY - 200 },
+      thickness: 1,
+      color: rgb(0, 0, 0),
+    });
+    
+    page.drawLine({
+      start: { x: 370, y: tableStartY + 15 },
+      end: { x: 370, y: tableStartY - 200 },
+      thickness: 1,
+      color: rgb(0, 0, 0),
+    });
+    
+    page.drawLine({
+      start: { x: 520, y: tableStartY + 15 },
+      end: { x: 520, y: tableStartY - 200 },
+      thickness: 1,
+      color: rgb(0, 0, 0),
+    });
+    
     page.drawText('Date', {
       x: 130,
       y: tableStartY,
@@ -156,6 +240,14 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
       color: rgb(0, 0, 0),
     });
     
+    // Draw header separator line
+    page.drawLine({
+      start: { x: 40, y: tableStartY - 10 },
+      end: { x: 520, y: tableStartY - 10 },
+      thickness: 1,
+      color: rgb(0, 0, 0),
+    });
+    
     // Days data - positioned exactly like template
     const days = [
       { name: "Sunday", date: data.sundayDate, start: data.sundayStartTime, end: data.sundayEndTime, total: data.sundayTotalHours },
@@ -169,7 +261,7 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
     
     let currentY = tableStartY - 30;
     
-    days.forEach((day) => {
+    days.forEach((day, index) => {
       // Day name - left aligned like template
       page.drawText(day.name, {
         x: 50,
@@ -212,7 +304,25 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
         color: rgb(0, 0, 0),
       });
       
+      // Draw horizontal line between rows
+      if (index < days.length - 1) {
+        page.drawLine({
+          start: { x: 40, y: currentY - 12 },
+          end: { x: 520, y: currentY - 12 },
+          thickness: 0.5,
+          color: rgb(0.7, 0.7, 0.7),
+        });
+      }
+      
       currentY -= 25; // Spacing between days
+    });
+    
+    // Draw table bottom border
+    page.drawLine({
+      start: { x: 40, y: currentY + 10 },
+      end: { x: 520, y: currentY + 10 },
+      thickness: 1,
+      color: rgb(0, 0, 0),
     });
     
     // Total hours section - positioned exactly like template
@@ -298,7 +408,7 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
         const signatureImage = await pdfDoc.embedPng(base64Data);
         
         page.drawImage(signatureImage, {
-          x: 150,
+          x: 115,
           y: height - 195,
           width: 100,
           height: 25,
