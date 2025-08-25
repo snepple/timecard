@@ -343,14 +343,6 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
       color: rgb(0, 0, 0),
     });
     
-    page.drawText('0', {
-      x: 450,
-      y: currentY,
-      size: 12,
-      font: helveticaBoldFont,
-      color: rgb(0, 0, 0),
-    });
-    
     // Weeknight Rescue Coverage - centered exactly like template
     currentY -= 60;
     page.drawText('Weeknight Rescue Coverage', {
@@ -361,8 +353,19 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
       color: rgb(0, 0, 0),
     });
     
+    // Draw border around weekend coverage section
+    currentY -= 15;
+    page.drawRectangle({
+      x: 80,
+      y: currentY - 50,
+      width: 450,
+      height: 70,
+      borderColor: rgb(0, 0, 0),
+      borderWidth: 1,
+    });
+    
     // Coverage days - positioned exactly like template
-    currentY -= 30;
+    currentY -= 15;
     const coverageDays = [
       { name: "Monday", covered: data.rescueCoverageMonday, x: 100 },
       { name: "Tuesday", covered: data.rescueCoverageTuesday, x: 200 },
@@ -409,9 +412,9 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
         
         page.drawImage(signatureImage, {
           x: 115,
-          y: height - 195,
+          y: height - 175,
           width: 100,
-          height: 25,
+          height: 20,
         });
       } catch (error) {
         console.warn("Could not add signature to PDF, continuing without signature:", error);
