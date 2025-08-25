@@ -226,19 +226,46 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
       }
     }
     
-    // Fill rescue coverage checkboxes
+    // Fill rescue coverage checkboxes - try more field name patterns
     const coverageFields = [
-      { names: ['MondayCoverage', 'Monday Coverage', 'Monday_Coverage', 'mondaycoverage', 'RescueMonday'], checked: data.rescueCoverageMonday },
-      { names: ['TuesdayCoverage', 'Tuesday Coverage', 'Tuesday_Coverage', 'tuesdaycoverage', 'RescueTuesday'], checked: data.rescueCoverageTuesday },
-      { names: ['WednesdayCoverage', 'Wednesday Coverage', 'Wednesday_Coverage', 'wednesdaycoverage', 'RescueWednesday'], checked: data.rescueCoverageWednesday },
-      { names: ['ThursdayCoverage', 'Thursday Coverage', 'Thursday_Coverage', 'thursdaycoverage', 'RescueThursday'], checked: data.rescueCoverageThursday },
+      { 
+        names: [
+          'MondayCoverage', 'Monday Coverage', 'Monday_Coverage', 'mondaycoverage', 'RescueMonday',
+          'Monday Rescue', 'Monday_Rescue', 'mondayrescue', 'Rescue_Monday', 'rescue_monday',
+          'CoverageMonday', 'coverage_monday', 'Mon Coverage', 'MonCoverage', 'mon_coverage'
+        ], 
+        checked: data.rescueCoverageMonday 
+      },
+      { 
+        names: [
+          'TuesdayCoverage', 'Tuesday Coverage', 'Tuesday_Coverage', 'tuesdaycoverage', 'RescueTuesday',
+          'Tuesday Rescue', 'Tuesday_Rescue', 'tuesdayrescue', 'Rescue_Tuesday', 'rescue_tuesday',
+          'CoverageTuesday', 'coverage_tuesday', 'Tue Coverage', 'TueCoverage', 'tue_coverage'
+        ], 
+        checked: data.rescueCoverageTuesday 
+      },
+      { 
+        names: [
+          'WednesdayCoverage', 'Wednesday Coverage', 'Wednesday_Coverage', 'wednesdaycoverage', 'RescueWednesday',
+          'Wednesday Rescue', 'Wednesday_Rescue', 'wednesdayrescue', 'Rescue_Wednesday', 'rescue_wednesday',
+          'CoverageWednesday', 'coverage_wednesday', 'Wed Coverage', 'WedCoverage', 'wed_coverage'
+        ], 
+        checked: data.rescueCoverageWednesday 
+      },
+      { 
+        names: [
+          'ThursdayCoverage', 'Thursday Coverage', 'Thursday_Coverage', 'thursdaycoverage', 'RescueThursday',
+          'Thursday Rescue', 'Thursday_Rescue', 'thursdayrescue', 'Rescue_Thursday', 'rescue_thursday',
+          'CoverageThursday', 'coverage_thursday', 'Thu Coverage', 'ThuCoverage', 'thu_coverage'
+        ], 
+        checked: data.rescueCoverageThursday 
+      },
     ];
     
     coverageFields.forEach(({ names, checked }) => {
       for (const fieldName of names) {
-        if (checked) {
-          checkBox(fieldName, true);
-        }
+        // Always set the checkbox state (true or false) to ensure proper unchecking
+        checkBox(fieldName, checked || false);
       }
     });
     
