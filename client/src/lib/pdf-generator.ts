@@ -180,8 +180,18 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
     
     // Convert to base64
     const pdfOutput = pdf.output("arraybuffer");
-    const base64String = btoa(String.fromCharCode(...new Uint8Array(pdfOutput)));
     
+    // Use a more memory-efficient method to convert to base64
+    const uint8Array = new Uint8Array(pdfOutput);
+    let binary = '';
+    const chunkSize = 8192; // Process in chunks to avoid call stack issues
+    
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.slice(i, i + chunkSize);
+      binary += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    
+    const base64String = btoa(binary);
     return base64String;
   } catch (error) {
     console.error("PDF Generation Error:", error);

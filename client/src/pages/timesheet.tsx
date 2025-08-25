@@ -120,6 +120,8 @@ export default function TimesheetPage() {
   const [employeeIdInput, setEmployeeIdInput] = useState("");
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [employeeEmail, setEmployeeEmail] = useState("");
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const [previewPdfData, setPreviewPdfData] = useState<string | null>(null);
 
   // Fetch schedule data (employees and shifts)
   const scheduleQuery = useQuery<ScheduleData>({
@@ -564,13 +566,48 @@ export default function TimesheetPage() {
       return;
     }
 
-    // Check if we have the employee's email stored
-    const existingEmail = employeeEmailQuery.data?.email;
-    if (existingEmail) {
-      setEmployeeEmail(existingEmail);
+    try {
+      setIsLoading(true);
+      
+      // Generate PDF first for preview
+      const pdfBuffer = await generateTimeSheetPDF({
+        ...formData,
+        signatureData,
+      });
+      
+      // Store PDF data for preview
+      setPreviewPdfData(pdfBuffer);
+      
+      // Check if we have the employee's email stored
+      const existingEmail = employeeEmailQuery.data?.email;
+      if (existingEmail) {
+        setEmployeeEmail(existingEmail);
+      }
+      
+      // Show PDF preview dialog
+      setShowPdfPreview(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to generate PDF preview.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleProceedWithEmail = () => {
+    // Close preview dialog and check if we need email
+    setShowPdfPreview(false);
     
-    setShowEmailDialog(true);
+    if (!employeeEmail) {
+      // Show email dialog if no email is set
+      setShowEmailDialog(true);
+    } else {
+      // Proceed directly with email submission
+      handleEmailSubmit();
+    }
   };
 
   const handleEmailSubmit = async () => {
@@ -583,14 +620,19 @@ export default function TimesheetPage() {
       return;
     }
 
+    if (!previewPdfData) {
+      toast({
+        title: "Error",
+        description: "PDF preview data is missing. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const formData = getValues();
     
     try {
       setIsLoading(true);
-      const pdfBuffer = await generateTimeSheetPDF({
-        ...formData,
-        signatureData,
-      });
       
       emailTimesheetMutation.mutate({
         employeeNumber: formData.employeeNumber,
@@ -598,7 +640,7 @@ export default function TimesheetPage() {
         timesheetData: {
           employeeName: formData.employeeName,
           weekEnding: formData.weekEnding,
-          pdfBuffer: pdfBuffer,
+          pdfBuffer: previewPdfData, // Use the already generated PDF
         },
       });
     } catch (error) {
@@ -1084,6 +1126,50 @@ export default function TimesheetPage() {
               data-testid="button-email-submit"
             >
               {emailTimesheetMutation.isPending ? "Submitting..." : "Submit by Email"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* PDF Preview Dialog */}
+      <AlertDialog open={showPdfPreview} onOpenChange={setShowPdfPreview}>
+        <AlertDialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+          <AlertDialogHeader>
+            <AlertDialogTitle>PDF Preview - Timesheet</AlertDialogTitle>
+            <AlertDialogDescription>
+              Review your timesheet below. Click "Send by Email" to proceed with submission.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex-1 overflow-hidden">
+            {previewPdfData && (
+              <div className="w-full h-96 border rounded-lg">
+                <iframe
+                  src={`data:application/pdf;base64,${previewPdfData}`}
+                  width="100%"
+                  height="100%"
+                  className="border-0 rounded-lg"
+                  title="Timesheet PDF Preview"
+                  data-testid="pdf-preview-iframe"
+                />
+              </div>
+            )}
+          </div>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel 
+              onClick={() => {
+                setShowPdfPreview(false);
+                setPreviewPdfData(null);
+              }}
+              data-testid="button-preview-cancel"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleProceedWithEmail}
+              data-testid="button-preview-proceed"
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              Send by Email
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
