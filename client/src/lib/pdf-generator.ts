@@ -270,7 +270,7 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
       });
       
       if (day.covered) {
-        page.drawText('✓', {
+        page.drawText('X', {
           x: day.x + 10,
           y: currentY - 20,
           size: 14,
