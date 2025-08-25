@@ -179,9 +179,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Filter shifts for employee and week
-      const endDate = new Date(weekEnding);
+      // Week ending 8/24 should include Sunday 8/18 through Saturday 8/24
+      const endDate = new Date(weekEnding); 
       const startDate = new Date(endDate);
-      startDate.setDate(endDate.getDate() - 6); // Sunday to Saturday
+      startDate.setDate(endDate.getDate() - 6); // Go back 6 days to Sunday
 
       const employeeShifts = scheduleData.shifts.filter((shift: any) => {
         const shiftDate = new Date(shift.date);
