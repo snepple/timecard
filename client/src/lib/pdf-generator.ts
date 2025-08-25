@@ -255,10 +255,10 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
         // Position signature in the correct area (after "Signature:" text)
         const pageHeight = firstPage.getSize().height;
         firstPage.drawImage(signatureImage, {
-          x: 135, // Align with signature line
+          x: 153, // Move 1/4" to the right (18 points)
           y: pageHeight - 225, // Position right after "Signature:" text
           width: 150,
-          height: 25,
+          height: 20.5, // Reduce height by 1/16" (4.5 points)
         });
         console.log('Added signature image overlay');
       } catch (error) {
