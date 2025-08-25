@@ -220,6 +220,12 @@ export default function TimesheetPage() {
         setValue(`${key}TotalHours` as keyof TimesheetFormData, 0);
       });
       
+      // Clear rescue coverage first
+      setValue("rescueCoverageMonday", false);
+      setValue("rescueCoverageTuesday", false);
+      setValue("rescueCoverageWednesday", false);
+      setValue("rescueCoverageThursday", false);
+      
       // Populate from shifts
       shifts.forEach((shift) => {
         // Use the date string directly to avoid timezone issues
@@ -228,27 +234,37 @@ export default function TimesheetPage() {
         const dayKey = DAYS_OF_WEEK[dayOfWeek]?.key;
         
         if (dayKey) {
-          // Convert UTC times to local time strings
-          const startTime = new Date(shift.startTime);
-          const endTime = new Date(shift.endTime);
-          
-          // Use proper locale time formatting to handle timezone conversion
-          const startTimeStr = startTime.toLocaleTimeString('en-US', { 
-            hour12: false, 
-            hour: '2-digit', 
-            minute: '2-digit',
-            timeZone: 'America/New_York' // Eastern time for Oakland
-          });
-          const endTimeStr = endTime.toLocaleTimeString('en-US', { 
-            hour12: false, 
-            hour: '2-digit', 
-            minute: '2-digit',
-            timeZone: 'America/New_York'
-          });
-          
-          setValue(`${dayKey}StartTime` as keyof TimesheetFormData, startTimeStr);
-          setValue(`${dayKey}EndTime` as keyof TimesheetFormData, endTimeStr);
-          setValue(`${dayKey}TotalHours` as keyof TimesheetFormData, shift.duration);
+          // Check if this is a night duty shift for rescue coverage
+          if (shift.position && shift.position.toLowerCase().includes('night duty')) {
+            // Mark rescue coverage for weeknights only (Monday-Thursday)
+            if (dayKey === 'monday') setValue("rescueCoverageMonday", true);
+            else if (dayKey === 'tuesday') setValue("rescueCoverageTuesday", true);
+            else if (dayKey === 'wednesday') setValue("rescueCoverageWednesday", true);
+            else if (dayKey === 'thursday') setValue("rescueCoverageThursday", true);
+          } else {
+            // Regular shift - populate daily time entry
+            // Convert UTC times to local time strings
+            const startTime = new Date(shift.startTime);
+            const endTime = new Date(shift.endTime);
+            
+            // Use proper locale time formatting to handle timezone conversion
+            const startTimeStr = startTime.toLocaleTimeString('en-US', { 
+              hour12: false, 
+              hour: '2-digit', 
+              minute: '2-digit',
+              timeZone: 'America/New_York' // Eastern time for Oakland
+            });
+            const endTimeStr = endTime.toLocaleTimeString('en-US', { 
+              hour12: false, 
+              hour: '2-digit', 
+              minute: '2-digit',
+              timeZone: 'America/New_York'
+            });
+            
+            setValue(`${dayKey}StartTime` as keyof TimesheetFormData, startTimeStr);
+            setValue(`${dayKey}EndTime` as keyof TimesheetFormData, endTimeStr);
+            setValue(`${dayKey}TotalHours` as keyof TimesheetFormData, shift.duration);
+          }
         }
       });
       
