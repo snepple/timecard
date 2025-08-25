@@ -120,7 +120,11 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
     // Fill basic information fields - try multiple field name patterns
     const nameFields = ['Name', 'EmployeeName', 'Employee Name', 'Employee_Name', 'name', 'employeename'];
     const numberFields = ['Number', 'EmployeeNumber', 'Employee Number', 'Employee_Number', 'number', 'employeenumber', 'ID', 'EmployeeID', 'Employee ID'];
-    const weekEndingFields = ['WeekEnding', 'Week Ending', 'Week_Ending', 'weekending', 'DateWeekEnding', 'Date Week Ending'];
+    const weekEndingFields = [
+      'WeekEnding', 'Week Ending', 'Week_Ending', 'weekending', 'DateWeekEnding', 'Date Week Ending',
+      'WeekEndingDate', 'Week Ending Date', 'EndingDate', 'Ending Date', 'Week End', 'WeekEnd',
+      'weekendingdate', 'endingdate', 'weekend'
+    ];
     
     // Fill name
     for (const fieldName of nameFields) {
@@ -176,7 +180,9 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
         `${day.prefix} Total`, `${day.prefix}Hours`, `${day.prefix}_Hours`,
         `${day.prefix} Hours`, `${day.prefix}TotalHours`, `total${day.prefix}`,
         `${day.prefix.toLowerCase()}Total`, `${day.prefix.toLowerCase()}_total`, 
-        `${day.prefix.toLowerCase()}total`, `${day.prefix.toLowerCase()}hours`
+        `${day.prefix.toLowerCase()}total`, `${day.prefix.toLowerCase()}hours`,
+        `${day.prefix} Total Hours`, `${day.prefix}_Total_Hours`, `TotalHours${day.prefix}`,
+        `Hours${day.prefix}`, `Hours_${day.prefix}`, `${day.prefix}Hrs`, `${day.prefix}_Hrs`
       ];
       
       // Try to fill each field type with formatted dates
@@ -208,7 +214,10 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
     // Fill total weekly hours
     const possibleTotalWeeklyFields = [
       'TotalWeeklyHours', 'Total Weekly Hours', 'WeeklyTotal', 'Weekly Total',
-      'TotalHours', 'Total Hours', 'totalweeklyhours', 'weeklytotal', 'totalhours'
+      'TotalHours', 'Total Hours', 'totalweeklyhours', 'weeklytotal', 'totalhours',
+      'Total Hours for Week', 'TotalHoursForWeek', 'Total_Hours_for_Week',
+      'WeekTotal', 'Week Total', 'GrandTotal', 'Grand Total', 'OverallTotal',
+      'totalhours for week', 'total hours for week', 'weektotal', 'grandtotal'
     ];
     
     for (const fieldName of possibleTotalWeeklyFields) {
@@ -243,11 +252,11 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
         const base64Data = data.signatureData.replace(/^data:image\/[a-z]+;base64,/, '');
         const signatureImage = await pdfDoc.embedPng(base64Data);
         
-        // Position signature right above the signature line
+        // Position signature in the correct area (after "Signature:" text)
         const pageHeight = firstPage.getSize().height;
         firstPage.drawImage(signatureImage, {
           x: 135, // Align with signature line
-          y: pageHeight - 260, // Move further down to be above signature line
+          y: pageHeight - 225, // Position right after "Signature:" text
           width: 150,
           height: 25,
         });
