@@ -1,23 +1,26 @@
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { calculateHours, populateWeekDates } from "@/lib/time-calculations";
 import { generateTimeSheetPDF } from "@/lib/pdf-generator";
 import { apiRequest } from "@/lib/queryClient";
 import SignaturePad from "@/components/ui/signature-pad";
-import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle } from "lucide-react";
+import { getCurrentWeekEndingDate, isSaturday, getNextSaturday, getPreviousSaturday } from "@/lib/date-utils";
+import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw } from "lucide-react";
 
 const timesheetSchema = z.object({
   employeeName: z.string().min(1, "Employee name is required"),
   employeeNumber: z.string().min(1, "Employee number is required"),
+  selectedEmployee: z.string().optional(),
   weekEnding: z.string().min(1, "Week ending date is required"),
   
   sundayDate: z.string().optional(),
@@ -77,17 +80,48 @@ const DAYS_OF_WEEK = [
   { key: "saturday", label: "Saturday" },
 ] as const;
 
+interface Employee {
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  employeeNumber: string;
+}
+
+interface Shift {
+  employeeNumber: string;
+  employeeName: string;
+  startTime: string;
+  endTime: string;
+  position: string;
+  duration: number;
+  date: string;
+}
+
+interface ScheduleData {
+  employees: Employee[];
+  shifts: Shift[];
+  lastUpdated: string;
+}
+
 export default function TimesheetPage() {
   const { toast } = useToast();
   const [signatureData, setSignatureData] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedEmployeeNumber, setSelectedEmployeeNumber] = useState<string>("");
+
+  // Fetch schedule data (employees and shifts)
+  const scheduleQuery = useQuery<ScheduleData>({
+    queryKey: ['/api/schedule'],
+    staleTime: 1000 * 60 * 60, // 1 hour
+  });
 
   const form = useForm<TimesheetFormData>({
     resolver: zodResolver(timesheetSchema),
     defaultValues: {
       employeeName: "",
       employeeNumber: "",
-      weekEnding: "",
+      weekEnding: getCurrentWeekEndingDate(), // Default to current week
+      selectedEmployee: "",
       rescueCoverageMonday: false,
       rescueCoverageTuesday: false,
       rescueCoverageWednesday: false,
@@ -153,6 +187,9 @@ export default function TimesheetPage() {
             setValue(key as keyof TimesheetFormData, parsed[key]);
           }
         });
+        if (parsed.selectedEmployee) {
+          setSelectedEmployeeNumber(parsed.selectedEmployee);
+        }
         toast({
           title: "Draft loaded",
           description: "Your previous timesheet draft has been loaded.",
@@ -162,6 +199,92 @@ export default function TimesheetPage() {
       }
     }
   }, [setValue, toast]);
+
+  // Auto-populate timecard when employee is selected
+  const autoPopulateFromSchedule = async (employeeNumber: string, weekEnding: string) => {
+    if (!employeeNumber || !weekEnding) return;
+    
+    try {
+      const response = await fetch(`/api/schedule/employee/${employeeNumber}/week/${weekEnding}`);
+      if (!response.ok) return;
+      
+      const shifts: Shift[] = await response.json();
+      
+      // Clear existing time entries
+      DAYS_OF_WEEK.forEach(({ key }) => {
+        setValue(`${key}StartTime` as keyof TimesheetFormData, "");
+        setValue(`${key}EndTime` as keyof TimesheetFormData, "");
+        setValue(`${key}TotalHours` as keyof TimesheetFormData, 0);
+      });
+      
+      // Populate from shifts
+      shifts.forEach((shift) => {
+        const shiftDate = new Date(shift.date);
+        const dayOfWeek = shiftDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        const dayKey = DAYS_OF_WEEK[dayOfWeek]?.key;
+        
+        if (dayKey) {
+          // Convert UTC times to local time strings
+          const startTime = new Date(shift.startTime);
+          const endTime = new Date(shift.endTime);
+          
+          const startTimeStr = startTime.toTimeString().substring(0, 5); // HH:MM
+          const endTimeStr = endTime.toTimeString().substring(0, 5); // HH:MM
+          
+          setValue(`${dayKey}StartTime` as keyof TimesheetFormData, startTimeStr);
+          setValue(`${dayKey}EndTime` as keyof TimesheetFormData, endTimeStr);
+          setValue(`${dayKey}TotalHours` as keyof TimesheetFormData, shift.duration);
+        }
+      });
+      
+      toast({
+        title: "Schedule loaded",
+        description: `Populated timecard from ${shifts.length} scheduled shifts.`,
+      });
+    } catch (error) {
+      console.error("Error auto-populating from schedule:", error);
+    }
+  };
+
+  // Handle employee selection
+  const handleEmployeeSelect = (employeeNumber: string) => {
+    setSelectedEmployeeNumber(employeeNumber);
+    setValue("selectedEmployee", employeeNumber);
+    
+    const employee = scheduleQuery.data?.employees?.find((emp) => emp.employeeNumber === employeeNumber);
+    if (employee) {
+      setValue("employeeName", employee.fullName);
+      setValue("employeeNumber", employee.employeeNumber);
+      
+      // Auto-populate from schedule if week ending is set
+      const weekEnding = getValues("weekEnding");
+      if (weekEnding) {
+        autoPopulateFromSchedule(employeeNumber, weekEnding);
+      }
+    }
+  };
+
+  // Handle week ending change
+  const handleWeekEndingChange = (weekEnding: string) => {
+    // Validate it's a Saturday
+    if (!isSaturday(weekEnding)) {
+      const nextSaturday = getNextSaturday(weekEnding);
+      setValue("weekEnding", nextSaturday);
+      toast({
+        title: "Date adjusted",
+        description: "Week ending date must be a Saturday. Date adjusted to next Saturday.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setValue("weekEnding", weekEnding);
+    
+    // Auto-populate from schedule if employee is selected
+    if (selectedEmployeeNumber) {
+      autoPopulateFromSchedule(selectedEmployeeNumber, weekEnding);
+    }
+  };
 
   const saveTimesheetMutation = useMutation({
     mutationFn: async (data: TimesheetFormData) => {
@@ -363,6 +486,37 @@ export default function TimesheetPage() {
               <h2 className="text-lg font-semibold text-secondary mb-4" data-testid="heading-employee-info">
                 Employee Information
               </h2>
+              
+              {/* Employee Selection Dropdown */}
+              <div className="mb-6">
+                <Label htmlFor="employeeSelect" className="flex items-center mb-2">
+                  <Users className="text-primary mr-2 h-4 w-4" />
+                  Select Employee from Schedule
+                  {scheduleQuery.isLoading && <RefreshCw className="ml-2 h-4 w-4 animate-spin" />}
+                </Label>
+                <Select 
+                  value={selectedEmployeeNumber} 
+                  onValueChange={handleEmployeeSelect}
+                  disabled={scheduleQuery.isLoading || !scheduleQuery.data?.employees?.length}
+                >
+                  <SelectTrigger data-testid="select-employee">
+                    <SelectValue placeholder="Choose an employee from the schedule" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {scheduleQuery.data?.employees?.map((employee) => (
+                      <SelectItem key={employee.employeeNumber} value={employee.employeeNumber}>
+                        {employee.fullName} (#{employee.employeeNumber})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {scheduleQuery.error && (
+                  <p className="text-sm text-destructive mt-1">
+                    Failed to load employee schedule. Manual entry available below.
+                  </p>
+                )}
+              </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="employeeName" className="flex items-center mb-2">
@@ -407,7 +561,9 @@ export default function TimesheetPage() {
                   <Input
                     id="weekEnding"
                     type="date"
-                    {...form.register("weekEnding")}
+                    {...form.register("weekEnding", {
+                      onChange: (e) => handleWeekEndingChange(e.target.value)
+                    })}
                     data-testid="input-week-ending"
                   />
                 </div>
@@ -464,7 +620,7 @@ export default function TimesheetPage() {
                   <div className="col-span-12 md:col-span-3">
                     <Label className="text-sm font-medium text-secondary">Total Hours</Label>
                     <Input
-                      value={watchedValues[`${key}TotalHours` as keyof TimesheetFormData]?.toFixed(2) || ""}
+                      value={typeof watchedValues[`${key}TotalHours` as keyof TimesheetFormData] === 'number' ? (watchedValues[`${key}TotalHours` as keyof TimesheetFormData] as number).toFixed(2) : ""}
                       readOnly
                       className="mt-1 text-sm bg-gray-50 text-center font-semibold"
                       data-testid={`text-${key}-total-hours`}
