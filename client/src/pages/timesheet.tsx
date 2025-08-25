@@ -303,7 +303,7 @@ export default function TimesheetPage() {
         
         // Determine which timesheet day this belongs to based on 7am boundaries
         // Convert to Eastern time for proper 7am calculation
-        const startTimeET = new Date(combinedStartTime.toLocaleString("en-US", {timeZone: "America/New_York"}));
+        const startTimeET = new Date(combinedStartTime!.toLocaleString("en-US", {timeZone: "America/New_York"}));
         const startHour = startTimeET.getHours();
         
         // Get the calendar date this shift starts on
@@ -327,13 +327,13 @@ export default function TimesheetPage() {
           }
           
           // Always populate time entries for combined shifts
-          const startTimeStr = combinedStartTime.toLocaleTimeString('en-US', { 
+          const startTimeStr = combinedStartTime!.toLocaleTimeString('en-US', { 
             hour12: false, 
             hour: '2-digit', 
             minute: '2-digit',
             timeZone: 'America/New_York'
           });
-          const endTimeStr = combinedEndTime.toLocaleTimeString('en-US', { 
+          const endTimeStr = combinedEndTime!.toLocaleTimeString('en-US', { 
             hour12: false, 
             hour: '2-digit', 
             minute: '2-digit',
@@ -613,7 +613,7 @@ export default function TimesheetPage() {
       setPreviewPdfData(pdfBuffer);
       
       // Check if we have the employee's email stored
-      const existingEmail = employeeEmailQuery.data?.email;
+      const existingEmail = (employeeEmailQuery.data as { email?: string })?.email;
       if (existingEmail) {
         setEmployeeEmail(existingEmail);
       }
