@@ -129,9 +129,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get schedule data (employees and shifts)
   app.get("/api/schedule", async (req, res) => {
     try {
-      // Check if cache is valid (less than 24 hours old)
+      // Force fresh fetch for debugging - check if cache is valid (less than 24 hours old)
       const now = new Date();
-      if (scheduleCache && 
+      const forceRefresh = req.query.refresh === 'true';
+      if (!forceRefresh && scheduleCache && 
           (now.getTime() - new Date(scheduleCache.lastFetched).getTime()) < CACHE_DURATION) {
         res.json(scheduleCache.data);
         return;
@@ -212,10 +213,14 @@ function parseICSDataOnServer(icsContent: string) {
       shifts.push(shift);
       
       // Extract employee info
+      const summary = extractFieldServer(event, 'SUMMARY') || '';
+      const nameParts = summary.split(' ');
+      const fullName = nameParts.length >= 2 ? `${nameParts[0]} ${nameParts[1]}` : summary;
+      
       const employee = {
-        firstName: extractFromDescriptionServer(extractFieldServer(event, 'DESCRIPTION') || '', 'EmployeeFirst'),
-        lastName: extractFromDescriptionServer(extractFieldServer(event, 'DESCRIPTION') || '', 'EmployeeLast'),
-        fullName: extractEmployeeNameServer(event),
+        firstName: shift.employeeName.split(' ')[0] || '',
+        lastName: shift.employeeName.split(' ')[1] || '',
+        fullName: shift.employeeName,
         employeeNumber: shift.employeeNumber,
       };
       
@@ -257,19 +262,30 @@ function parseEventServer(eventData: string): any | null {
   try {
     const dtStart = extractFieldServer(eventData, 'DTSTART');
     const dtEnd = extractFieldServer(eventData, 'DTEND');
+    const summary = extractFieldServer(eventData, 'SUMMARY');
     const description = extractFieldServer(eventData, 'DESCRIPTION');
     
-    if (!dtStart || !dtEnd || !description) return null;
+    if (!dtStart || !dtEnd || !summary) {
+      return null;
+    }
 
     const startTime = parseICSDateTimeServer(dtStart);
     const endTime = parseICSDateTimeServer(dtEnd);
-    const employeeNumber = extractFromDescriptionServer(description, 'EmployeeNumber');
-    const employeeFirst = extractFromDescriptionServer(description, 'EmployeeFirst');
-    const employeeLast = extractFromDescriptionServer(description, 'EmployeeLast');
-    const positionName = extractFromDescriptionServer(description, 'PositionName');
-    const duration = parseFloat(extractFromDescriptionServer(description, 'ShiftDuration') || '0');
-
-    if (!employeeNumber || !employeeFirst || !employeeLast) return null;
+    
+    // Extract employee name from summary (e.g., "Tim Dow")
+    const nameParts = summary.split(' ');
+    if (nameParts.length < 2) {
+      return null; // Need at least first and last name
+    }
+    
+    const employeeFirst = nameParts[0];
+    const employeeLast = nameParts[1];
+    // Generate a simple employee number from name
+    const employeeNumber = (employeeFirst + employeeLast).toLowerCase().replace(/[^a-z]/g, '');
+    
+    // Extract position from description if available, otherwise default
+    const positionName = extractFromDescriptionServer(description || '', 'PositionName') || 'Firefighter';
+    const duration = 8; // Default 8 hour shift
 
     return {
       employeeNumber,
@@ -287,15 +303,48 @@ function parseEventServer(eventData: string): any | null {
 }
 
 function extractFieldServer(eventData: string, fieldName: string): string | null {
-  const regex = new RegExp(`^${fieldName}:(.*)$`, 'm');
-  const match = eventData.match(regex);
-  return match ? match[1].trim() : null;
+  // Handle multi-line fields in ICS format
+  const lines = eventData.split('\n');
+  let result = '';
+  let inField = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    if (line.startsWith(`${fieldName}:`)) {
+      inField = true;
+      result = line.substring(fieldName.length + 1);
+    } else if (inField && line.startsWith(' ')) {
+      // Continuation line
+      result += line.substring(1);
+    } else if (inField) {
+      // End of field
+      break;
+    }
+  }
+  
+  return result ? result.trim() : null;
 }
 
 function extractFromDescriptionServer(description: string, fieldName: string): string {
-  const regex = new RegExp(`\\(${fieldName}:([^)]+)\\)`);
-  const match = description.match(regex);
-  return match ? match[1].trim() : '';
+  // Handle escaped newlines and other escape sequences
+  const cleanDescription = description.replace(/\\n/g, '\n').replace(/\\,/g, ',');
+  
+  // Try multiple regex patterns for the field format
+  const patterns = [
+    new RegExp(`\\(${fieldName}:([^)]+)\\)`), // (FieldName:Value)
+    new RegExp(`\\(${fieldName}: ([^)]+)\\)`), // (FieldName: Value) - with space
+    new RegExp(`${fieldName}:([^)\\n]+)`)    // FieldName:Value without parentheses
+  ];
+  
+  for (const pattern of patterns) {
+    const match = cleanDescription.match(pattern);
+    if (match && match[1].trim()) {
+      return match[1].trim();
+    }
+  }
+  
+  return '';
 }
 
 function extractEmployeeNameServer(eventData: string): string {
