@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { PDFDocument, PDFForm } from "pdf-lib";
 
 interface TimesheetData {
   employeeName: string;
@@ -52,7 +52,7 @@ interface TimesheetData {
 
 function formatTimeForPDF(time?: string): string {
   if (!time) return "";
-  return time.replace(":", "");
+  return time;
 }
 
 function formatHoursForPDF(hours?: number): string {
@@ -62,171 +62,170 @@ function formatHoursForPDF(hours?: number): string {
 
 export async function generateTimeSheetPDF(data: TimesheetData): Promise<string> {
   try {
-    // Create a new PDF document
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([612, 792]); // Standard letter size
-    const { width, height } = page.getSize();
+    // Load the fillable PDF template
+    const templateResponse = await fetch('/timesheet-template.pdf');
+    if (!templateResponse.ok) {
+      throw new Error('Could not load PDF template');
+    }
+    const templateBytes = await templateResponse.arrayBuffer();
     
-    // Get fonts
-    const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    // Load the PDF document
+    const pdfDoc = await PDFDocument.load(templateBytes);
+    const form = pdfDoc.getForm();
     
-    // Header - centered exactly like template
-    page.drawText('Oakland Fire-Rescue', {
-      x: width / 2 - 70,
-      y: height - 50,
-      size: 16,
-      font: helveticaBoldFont,
-      color: rgb(0, 0, 0),
-    });
+    // Get all form fields to see what's available
+    const fields = form.getFields();
+    console.log('Available form fields:', fields.map(field => field.getName()));
     
-    page.drawText('Weekly Time Sheet', {
-      x: width / 2 - 55,
-      y: height - 80,
-      size: 14,
-      font: helveticaBoldFont,
-      color: rgb(0, 0, 0),
-    });
+    // Fill in the basic information fields
+    try {
+      const nameField = form.getTextField('Name');
+      nameField.setText(data.employeeName);
+    } catch (e) {
+      console.log('Name field not found or not fillable');
+    }
     
-    // Employee Information - positioned exactly like template
-    page.drawText(`Name: ${data.employeeName}_______________Number: ${data.employeeNumber}_______`, {
-      x: 50,
-      y: height - 120,
-      size: 12,
-      font: helveticaFont,
-      color: rgb(0, 0, 0),
-    });
+    try {
+      const numberField = form.getTextField('Number');
+      numberField.setText(data.employeeNumber);
+    } catch (e) {
+      console.log('Number field not found or not fillable');
+    }
     
-    page.drawText(`Week Ending: ${data.weekEnding}________________________`, {
-      x: 50,
-      y: height - 145,
-      size: 12,
-      font: helveticaFont,
-      color: rgb(0, 0, 0),
-    });
+    try {
+      const weekEndingField = form.getTextField('WeekEnding');
+      weekEndingField.setText(data.weekEnding);
+    } catch (e) {
+      console.log('Week Ending field not found or not fillable');
+    }
     
-    page.drawText('Signature: ___________________________', {
-      x: 50,
-      y: height - 170,
-      size: 12,
-      font: helveticaFont,
-      color: rgb(0, 0, 0),
-    });
-    
-    // Table headers - positioned exactly like template  
-    const tableStartY = height - 200;
-    
-    page.drawText('Date        Start Time           End Time           Total Hours', {
-      x: 80,
-      y: tableStartY,
-      size: 11,
-      font: helveticaBoldFont,
-      color: rgb(0, 0, 0),
-    });
-    
-    // Days data - positioned exactly like template
+    // Fill in daily fields
     const days = [
-      { name: "Sunday", date: data.sundayDate, start: data.sundayStartTime, end: data.sundayEndTime, total: data.sundayTotalHours },
-      { name: "Monday", date: data.mondayDate, start: data.mondayStartTime, end: data.mondayEndTime, total: data.mondayTotalHours },
-      { name: "Tuesday", date: data.tuesdayDate, start: data.tuesdayStartTime, end: data.tuesdayEndTime, total: data.tuesdayTotalHours },
-      { name: "Wednesday", date: data.wednesdayDate, start: data.wednesdayStartTime, end: data.wednesdayEndTime, total: data.wednesdayTotalHours },
-      { name: "Thursday", date: data.thursdayDate, start: data.thursdayStartTime, end: data.thursdayEndTime, total: data.thursdayTotalHours },
-      { name: "Friday", date: data.fridayDate, start: data.fridayStartTime, end: data.fridayEndTime, total: data.fridayTotalHours },
-      { name: "Saturday", date: data.saturdayDate, start: data.saturdayStartTime, end: data.saturdayEndTime, total: data.saturdayTotalHours },
+      { prefix: 'Sunday', date: data.sundayDate, start: data.sundayStartTime, end: data.sundayEndTime, total: data.sundayTotalHours },
+      { prefix: 'Monday', date: data.mondayDate, start: data.mondayStartTime, end: data.mondayEndTime, total: data.mondayTotalHours },
+      { prefix: 'Tuesday', date: data.tuesdayDate, start: data.tuesdayStartTime, end: data.tuesdayEndTime, total: data.tuesdayTotalHours },
+      { prefix: 'Wednesday', date: data.wednesdayDate, start: data.wednesdayStartTime, end: data.wednesdayEndTime, total: data.wednesdayTotalHours },
+      { prefix: 'Thursday', date: data.thursdayDate, start: data.thursdayStartTime, end: data.thursdayEndTime, total: data.thursdayTotalHours },
+      { prefix: 'Friday', date: data.fridayDate, start: data.fridayStartTime, end: data.fridayEndTime, total: data.fridayTotalHours },
+      { prefix: 'Saturday', date: data.saturdayDate, start: data.saturdayStartTime, end: data.saturdayEndTime, total: data.saturdayTotalHours },
     ];
     
-    let currentY = tableStartY - 30;
-    
     days.forEach((day) => {
-      // Day name and data - formatted like template
-      const dayText = day.name.padEnd(12, ' ');
-      const dateText = (day.date || '').padEnd(12, ' ');
-      const startTimeText = formatTimeForPDF(day.start).padEnd(20, ' ');
-      const endTimeText = formatTimeForPDF(day.end).padEnd(18, ' ');
-      const totalHoursText = formatHoursForPDF(day.total);
+      // Try different field name patterns
+      const possibleDateFields = [`${day.prefix}Date`, `${day.prefix}_Date`, `Date_${day.prefix}`];
+      const possibleStartFields = [`${day.prefix}Start`, `${day.prefix}_Start`, `Start_${day.prefix}`, `${day.prefix}StartTime`];
+      const possibleEndFields = [`${day.prefix}End`, `${day.prefix}_End`, `End_${day.prefix}`, `${day.prefix}EndTime`];
+      const possibleTotalFields = [`${day.prefix}Total`, `${day.prefix}_Total`, `Total_${day.prefix}`, `${day.prefix}Hours`];
       
-      page.drawText(`${dayText}${dateText}${startTimeText}${endTimeText}${totalHoursText}`, {
-        x: 50,
-        y: currentY,
-        size: 11,
-        font: helveticaFont,
-        color: rgb(0, 0, 0),
-      });
+      // Try to fill date field
+      for (const fieldName of possibleDateFields) {
+        try {
+          const field = form.getTextField(fieldName);
+          field.setText(day.date || '');
+          break;
+        } catch (e) {
+          // Continue to next possible field name
+        }
+      }
       
-      currentY -= 22; // Spacing between days
+      // Try to fill start time field
+      for (const fieldName of possibleStartFields) {
+        try {
+          const field = form.getTextField(fieldName);
+          field.setText(formatTimeForPDF(day.start));
+          break;
+        } catch (e) {
+          // Continue to next possible field name
+        }
+      }
+      
+      // Try to fill end time field
+      for (const fieldName of possibleEndFields) {
+        try {
+          const field = form.getTextField(fieldName);
+          field.setText(formatTimeForPDF(day.end));
+          break;
+        } catch (e) {
+          // Continue to next possible field name
+        }
+      }
+      
+      // Try to fill total hours field
+      for (const fieldName of possibleTotalFields) {
+        try {
+          const field = form.getTextField(fieldName);
+          field.setText(formatHoursForPDF(day.total));
+          break;
+        } catch (e) {
+          // Continue to next possible field name
+        }
+      }
     });
     
-    // Total hours section - positioned exactly like template
-    currentY -= 30;
-    page.drawText(`Total Hours for Week: ${formatHoursForPDF(data.totalWeeklyHours)}`, {
-      x: 200,
-      y: currentY,
-      size: 12,
-      font: helveticaBoldFont,
-      color: rgb(0, 0, 0),
-    });
+    // Fill in total weekly hours
+    try {
+      const totalField = form.getTextField('TotalWeeklyHours');
+      totalField.setText(formatHoursForPDF(data.totalWeeklyHours));
+    } catch (e) {
+      console.log('Total weekly hours field not found');
+    }
     
-    // Weeknight Rescue Coverage - centered exactly like template
-    currentY -= 60;
-    page.drawText('Weeknight Rescue Coverage', {
-      x: width / 2 - 90,
-      y: currentY,
-      size: 12,
-      font: helveticaBoldFont,
-      color: rgb(0, 0, 0),
-    });
+    // Fill in rescue coverage checkboxes
+    const coverageFields = [
+      { name: 'MondayCoverage', checked: data.rescueCoverageMonday },
+      { name: 'TuesdayCoverage', checked: data.rescueCoverageTuesday },
+      { name: 'WednesdayCoverage', checked: data.rescueCoverageWednesday },
+      { name: 'ThursdayCoverage', checked: data.rescueCoverageThursday },
+    ];
     
-    // Coverage days - positioned exactly like template
-    currentY -= 30;
-    const mondayText = data.rescueCoverageMonday ? 'Monday (X)' : 'Monday';
-    const tuesdayText = data.rescueCoverageTuesday ? 'Tuesday (X)' : 'Tuesday';
-    const wednesdayText = data.rescueCoverageWednesday ? 'Wednesday (X)' : 'Wednesday';
-    const thursdayText = data.rescueCoverageThursday ? 'Thursday (X)' : 'Thursday';
-    
-    page.drawText(`${mondayText.padEnd(20, ' ')}${tuesdayText.padEnd(20, ' ')}${wednesdayText.padEnd(20, ' ')}${thursdayText}`, {
-      x: 100,
-      y: currentY,
-      size: 11,
-      font: helveticaFont,
-      color: rgb(0, 0, 0),
-    });
-    
-    // Footer note - centered exactly like template
-    currentY -= 60;
-    page.drawText('***Weeknight Rescue Coverage will be paid out in monthly check***', {
-      x: width / 2 - 180,
-      y: currentY,
-      size: 10,
-      font: helveticaFont,
-      color: rgb(0, 0, 0),
-    });
-    
-    // Add signature if provided - positioned over signature line
-    if (data.signatureData && data.signatureData.trim() !== '') {
+    coverageFields.forEach(({ name, checked }) => {
       try {
+        const field = form.getCheckBox(name);
+        if (checked) {
+          field.check();
+        }
+      } catch (e) {
+        console.log(`Coverage field ${name} not found`);
+      }
+    });
+    
+    // Handle signature - try to add it if we have signature data
+    if (data.signatureData) {
+      try {
+        // For fillable PDFs, we might need to add the signature as an image overlay
+        // since signature fields are complex
+        const pages = pdfDoc.getPages();
+        const firstPage = pages[0];
+        
         // Remove data URL prefix if present
         const base64Data = data.signatureData.replace(/^data:image\/[a-z]+;base64,/, '');
         const signatureImage = await pdfDoc.embedPng(base64Data);
         
-        page.drawImage(signatureImage, {
-          x: 115,
-          y: height - 160,
+        // Position the signature where the signature field would be
+        // You may need to adjust these coordinates based on your template
+        firstPage.drawImage(signatureImage, {
+          x: 120, // Adjust X position
+          y: 600, // Adjust Y position  
           width: 100,
-          height: 15,
+          height: 25,
         });
       } catch (error) {
-        console.warn("Could not add signature to PDF, continuing without signature:", error);
+        console.warn("Could not add signature to PDF:", error);
       }
     }
     
-    // Serialize the PDF to bytes
+    // Flatten the form to prevent further editing
+    form.flatten();
+    
+    // Serialize the PDF
     const pdfBytes = await pdfDoc.save();
     
-    // Convert to base64
-    const base64String = btoa(String.fromCharCode(...pdfBytes));
-    return base64String;
+    // Convert to base64 for download
+    const base64String = btoa(String.fromCharCode(...Array.from(new Uint8Array(pdfBytes))));
+    return `data:application/pdf;base64,${base64String}`;
+    
   } catch (error) {
-    console.error("PDF Generation Error:", error);
-    throw new Error(`PDF generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error("Error generating PDF:", error);
+    throw new Error("Failed to generate PDF");
   }
 }
