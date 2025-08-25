@@ -4,14 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { AlertCircle, Plus, Edit2, Trash2, Users } from "lucide-react";
+import { AlertCircle, Plus, Edit2, Trash2, Users, Mail } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface EmployeeNumber {
   id: string;
   employeeName: string;
   employeeNumber: string;
+  email: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -21,6 +23,8 @@ export default function SupervisorDashboard() {
   const [editingEmployee, setEditingEmployee] = useState<EmployeeNumber | null>(null);
   const [employeeName, setEmployeeName] = useState("");
   const [employeeNumber, setEmployeeNumber] = useState("");
+  const [employeeEmail, setEmployeeEmail] = useState("");
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   // Fetch employee numbers
   const employeeNumbersQuery = useQuery<EmployeeNumber[]>({
@@ -50,13 +54,14 @@ export default function SupervisorDashboard() {
 
   // Create employee number mutation
   const createEmployeeMutation = useMutation({
-    mutationFn: async (data: { employeeName: string; employeeNumber: string }) => {
+    mutationFn: async (data: { employeeName: string; employeeNumber: string; email?: string }) => {
       return apiRequest("POST", "/api/employee-numbers", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/employee-numbers"] });
       setEmployeeName("");
       setEmployeeNumber("");
+      setEmployeeEmail("");
       toast({
         title: "Employee number added",
         description: "The employee number has been successfully saved.",
@@ -73,7 +78,7 @@ export default function SupervisorDashboard() {
 
   // Update employee number mutation
   const updateEmployeeMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: { employeeName: string; employeeNumber: string } }) => {
+    mutationFn: async ({ id, data }: { id: string; data: { employeeName: string; employeeNumber: string; email?: string } }) => {
       return apiRequest("PUT", `/api/employee-numbers/${id}`, data);
     },
     onSuccess: () => {
@@ -81,6 +86,8 @@ export default function SupervisorDashboard() {
       setEditingEmployee(null);
       setEmployeeName("");
       setEmployeeNumber("");
+      setEmployeeEmail("");
+      setEditDialogOpen(false);
       toast({
         title: "Employee number updated",
         description: "The employee number has been successfully updated.",
@@ -126,13 +133,19 @@ export default function SupervisorDashboard() {
       });
       return;
     }
-    createEmployeeMutation.mutate({ employeeName, employeeNumber });
+    createEmployeeMutation.mutate({ 
+      employeeName, 
+      employeeNumber, 
+      email: employeeEmail.trim() || undefined 
+    });
   };
 
   const handleEditEmployee = (employee: EmployeeNumber) => {
     setEditingEmployee(employee);
     setEmployeeName(employee.employeeName);
     setEmployeeNumber(employee.employeeNumber);
+    setEmployeeEmail(employee.email || "");
+    setEditDialogOpen(true);
   };
 
   const handleUpdateEmployee = () => {
@@ -146,7 +159,11 @@ export default function SupervisorDashboard() {
     }
     updateEmployeeMutation.mutate({
       id: editingEmployee.id,
-      data: { employeeName, employeeNumber }
+      data: { 
+        employeeName, 
+        employeeNumber, 
+        email: employeeEmail.trim() || undefined 
+      }
     });
   };
 
@@ -154,6 +171,8 @@ export default function SupervisorDashboard() {
     setEditingEmployee(null);
     setEmployeeName("");
     setEmployeeNumber("");
+    setEmployeeEmail("");
+    setEditDialogOpen(false);
   };
 
   const handleDeleteEmployee = (id: string) => {
@@ -197,7 +216,7 @@ export default function SupervisorDashboard() {
                       Sync from Schedule
                     </Button>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                       <Label htmlFor="employeeName">Employee Name</Label>
                       <Input
@@ -216,22 +235,21 @@ export default function SupervisorDashboard() {
                         placeholder="Enter employee number"
                       />
                     </div>
+                    <div>
+                      <Label htmlFor="employeeEmailAdd">Email Address (Optional)</Label>
+                      <Input
+                        id="employeeEmailAdd"
+                        type="email"
+                        value={employeeEmail}
+                        onChange={(e) => setEmployeeEmail(e.target.value)}
+                        placeholder="Enter email address"
+                      />
+                    </div>
                     <div className="flex items-end">
-                      {editingEmployee ? (
-                        <div className="flex space-x-2">
-                          <Button onClick={handleUpdateEmployee} disabled={updateEmployeeMutation.isPending}>
-                            Update
-                          </Button>
-                          <Button variant="outline" onClick={handleCancelEdit}>
-                            Cancel
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button onClick={handleAddEmployee} disabled={createEmployeeMutation.isPending}>
-                          <Plus className="w-4 h-4 mr-2" />
-                          Add Employee
-                        </Button>
-                      )}
+                      <Button onClick={handleAddEmployee} disabled={createEmployeeMutation.isPending}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Employee
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -250,23 +268,78 @@ export default function SupervisorDashboard() {
                         key={employee.id}
                         className="p-4 border rounded-lg flex justify-between items-center"
                       >
-                        <div>
+                        <div className="flex-1">
                           <h4 className="font-semibold">{employee.employeeName}</h4>
                           <p className="text-sm text-gray-600">
                             Employee #{employee.employeeNumber || "Not assigned"}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <div className="flex items-center text-xs text-gray-500 mt-1">
+                            <Mail className="w-3 h-3 mr-1" />
+                            {employee.email ? (
+                              <span className="text-blue-600">{employee.email}</span>
+                            ) : (
+                              <span className="text-gray-400">No email set</span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
                             Added: {new Date(employee.createdAt).toLocaleDateString()}
                           </p>
                         </div>
                         <div className="flex space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditEmployee(employee)}
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </Button>
+                          <Dialog open={editDialogOpen && editingEmployee?.id === employee.id} onOpenChange={setEditDialogOpen}>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditEmployee(employee)}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[425px]">
+                              <DialogHeader>
+                                <DialogTitle>Edit Employee</DialogTitle>
+                              </DialogHeader>
+                              <div className="grid gap-4 py-4">
+                                <div>
+                                  <Label htmlFor="edit-employeeName">Employee Name</Label>
+                                  <Input
+                                    id="edit-employeeName"
+                                    value={employeeName}
+                                    onChange={(e) => setEmployeeName(e.target.value)}
+                                    placeholder="Enter full name"
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="edit-employeeNumber">Employee Number</Label>
+                                  <Input
+                                    id="edit-employeeNumber"
+                                    value={employeeNumber}
+                                    onChange={(e) => setEmployeeNumber(e.target.value)}
+                                    placeholder="Enter employee number"
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="edit-employeeEmail">Email Address</Label>
+                                  <Input
+                                    id="edit-employeeEmail"
+                                    type="email"
+                                    value={employeeEmail}
+                                    onChange={(e) => setEmployeeEmail(e.target.value)}
+                                    placeholder="Enter email address"
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex justify-end space-x-2">
+                                <Button variant="outline" onClick={handleCancelEdit}>
+                                  Cancel
+                                </Button>
+                                <Button onClick={handleUpdateEmployee} disabled={updateEmployeeMutation.isPending}>
+                                  Update Employee
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
                           <Button
                             variant="outline"
                             size="sm"

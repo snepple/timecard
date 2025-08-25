@@ -151,26 +151,15 @@ export default function SignaturePad({
         )}
       </div>
       
-      <div className="flex space-x-3">
+      <div className="flex justify-center">
         <Button
           type="button"
           variant="outline"
           onClick={clearSignature}
-          className="flex-1"
           data-testid="button-clear-signature"
         >
           <Eraser className="mr-2 h-4 w-4" />
           Clear
-        </Button>
-        <Button
-          type="button"
-          onClick={captureSignature}
-          disabled={!hasSignature}
-          className="flex-1"
-          data-testid="button-confirm-signature"
-        >
-          <Check className="mr-2 h-4 w-4" />
-          Confirm
         </Button>
       </div>
     </div>
