@@ -224,8 +224,6 @@ export default function TimesheetPage() {
         const dayOfWeek = shiftDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
         const dayKey = DAYS_OF_WEEK[dayOfWeek]?.key;
         
-        console.log(`Processing shift for ${shift.date}: dayOfWeek=${dayOfWeek}, dayKey=${dayKey}`);
-        
         if (dayKey) {
           // Convert UTC times to local time strings
           const startTime = new Date(shift.startTime);
@@ -236,7 +234,7 @@ export default function TimesheetPage() {
             hour12: false, 
             hour: '2-digit', 
             minute: '2-digit',
-            timeZone: 'America/New_York' // Assuming Eastern time for Oakland
+            timeZone: 'America/New_York' // Eastern time for Oakland
           });
           const endTimeStr = endTime.toLocaleTimeString('en-US', { 
             hour12: false, 
@@ -244,8 +242,6 @@ export default function TimesheetPage() {
             minute: '2-digit',
             timeZone: 'America/New_York'
           });
-          
-          console.log(`Setting ${dayKey}: ${startTimeStr} - ${endTimeStr} (${shift.duration}h)`);
           
           setValue(`${dayKey}StartTime` as keyof TimesheetFormData, startTimeStr);
           setValue(`${dayKey}EndTime` as keyof TimesheetFormData, endTimeStr);
