@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, boolean, decimal } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, boolean, decimal, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -55,6 +55,13 @@ export const timesheets = pgTable("timesheets", {
   
   // Signature
   signatureData: text("signature_data"),
+  
+  // Approval workflow
+  status: text("status").default("draft").notNull(), // draft, submitted, approved, rejected
+  submittedAt: timestamp("submitted_at"),
+  supervisorComments: text("supervisor_comments"),
+  approvedBy: text("approved_by"), // supervisor name/id
+  approvedAt: timestamp("approved_at"),
   
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });

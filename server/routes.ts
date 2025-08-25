@@ -126,6 +126,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Submit timesheet for approval
+  app.post("/api/timesheets/:id/submit", async (req, res) => {
+    try {
+      const timesheet = await storage.submitTimesheet(req.params.id);
+      if (!timesheet) {
+        res.status(404).json({ message: "Timesheet not found" });
+        return;
+      }
+      res.json(timesheet);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to submit timesheet" });
+    }
+  });
+
+  // Get pending timesheets for supervisor approval
+  app.get("/api/timesheets/pending", async (req, res) => {
+    try {
+      const timesheets = await storage.getPendingTimesheets();
+      res.json(timesheets);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to retrieve pending timesheets" });
+    }
+  });
+
+  // Approve timesheet
+  app.post("/api/timesheets/:id/approve", async (req, res) => {
+    try {
+      const { supervisorName, comments } = req.body;
+      if (!supervisorName) {
+        res.status(400).json({ message: "Supervisor name is required" });
+        return;
+      }
+      const timesheet = await storage.approveTimesheet(req.params.id, supervisorName, comments);
+      if (!timesheet) {
+        res.status(404).json({ message: "Timesheet not found" });
+        return;
+      }
+      res.json(timesheet);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to approve timesheet" });
+    }
+  });
+
+  // Reject timesheet
+  app.post("/api/timesheets/:id/reject", async (req, res) => {
+    try {
+      const { supervisorName, comments } = req.body;
+      if (!supervisorName || !comments) {
+        res.status(400).json({ message: "Supervisor name and comments are required for rejection" });
+        return;
+      }
+      const timesheet = await storage.rejectTimesheet(req.params.id, supervisorName, comments);
+      if (!timesheet) {
+        res.status(404).json({ message: "Timesheet not found" });
+        return;
+      }
+      res.json(timesheet);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to reject timesheet" });
+    }
+  });
+
+  // Get timesheets by status
+  app.get("/api/timesheets/status/:status", async (req, res) => {
+    try {
+      const timesheets = await storage.getTimesheetsByStatus(req.params.status);
+      res.json(timesheets);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to retrieve timesheets by status" });
+    }
+  });
+
   // Get schedule data (employees and shifts)
   app.get("/api/schedule", async (req, res) => {
     try {

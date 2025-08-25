@@ -11,6 +11,13 @@ export interface IStorage {
   getTimesheet(id: string): Promise<Timesheet | undefined>;
   getTimesheetsByEmployee(employeeNumber: string): Promise<Timesheet[]>;
   updateTimesheet(id: string, timesheet: Partial<InsertTimesheet>): Promise<Timesheet | undefined>;
+  
+  // Approval workflow operations
+  submitTimesheet(id: string): Promise<Timesheet | undefined>;
+  getPendingTimesheets(): Promise<Timesheet[]>;
+  approveTimesheet(id: string, supervisorName: string, comments?: string): Promise<Timesheet | undefined>;
+  rejectTimesheet(id: string, supervisorName: string, comments: string): Promise<Timesheet | undefined>;
+  getTimesheetsByStatus(status: string): Promise<Timesheet[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -70,6 +77,62 @@ export class MemStorage implements IStorage {
     };
     this.timesheets.set(id, updated);
     return updated;
+  }
+
+  // Approval workflow operations
+  async submitTimesheet(id: string): Promise<Timesheet | undefined> {
+    const existing = this.timesheets.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Timesheet = {
+      ...existing,
+      status: "submitted",
+      submittedAt: new Date(),
+    };
+    this.timesheets.set(id, updated);
+    return updated;
+  }
+
+  async getPendingTimesheets(): Promise<Timesheet[]> {
+    return Array.from(this.timesheets.values()).filter(
+      (timesheet) => timesheet.status === "submitted"
+    );
+  }
+
+  async approveTimesheet(id: string, supervisorName: string, comments?: string): Promise<Timesheet | undefined> {
+    const existing = this.timesheets.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Timesheet = {
+      ...existing,
+      status: "approved",
+      approvedBy: supervisorName,
+      approvedAt: new Date(),
+      supervisorComments: comments || null,
+    };
+    this.timesheets.set(id, updated);
+    return updated;
+  }
+
+  async rejectTimesheet(id: string, supervisorName: string, comments: string): Promise<Timesheet | undefined> {
+    const existing = this.timesheets.get(id);
+    if (!existing) return undefined;
+    
+    const updated: Timesheet = {
+      ...existing,
+      status: "rejected",
+      approvedBy: supervisorName,
+      approvedAt: new Date(),
+      supervisorComments: comments,
+    };
+    this.timesheets.set(id, updated);
+    return updated;
+  }
+
+  async getTimesheetsByStatus(status: string): Promise<Timesheet[]> {
+    return Array.from(this.timesheets.values()).filter(
+      (timesheet) => timesheet.status === status
+    );
   }
 }
 

@@ -15,7 +15,7 @@ import { generateTimeSheetPDF } from "@/lib/pdf-generator";
 import { apiRequest } from "@/lib/queryClient";
 import SignaturePad from "@/components/ui/signature-pad";
 import { getCurrentWeekEndingDate, isSaturday, getNextSaturday, getPreviousSaturday } from "@/lib/date-utils";
-import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw } from "lucide-react";
+import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle } from "lucide-react";
 
 const timesheetSchema = z.object({
   employeeName: z.string().min(1, "Employee name is required"),
@@ -66,6 +66,8 @@ const timesheetSchema = z.object({
   rescueCoverageThursday: z.boolean().default(false),
   
   signatureData: z.string().optional(),
+  status: z.string().optional(),
+  id: z.string().optional(),
 });
 
 type TimesheetFormData = z.infer<typeof timesheetSchema>;
@@ -108,6 +110,7 @@ export default function TimesheetPage() {
   const [signatureData, setSignatureData] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [selectedEmployeeNumber, setSelectedEmployeeNumber] = useState<string>("");
+  const [currentTimesheet, setCurrentTimesheet] = useState<any>(null);
 
   // Fetch schedule data (employees and shifts)
   const scheduleQuery = useQuery<ScheduleData>({
@@ -306,7 +309,8 @@ export default function TimesheetPage() {
       });
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      setCurrentTimesheet(data);
       toast({
         title: "Success",
         description: "Timesheet saved successfully!",
@@ -346,12 +350,81 @@ export default function TimesheetPage() {
     },
   });
 
+  const submitTimesheetMutation = useMutation({
+    mutationFn: async (timesheetId: string) => {
+      const response = await apiRequest("POST", `/api/timesheets/${timesheetId}/submit`);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setCurrentTimesheet(data);
+      toast({
+        title: "Success",
+        description: "Timesheet submitted for supervisor approval!",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to submit timesheet. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSave = () => {
     const formData = getValues();
     saveTimesheetMutation.mutate({
       ...formData,
       signatureData,
     });
+  };
+
+  const handleSubmitForApproval = () => {
+    if (!currentTimesheet?.id) {
+      toast({
+        title: "Save Required",
+        description: "Please save the timesheet first before submitting for approval.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    submitTimesheetMutation.mutate(currentTimesheet.id);
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "draft":
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+            <AlertCircle className="w-3 h-3 mr-1" />
+            Draft
+          </span>
+        );
+      case "submitted":
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+            <Clock className="w-3 h-3 mr-1" />
+            Pending Approval
+          </span>
+        );
+      case "approved":
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Approved
+          </span>
+        );
+      case "rejected":
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            <XCircle className="w-3 h-3 mr-1" />
+            Rejected
+          </span>
+        );
+      default:
+        return null;
+    }
   };
 
   const handleEmail = async () => {
@@ -703,7 +776,32 @@ export default function TimesheetPage() {
           </Card>
 
           {/* Action Buttons */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          {/* Status Indicator */}
+          {currentTimesheet && (
+            <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-secondary mb-1">Timesheet Status</h3>
+                  <div className="flex items-center gap-3">
+                    {getStatusBadge(currentTimesheet.status)}
+                    {currentTimesheet.supervisorComments && (
+                      <span className="text-sm text-gray-600">
+                        Comments: {currentTimesheet.supervisorComments}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {currentTimesheet.status === "rejected" && (
+                  <div className="text-right text-sm text-gray-600">
+                    <p>Rejected by: {currentTimesheet.approvedBy}</p>
+                    <p>{new Date(currentTimesheet.approvedAt).toLocaleDateString()}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <Button
               type="button"
               variant="secondary"
@@ -714,6 +812,19 @@ export default function TimesheetPage() {
               <Save className="mr-2 h-4 w-4" />
               Save Draft
             </Button>
+            
+            {currentTimesheet && currentTimesheet.status === "draft" && (
+              <Button
+                type="button"
+                className="bg-primary hover:bg-primary/90"
+                onClick={handleSubmitForApproval}
+                disabled={submitTimesheetMutation.isPending}
+                data-testid="button-submit"
+              >
+                <Send className="mr-2 h-4 w-4" />
+                {submitTimesheetMutation.isPending ? "Submitting..." : "Submit for Approval"}
+              </Button>
+            )}
             
             <Button
               type="button"
