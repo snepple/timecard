@@ -60,6 +60,19 @@ function formatHoursForPDF(hours?: number): string {
   return hours.toFixed(2);
 }
 
+function formatDateForPDF(dateStr?: string): string {
+  if (!dateStr) return "";
+  try {
+    const date = new Date(dateStr);
+    const month = date.getMonth() + 1; // getMonth() returns 0-11
+    const day = date.getDate();
+    const year = date.getFullYear().toString().slice(-2); // Get last 2 digits
+    return `${month}/${day}/${year}`;
+  } catch (error) {
+    return dateStr; // Return original if parsing fails
+  }
+}
+
 export async function generateTimeSheetPDF(data: TimesheetData): Promise<string> {
   try {
     // Load the fillable PDF template
@@ -104,17 +117,26 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
       }
     };
     
-    // Fill basic information fields
-    fillTextField('Name', data.employeeName);
-    fillTextField('Number', data.employeeNumber);
-    fillTextField('WeekEnding', data.weekEnding);
-    fillTextField('Week Ending', data.weekEnding);
+    // Fill basic information fields - try multiple field name patterns
+    const nameFields = ['Name', 'EmployeeName', 'Employee Name', 'Employee_Name', 'name', 'employeename'];
+    const numberFields = ['Number', 'EmployeeNumber', 'Employee Number', 'Employee_Number', 'number', 'employeenumber', 'ID', 'EmployeeID', 'Employee ID'];
+    const weekEndingFields = ['WeekEnding', 'Week Ending', 'Week_Ending', 'weekending', 'DateWeekEnding', 'Date Week Ending'];
     
-    // Try different patterns for basic fields
-    fillTextField('EmployeeName', data.employeeName);
-    fillTextField('EmployeeNumber', data.employeeNumber);
-    fillTextField('Employee Name', data.employeeName);
-    fillTextField('Employee Number', data.employeeNumber);
+    // Fill name
+    for (const fieldName of nameFields) {
+      fillTextField(fieldName, data.employeeName);
+    }
+    
+    // Fill employee number
+    for (const fieldName of numberFields) {
+      fillTextField(fieldName, data.employeeNumber);
+    }
+    
+    // Fill week ending date with m/d/yy format
+    const formattedWeekEnding = formatDateForPDF(data.weekEnding);
+    for (const fieldName of weekEndingFields) {
+      fillTextField(fieldName, formattedWeekEnding);
+    }
     
     // Fill daily time entries - try multiple field name patterns
     const days = [
@@ -157,10 +179,10 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
         `${day.prefix.toLowerCase()}total`, `${day.prefix.toLowerCase()}hours`
       ];
       
-      // Try to fill each field type
+      // Try to fill each field type with formatted dates
       for (const fieldName of possibleDateFields) {
         if (day.date) {
-          fillTextField(fieldName, day.date);
+          fillTextField(fieldName, formatDateForPDF(day.date));
         }
       }
       
@@ -221,13 +243,13 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
         const base64Data = data.signatureData.replace(/^data:image\/[a-z]+;base64,/, '');
         const signatureImage = await pdfDoc.embedPng(base64Data);
         
-        // Position signature where the signature line is on the template
-        // You may need to adjust these coordinates based on your template layout
+        // Position signature on the signature line (adjusted coordinates)
+        const pageHeight = firstPage.getSize().height;
         firstPage.drawImage(signatureImage, {
-          x: 120, // Adjust X position as needed
-          y: 630, // Adjust Y position as needed
-          width: 120,
-          height: 30,
+          x: 135, // Align with signature line
+          y: pageHeight - 200, // Position on signature line (approximately 200 points from top)
+          width: 150,
+          height: 25,
         });
         console.log('Added signature image overlay');
       } catch (error) {
