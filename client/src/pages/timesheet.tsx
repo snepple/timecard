@@ -667,11 +667,15 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
     // Close preview dialog and check if we need email
     setShowPdfPreview(false);
     
-    if (!employeeEmail) {
-      // Show email dialog if no email is set
+    // Check if we have the employee's email stored (use fresh data from query)
+    const existingEmail = (employeeEmailQuery.data as { email?: string })?.email;
+    
+    if (!existingEmail) {
+      // Show email dialog if no email is stored
       setShowEmailDialog(true);
     } else {
-      // Proceed directly with email submission
+      // Set the email and proceed directly with email submission
+      setEmployeeEmail(existingEmail);
       handleEmailSubmit();
     }
   };
