@@ -252,61 +252,127 @@ export default function TimesheetPage() {
       setValue("rescueCoverageWednesday", false);
       setValue("rescueCoverageThursday", false);
       
-      // Populate from shifts
+      // Group shifts by calendar date and combine multiple shifts per day
+      const shiftsByDate = new Map<string, Shift[]>();
+      
       shifts.forEach((shift) => {
-        // Use the date string directly to avoid timezone issues
-        const shiftDate = new Date(shift.date + 'T12:00:00'); // Add noon time to avoid timezone edge cases
-        const dayOfWeek = shiftDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-        const dayKey = DAYS_OF_WEEK[dayOfWeek]?.key;
+        const shiftDate = shift.date; // Use date string directly
+        if (!shiftsByDate.has(shiftDate)) {
+          shiftsByDate.set(shiftDate, []);
+        }
+        shiftsByDate.get(shiftDate)!.push(shift);
+      });
+      
+      // Process each date group
+      shiftsByDate.forEach((dayShifts, dateStr) => {
+        // Combine all shifts for this calendar date
+        let combinedStartTime: Date | null = null;
+        let combinedEndTime: Date | null = null;
+        let totalDuration = 0;
+        let hasNightDuty = false;
         
-        if (dayKey) {
-          // Check if this is a night duty shift for rescue coverage
-          // Look for "Night Duty" in position field OR detect by time pattern (overnight shifts)
+        // Sort shifts by start time for this date
+        dayShifts.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+        
+        dayShifts.forEach((shift) => {
           const startTime = new Date(shift.startTime);
           const endTime = new Date(shift.endTime);
+          
+          // Check for night duty/rescue coverage
           const startHour = startTime.getUTCHours();
           const endHour = endTime.getUTCHours();
-          
-          // Night duty: either explicitly labeled OR overnight shift (starts after 6pm and ends before noon next day)
           const isNightDuty = (shift.position && shift.position.toLowerCase().includes('night duty')) ||
                               (startHour >= 18 || startHour <= 6) && (endHour >= 0 && endHour <= 12);
           
           if (isNightDuty) {
+            hasNightDuty = true;
+          }
+          
+          // Combine shifts - find earliest start and latest end
+          if (!combinedStartTime || startTime < combinedStartTime) {
+            combinedStartTime = startTime;
+          }
+          if (!combinedEndTime || endTime > combinedEndTime) {
+            combinedEndTime = endTime;
+          }
+          
+          totalDuration += shift.duration;
+        });
+        
+        if (!combinedStartTime || !combinedEndTime) return;
+        
+        // Determine which timesheet day this belongs to based on 7am boundaries
+        // Convert to Eastern time for proper 7am calculation
+        const startTimeET = new Date(combinedStartTime.toLocaleString("en-US", {timeZone: "America/New_York"}));
+        const startHour = startTimeET.getHours();
+        
+        // Get the calendar date this shift starts on
+        const shiftCalendarDate = new Date(dateStr + 'T12:00:00');
+        let timesheetDay = shiftCalendarDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        
+        // If shift starts before 7am, it belongs to the previous timesheet day
+        if (startHour < 7) {
+          timesheetDay = (timesheetDay - 1 + 7) % 7; // Wrap around for Sunday
+        }
+        
+        const dayKey = DAYS_OF_WEEK[timesheetDay]?.key;
+        
+        if (dayKey) {
+          if (hasNightDuty) {
             // Mark rescue coverage for weeknights only (Monday-Thursday)
             if (dayKey === 'monday') setValue("rescueCoverageMonday", true);
             else if (dayKey === 'tuesday') setValue("rescueCoverageTuesday", true);
             else if (dayKey === 'wednesday') setValue("rescueCoverageWednesday", true);
             else if (dayKey === 'thursday') setValue("rescueCoverageThursday", true);
+          }
+          
+          // Always populate time entries for combined shifts
+          const startTimeStr = combinedStartTime.toLocaleTimeString('en-US', { 
+            hour12: false, 
+            hour: '2-digit', 
+            minute: '2-digit',
+            timeZone: 'America/New_York'
+          });
+          const endTimeStr = combinedEndTime.toLocaleTimeString('en-US', { 
+            hour12: false, 
+            hour: '2-digit', 
+            minute: '2-digit',
+            timeZone: 'America/New_York'
+          });
+          
+          // Check if there's already a shift for this timesheet day (from previous combined shifts)
+          const existingStartTime = watchedValues[`${dayKey}StartTime` as keyof TimesheetFormData] as string;
+          const existingEndTime = watchedValues[`${dayKey}EndTime` as keyof TimesheetFormData] as string;
+          const existingHours = watchedValues[`${dayKey}TotalHours` as keyof TimesheetFormData] as number || 0;
+          
+          if (existingStartTime && existingEndTime) {
+            // Combine with existing shift for this timesheet day
+            const existingStart = new Date(`1970-01-01T${existingStartTime}:00`);
+            const existingEnd = new Date(`1970-01-01T${existingEndTime}:00`);
+            const newStart = new Date(`1970-01-01T${startTimeStr}:00`);
+            const newEnd = new Date(`1970-01-01T${endTimeStr}:00`);
+            
+            const finalStartTime = existingStart < newStart ? existingStart : newStart;
+            const finalEndTime = existingEnd > newEnd ? existingEnd : newEnd;
+            
+            const finalStartStr = finalStartTime.toTimeString().substring(0, 5);
+            const finalEndStr = finalEndTime.toTimeString().substring(0, 5);
+            
+            setValue(`${dayKey}StartTime` as keyof TimesheetFormData, finalStartStr);
+            setValue(`${dayKey}EndTime` as keyof TimesheetFormData, finalEndStr);
+            setValue(`${dayKey}TotalHours` as keyof TimesheetFormData, existingHours + totalDuration);
           } else {
-            // Regular shift - populate daily time entry
-            // Convert UTC times to local time strings
-            const startTime = new Date(shift.startTime);
-            const endTime = new Date(shift.endTime);
-            
-            // Use proper locale time formatting to handle timezone conversion
-            const startTimeStr = startTime.toLocaleTimeString('en-US', { 
-              hour12: false, 
-              hour: '2-digit', 
-              minute: '2-digit',
-              timeZone: 'America/New_York' // Eastern time for Oakland
-            });
-            const endTimeStr = endTime.toLocaleTimeString('en-US', { 
-              hour12: false, 
-              hour: '2-digit', 
-              minute: '2-digit',
-              timeZone: 'America/New_York'
-            });
-            
+            // First shift for this timesheet day
             setValue(`${dayKey}StartTime` as keyof TimesheetFormData, startTimeStr);
             setValue(`${dayKey}EndTime` as keyof TimesheetFormData, endTimeStr);
-            setValue(`${dayKey}TotalHours` as keyof TimesheetFormData, shift.duration);
+            setValue(`${dayKey}TotalHours` as keyof TimesheetFormData, totalDuration);
           }
         }
       });
       
       toast({
         title: "Schedule loaded",
-        description: `Populated timecard from ${shifts.length} scheduled shifts.`,
+        description: `Populated timecard from ${shifts.length} scheduled shifts (combined by timesheet day).`,
       });
     } catch (error) {
       console.error("Error auto-populating from schedule:", error);
