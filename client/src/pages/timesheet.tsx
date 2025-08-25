@@ -767,7 +767,7 @@ export default function TimesheetPage() {
                       <p className="font-medium text-gray-900">
                         {scheduleQuery.data?.employees?.find((emp) => emp.employeeNumber === selectedEmployeeNumber)?.fullName}
                       </p>
-                      <p className="text-sm text-gray-600">Employee #: {selectedEmployeeNumber}</p>
+                      <p className="text-sm text-gray-600">Employee #: {watchedValues.employeeNumber || selectedEmployeeNumber}</p>
                     </div>
                   </div>
                 </div>
