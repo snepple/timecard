@@ -571,6 +571,16 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       return;
     }
 
+    // Check if signature is present
+    if (!signatureData || signatureData.trim() === '') {
+      toast({
+        title: "Signature Required",
+        description: "Please provide a digital signature before submitting for approval.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     submitTimesheetMutation.mutate(currentTimesheet.id);
   };
 
@@ -716,6 +726,16 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       toast({
         title: "Validation Error",
         description: "Please fill in employee name, number, and week ending date.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if signature is present
+    if (!signatureData || signatureData.trim() === '') {
+      toast({
+        title: "Signature Required",
+        description: "Please provide a digital signature before printing.",
         variant: "destructive",
       });
       return;
@@ -1109,11 +1129,21 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                     <Label className="block text-sm font-medium text-secondary mb-2">{label}</Label>
                     <div>
                       <div className="text-xs text-gray-500 mb-2">1800-0600</div>
-                      <Checkbox
-                        checked={form.watch(key as keyof TimesheetFormData) || false}
-                        onCheckedChange={(checked) => form.setValue(key as keyof TimesheetFormData, checked)}
-                        className="w-5 h-5"
-                        data-testid={`checkbox-${key}`}
+                      <FormField
+                        control={form.control}
+                        name={key as keyof TimesheetFormData}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value === true}
+                                onCheckedChange={field.onChange}
+                                className="w-5 h-5"
+                                data-testid={`checkbox-${key}`}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
                       />
                     </div>
                   </div>
