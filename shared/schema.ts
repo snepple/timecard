@@ -92,3 +92,21 @@ export const insertEmployeeNumberSchema = createInsertSchema(employeeNumbers).om
 
 export type EmployeeNumber = typeof employeeNumbers.$inferSelect;
 export type InsertEmployeeNumber = z.infer<typeof insertEmployeeNumberSchema>;
+
+// Settings table for storing app configuration
+export const settings = pgTable("settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  key: varchar("key").notNull().unique(),
+  value: varchar("value").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSettingSchema = createInsertSchema(settings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Setting = typeof settings.$inferSelect;
+export type InsertSetting = z.infer<typeof insertSettingSchema>;

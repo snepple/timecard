@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { AlertCircle, Plus, Edit2, Trash2, Users, Mail } from "lucide-react";
+import { AlertCircle, Plus, Edit2, Trash2, Users, Mail, Lock, Settings } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 
 interface EmployeeNumber {
   id: string;
@@ -25,10 +26,21 @@ export default function SupervisorDashboard() {
   const [employeeNumber, setEmployeeNumber] = useState("");
   const [employeeEmail, setEmployeeEmail] = useState("");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  
+  // Password management state
+  const [showPasswordSettings, setShowPasswordSettings] = useState(false);
+  const [appPassword, setAppPassword] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
 
   // Fetch employee numbers
   const employeeNumbersQuery = useQuery<EmployeeNumber[]>({
     queryKey: ["/api/employee-numbers"],
+  });
+
+  // Fetch current passwords
+  const passwordsQuery = useQuery<{app_password: string; admin_password: string}>({
+    queryKey: ["/api/settings/passwords"],
+    enabled: showPasswordSettings,
   });
 
   // Sync employees from schedule mutation
@@ -181,15 +193,83 @@ export default function SupervisorDashboard() {
     }
   };
 
+  // Password management mutations
+  const updatePasswordsMutation = useMutation({
+    mutationFn: async (data: { app_password?: string; admin_password?: string }) => {
+      return apiRequest("PUT", "/api/settings/passwords", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/passwords"] });
+      toast({
+        title: "Passwords updated",
+        description: "Security settings have been successfully updated.",
+      });
+      setShowPasswordSettings(false);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update passwords. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handlePasswordUpdate = () => {
+    if (!appPassword.trim() || !adminPassword.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in both passwords.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate app password is numbers only
+    if (!/^\d+$/.test(appPassword)) {
+      toast({
+        title: "Validation Error",
+        description: "App password must contain only numbers.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updatePasswordsMutation.mutate({
+      app_password: appPassword,
+      admin_password: adminPassword,
+    });
+  };
+
+  // Load passwords when dialog opens
+  React.useEffect(() => {
+    if (showPasswordSettings && passwordsQuery.data) {
+      setAppPassword(passwordsQuery.data.app_password);
+      setAdminPassword(passwordsQuery.data.admin_password);
+    }
+  }, [showPasswordSettings, passwordsQuery.data]);
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-secondary flex items-center" data-testid="heading-supervisor-dashboard">
-            <AlertCircle className="text-primary mr-3 h-8 w-8" />
-            Admin
-          </h1>
-          <p className="text-gray-600 mt-2">Manage employee numbers and sync from WhenToWork schedule</p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-secondary flex items-center" data-testid="heading-supervisor-dashboard">
+                <AlertCircle className="text-primary mr-3 h-8 w-8" />
+                Admin
+              </h1>
+              <p className="text-gray-600 mt-2">Manage employee numbers and sync from WhenToWork schedule</p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setShowPasswordSettings(true)}
+              className="flex items-center"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Security Settings
+            </Button>
+          </div>
         </div>
 
         <div className="max-w-4xl mx-auto">
@@ -357,6 +437,101 @@ export default function SupervisorDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Password Settings Dialog */}
+        <Dialog open={showPasswordSettings} onOpenChange={setShowPasswordSettings}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <Lock className="w-5 h-5 mr-2" />
+                Security Settings
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              {passwordsQuery.isLoading ? (
+                <div className="text-center py-8">Loading current settings...</div>
+              ) : (
+                <>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="app-password" className="text-sm font-medium">
+                        App Access Code (Numbers Only)
+                      </Label>
+                      <Input
+                        id="app-password"
+                        type="text"
+                        value={appPassword}
+                        onChange={(e) => {
+                          // Only allow numbers
+                          const numericValue = e.target.value.replace(/\D/g, '');
+                          setAppPassword(numericValue);
+                        }}
+                        placeholder="Enter numeric access code"
+                        className="mt-1"
+                        maxLength={20}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        This code is required to access the main timesheet application
+                      </p>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div>
+                      <Label htmlFor="admin-password" className="text-sm font-medium">
+                        Admin Password
+                      </Label>
+                      <Input
+                        id="admin-password"
+                        type="password"
+                        value={adminPassword}
+                        onChange={(e) => setAdminPassword(e.target.value)}
+                        placeholder="Enter admin password"
+                        className="mt-1"
+                        maxLength={50}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        This password is required to access the admin area
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <div className="flex items-start">
+                      <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 mr-2" />
+                      <div className="text-sm">
+                        <p className="font-medium text-amber-800">Security Notice</p>
+                        <p className="text-amber-700 mt-1">
+                          Changing these passwords will require all users to re-authenticate. 
+                          Make sure to communicate new passwords to authorized personnel.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setShowPasswordSettings(false);
+                        setAppPassword("");
+                        setAdminPassword("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handlePasswordUpdate} 
+                      disabled={updatePasswordsMutation.isPending}
+                    >
+                      {updatePasswordsMutation.isPending ? 'Updating...' : 'Update Passwords'}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

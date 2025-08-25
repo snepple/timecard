@@ -1,4 +1,4 @@
-import { type Timesheet, type InsertTimesheet, type EmployeeNumber, type InsertEmployeeNumber, timesheets, employeeNumbers } from "@shared/schema";
+import { type Timesheet, type InsertTimesheet, type EmployeeNumber, type InsertEmployeeNumber, type Setting, type InsertSetting, timesheets, employeeNumbers, settings } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -28,6 +28,11 @@ export interface IStorage {
   approveTimesheet(id: string, supervisorName: string, comments?: string): Promise<Timesheet | undefined>;
   rejectTimesheet(id: string, supervisorName: string, comments: string): Promise<Timesheet | undefined>;
   getTimesheetsByStatus(status: string): Promise<Timesheet[]>;
+  
+  // Settings operations
+  getSetting(key: string): Promise<string | undefined>;
+  setSetting(key: string, value: string): Promise<void>;
+  initializeDefaultSettings(): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -180,6 +185,18 @@ export class MemStorage implements IStorage {
     // For MemStorage, we don't persist employee data
     return;
   }
+
+  async getSetting(key: string): Promise<string | undefined> {
+    return undefined;
+  }
+
+  async setSetting(key: string, value: string): Promise<void> {
+    return;
+  }
+
+  async initializeDefaultSettings(): Promise<void> {
+    return;
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -295,6 +312,36 @@ export class DatabaseStorage implements IStorage {
 
   async getTimesheetsByStatus(status: string): Promise<Timesheet[]> {
     return await db.select().from(timesheets).where(eq(timesheets.status, status));
+  }
+
+  // Settings operations
+  async getSetting(key: string): Promise<string | undefined> {
+    const [setting] = await db.select({ value: settings.value })
+      .from(settings)
+      .where(eq(settings.key, key));
+    return setting?.value;
+  }
+
+  async setSetting(key: string, value: string): Promise<void> {
+    await db.insert(settings)
+      .values({ key, value })
+      .onConflictDoUpdate({
+        target: settings.key,
+        set: { value, updatedAt: new Date() }
+      });
+  }
+
+  async initializeDefaultSettings(): Promise<void> {
+    // Initialize default passwords if they don't exist
+    const appPassword = await this.getSetting('app_password');
+    if (!appPassword) {
+      await this.setSetting('app_password', '1888');
+    }
+
+    const adminPassword = await this.getSetting('admin_password');
+    if (!adminPassword) {
+      await this.setSetting('admin_password', 'OFDAdmin1888');
+    }
   }
 }
 
