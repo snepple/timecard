@@ -604,13 +604,14 @@ export default function TimesheetPage() {
       setIsLoading(true);
       
       // Generate PDF first for preview
-      const pdfBuffer = await generateTimeSheetPDF({
+      const pdfDataUrl = await generateTimeSheetPDF({
         ...formData,
         signatureData,
       });
       
-      // Store PDF data for preview
-      setPreviewPdfData(pdfBuffer);
+      // Store PDF data for preview (strip the data URL prefix since iframe will add it)
+      const base64Data = pdfDataUrl.replace(/^data:application\/pdf;base64,/, '');
+      setPreviewPdfData(base64Data);
       
       // Check if we have the employee's email stored
       const existingEmail = (employeeEmailQuery.data as { email?: string })?.email;
@@ -674,7 +675,7 @@ export default function TimesheetPage() {
         timesheetData: {
           employeeName: formData.employeeName,
           weekEnding: formData.weekEnding,
-          pdfBuffer: previewPdfData, // Use the already generated PDF
+          pdfBuffer: `data:application/pdf;base64,${previewPdfData}`, // Convert base64 back to data URL
         },
       });
     } catch (error) {
@@ -706,8 +707,14 @@ export default function TimesheetPage() {
         signatureData,
       });
       
-      // Create blob and trigger download
-      const blob = new Blob([Buffer.from(pdfBuffer, 'base64')], { type: 'application/pdf' });
+      // Create blob and trigger download (strip data URL prefix first)
+      const base64Data = pdfBuffer.replace(/^data:application\/pdf;base64,/, '');
+      const binaryData = atob(base64Data);
+      const bytes = new Uint8Array(binaryData.length);
+      for (let i = 0; i < binaryData.length; i++) {
+        bytes[i] = binaryData.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
