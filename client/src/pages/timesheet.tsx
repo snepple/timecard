@@ -228,6 +228,8 @@ export default function TimesheetPage() {
       
       // Populate from shifts
       shifts.forEach((shift) => {
+        console.log('Processing shift:', shift); // Debug log
+        
         // Use the date string directly to avoid timezone issues
         const shiftDate = new Date(shift.date + 'T12:00:00'); // Add noon time to avoid timezone edge cases
         const dayOfWeek = shiftDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
@@ -235,12 +237,25 @@ export default function TimesheetPage() {
         
         if (dayKey) {
           // Check if this is a night duty shift for rescue coverage
-          if (shift.position && shift.position.toLowerCase().includes('night duty')) {
+          // Look for "Night Duty" in position field OR detect by time pattern (overnight shifts)
+          const startTime = new Date(shift.startTime);
+          const endTime = new Date(shift.endTime);
+          const startHour = startTime.getUTCHours();
+          const endHour = endTime.getUTCHours();
+          
+          // Night duty: either explicitly labeled OR overnight shift (starts after 6pm and ends before noon next day)
+          const isNightDuty = (shift.position && shift.position.toLowerCase().includes('night duty')) ||
+                              (startHour >= 18 || startHour <= 6) && (endHour >= 0 && endHour <= 12);
+          
+          console.log(`Day: ${dayKey}, Position: ${shift.position}, StartHour: ${startHour}, EndHour: ${endHour}, IsNightDuty: ${isNightDuty}`); // Debug log
+          
+          if (isNightDuty) {
             // Mark rescue coverage for weeknights only (Monday-Thursday)
             if (dayKey === 'monday') setValue("rescueCoverageMonday", true);
             else if (dayKey === 'tuesday') setValue("rescueCoverageTuesday", true);
             else if (dayKey === 'wednesday') setValue("rescueCoverageWednesday", true);
             else if (dayKey === 'thursday') setValue("rescueCoverageThursday", true);
+            console.log(`Set rescue coverage for ${dayKey}`); // Debug log
           } else {
             // Regular shift - populate daily time entry
             // Convert UTC times to local time strings
@@ -264,6 +279,7 @@ export default function TimesheetPage() {
             setValue(`${dayKey}StartTime` as keyof TimesheetFormData, startTimeStr);
             setValue(`${dayKey}EndTime` as keyof TimesheetFormData, endTimeStr);
             setValue(`${dayKey}TotalHours` as keyof TimesheetFormData, shift.duration);
+            console.log(`Set time entry for ${dayKey}: ${startTimeStr} - ${endTimeStr}`); // Debug log
           }
         }
       });
