@@ -1122,7 +1122,7 @@ export default function TimesheetPage() {
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel className="text-sm font-medium text-secondary">
-                        Acknowledgment (Required)
+                        Acknowledgment <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormDescription className="text-sm text-muted-foreground">
                         I acknowledge that I have reviewed all times and totals for accuracy. 
@@ -1146,7 +1146,7 @@ export default function TimesheetPage() {
                 render={() => (
                   <FormItem>
                     <FormLabel className="text-lg font-semibold text-secondary">
-                      Digital Signature (Required)
+                      Digital Signature <span className="text-red-500">*</span>
                     </FormLabel>
                     <FormControl>
                       <SignaturePad
