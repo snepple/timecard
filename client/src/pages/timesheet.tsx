@@ -227,11 +227,14 @@ export default function TimesheetPage() {
       setValue("rescueCoverageThursday", false);
       
       // Populate from shifts
+      console.log('Starting to process shifts:', shifts);
       shifts.forEach((shift) => {
+        console.log('Processing individual shift:', shift);
         // Use the date string directly to avoid timezone issues
         const shiftDate = new Date(shift.date + 'T12:00:00'); // Add noon time to avoid timezone edge cases
         const dayOfWeek = shiftDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
         const dayKey = DAYS_OF_WEEK[dayOfWeek]?.key;
+        console.log(`Shift date: ${shift.date}, dayOfWeek: ${dayOfWeek}, dayKey: ${dayKey}`);
         
         if (dayKey) {
           // Check if this is a night duty shift for rescue coverage
@@ -244,6 +247,8 @@ export default function TimesheetPage() {
           // Night duty: either explicitly labeled OR overnight shift (starts after 6pm and ends before noon next day)
           const isNightDuty = (shift.position && shift.position.toLowerCase().includes('night duty')) ||
                               (startHour >= 18 || startHour <= 6) && (endHour >= 0 && endHour <= 12);
+          
+          console.log(`Position: ${shift.position}, StartHour: ${startHour}, EndHour: ${endHour}, IsNightDuty: ${isNightDuty}`);
           
           if (isNightDuty) {
             // Mark rescue coverage for weeknights only (Monday-Thursday)
