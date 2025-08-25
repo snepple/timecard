@@ -1,4 +1,4 @@
-import jsPDF from "jspdf";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 interface TimesheetData {
   employeeName: string;
@@ -62,40 +62,101 @@ function formatHoursForPDF(hours?: number): string {
 
 export async function generateTimeSheetPDF(data: TimesheetData): Promise<string> {
   try {
-    const pdf = new jsPDF();
+    // Create a new PDF document
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([612, 792]); // Standard letter size
+    const { width, height } = page.getSize();
     
-    // Set up the document
-    pdf.setFontSize(16);
-    pdf.setFont("helvetica", "bold");
+    // Get fonts
+    const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     
-    // Header - centered
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    pdf.text("Oakland Fire-Rescue", pageWidth/2, 20, { align: 'center' });
-    pdf.setFontSize(14);
-    pdf.text("Weekly Time Sheet", pageWidth/2, 35, { align: 'center' });
+    // Header - centered exactly like template
+    page.drawText('Oakland Fire-Rescue', {
+      x: width / 2 - 70,
+      y: height - 50,
+      size: 16,
+      font: helveticaBoldFont,
+      color: rgb(0, 0, 0),
+    });
     
-    // Employee Information
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(`Name: ${data.employeeName}`, 20, 55);
-    pdf.text(`Number: ${data.employeeNumber}`, 120, 55);
-    pdf.text(`Week Ending: ${data.weekEnding}`, 20, 70);
+    page.drawText('Weekly Time Sheet', {
+      x: width / 2 - 55,
+      y: height - 80,
+      size: 14,
+      font: helveticaBoldFont,
+      color: rgb(0, 0, 0),
+    });
+    
+    // Employee Information - positioned exactly like template
+    page.drawText(`Name: ${data.employeeName}`, {
+      x: 50,
+      y: height - 120,
+      size: 12,
+      font: helveticaFont,
+      color: rgb(0, 0, 0),
+    });
+    
+    page.drawText(`Number: ${data.employeeNumber}`, {
+      x: 350,
+      y: height - 120,
+      size: 12,
+      font: helveticaFont,
+      color: rgb(0, 0, 0),
+    });
+    
+    page.drawText(`Week Ending: ${data.weekEnding}`, {
+      x: 50,
+      y: height - 150,
+      size: 12,
+      font: helveticaFont,
+      color: rgb(0, 0, 0),
+    });
     
     // Signature line
-    pdf.text("Signature: ___________________________", 20, 85);
+    page.drawText('Signature: ___________________________', {
+      x: 50,
+      y: height - 180,
+      size: 12,
+      font: helveticaFont,
+      color: rgb(0, 0, 0),
+    });
     
-    // Table headers with proper spacing to match the form
-    const startY = 105;
-    pdf.setFontSize(11);
-    pdf.setFont("helvetica", "bold");
+    // Table headers - positioned exactly like template
+    const tableStartY = height - 220;
+    page.drawText('Date', {
+      x: 130,
+      y: tableStartY,
+      size: 11,
+      font: helveticaBoldFont,
+      color: rgb(0, 0, 0),
+    });
     
-    // Column headers - positioned to match the form exactly
-    pdf.text("Date", 65, startY);
-    pdf.text("Start Time", 105, startY);
-    pdf.text("End Time", 140, startY);
-    pdf.text("Total Hours", 175, startY);
+    page.drawText('Start Time', {
+      x: 200,
+      y: tableStartY,
+      size: 11,
+      font: helveticaBoldFont,
+      color: rgb(0, 0, 0),
+    });
     
-    // Days data with exact positioning to match form
+    page.drawText('End Time', {
+      x: 290,
+      y: tableStartY,
+      size: 11,
+      font: helveticaBoldFont,
+      color: rgb(0, 0, 0),
+    });
+    
+    page.drawText('Total Hours', {
+      x: 380,
+      y: tableStartY,
+      size: 11,
+      font: helveticaBoldFont,
+      color: rgb(0, 0, 0),
+    });
+    
+    // Days data - positioned exactly like template
     const days = [
       { name: "Sunday", date: data.sundayDate, start: data.sundayStartTime, end: data.sundayEndTime, total: data.sundayTotalHours },
       { name: "Monday", date: data.mondayDate, start: data.mondayStartTime, end: data.mondayEndTime, total: data.mondayTotalHours },
@@ -106,87 +167,152 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
       { name: "Saturday", date: data.saturdayDate, start: data.saturdayStartTime, end: data.saturdayEndTime, total: data.saturdayTotalHours },
     ];
     
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(11);
-    let currentY = startY + 20;
+    let currentY = tableStartY - 30;
     
-    days.forEach((day, index) => {
-      // Day name - left aligned
-      pdf.text(day.name, 20, currentY);
+    days.forEach((day) => {
+      // Day name - left aligned like template
+      page.drawText(day.name, {
+        x: 50,
+        y: currentY,
+        size: 11,
+        font: helveticaFont,
+        color: rgb(0, 0, 0),
+      });
       
-      // Date, times, and hours - positioned to match form columns
-      pdf.text(day.date || "", 65, currentY);
-      pdf.text(formatTimeForPDF(day.start), 105, currentY);
-      pdf.text(formatTimeForPDF(day.end), 140, currentY);
-      pdf.text(formatHoursForPDF(day.total), 175, currentY);
+      // Date, times, and hours - positioned to match template columns
+      page.drawText(day.date || '', {
+        x: 130,
+        y: currentY,
+        size: 11,
+        font: helveticaFont,
+        color: rgb(0, 0, 0),
+      });
       
-      currentY += 18; // Increased spacing to match form
+      page.drawText(formatTimeForPDF(day.start), {
+        x: 200,
+        y: currentY,
+        size: 11,
+        font: helveticaFont,
+        color: rgb(0, 0, 0),
+      });
+      
+      page.drawText(formatTimeForPDF(day.end), {
+        x: 290,
+        y: currentY,
+        size: 11,
+        font: helveticaFont,
+        color: rgb(0, 0, 0),
+      });
+      
+      page.drawText(formatHoursForPDF(day.total), {
+        x: 380,
+        y: currentY,
+        size: 11,
+        font: helveticaFont,
+        color: rgb(0, 0, 0),
+      });
+      
+      currentY -= 25; // Spacing between days
     });
     
-    // Total hours section - positioned to match form exactly  
-    currentY += 15;
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(12);
-    pdf.text("Total Hours for Week", 100, currentY);
-    pdf.text(formatHoursForPDF(data.totalWeeklyHours), 165, currentY);
-    pdf.text("0", 180, currentY); // Additional 0 as shown in form
+    // Total hours section - positioned exactly like template
+    currentY -= 20;
+    page.drawText('Total Hours for Week', {
+      x: 250,
+      y: currentY,
+      size: 12,
+      font: helveticaBoldFont,
+      color: rgb(0, 0, 0),
+    });
     
-    // Weeknight Rescue Coverage - centered like in the form
-    currentY += 30;
-    pdf.setFontSize(12);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Weeknight Rescue Coverage", pageWidth/2, currentY, { align: 'center' });
+    page.drawText(formatHoursForPDF(data.totalWeeklyHours), {
+      x: 400,
+      y: currentY,
+      size: 12,
+      font: helveticaBoldFont,
+      color: rgb(0, 0, 0),
+    });
     
-    currentY += 20;
-    pdf.setFontSize(11);
-    pdf.setFont("helvetica", "normal");
+    page.drawText('0', {
+      x: 450,
+      y: currentY,
+      size: 12,
+      font: helveticaBoldFont,
+      color: rgb(0, 0, 0),
+    });
     
-    // Position coverage days to match the form layout exactly
+    // Weeknight Rescue Coverage - centered exactly like template
+    currentY -= 60;
+    page.drawText('Weeknight Rescue Coverage', {
+      x: width / 2 - 90,
+      y: currentY,
+      size: 12,
+      font: helveticaBoldFont,
+      color: rgb(0, 0, 0),
+    });
+    
+    // Coverage days - positioned exactly like template
+    currentY -= 30;
     const coverageDays = [
-      { name: "Monday", covered: data.rescueCoverageMonday, x: 45 },
-      { name: "Tuesday", covered: data.rescueCoverageTuesday, x: 85 },
-      { name: "Wednesday", covered: data.rescueCoverageWednesday, x: 125 },
-      { name: "Thursday", covered: data.rescueCoverageThursday, x: 170 },
+      { name: "Monday", covered: data.rescueCoverageMonday, x: 100 },
+      { name: "Tuesday", covered: data.rescueCoverageTuesday, x: 200 },
+      { name: "Wednesday", covered: data.rescueCoverageWednesday, x: 300 },
+      { name: "Thursday", covered: data.rescueCoverageThursday, x: 420 },
     ];
     
     coverageDays.forEach((day) => {
-      pdf.text(day.name, day.x, currentY);
+      page.drawText(day.name, {
+        x: day.x,
+        y: currentY,
+        size: 11,
+        font: helveticaFont,
+        color: rgb(0, 0, 0),
+      });
+      
       if (day.covered) {
-        pdf.text("✓", day.x + 5, currentY + 15);
+        page.drawText('✓', {
+          x: day.x + 10,
+          y: currentY - 20,
+          size: 14,
+          font: helveticaBoldFont,
+          color: rgb(0, 0, 0),
+        });
       }
     });
     
-    currentY += 35;
-    pdf.text("***Weeknight Rescue Coverage will be paid out in monthly check***", pageWidth/2, currentY, { align: 'center' });
+    // Footer note - centered exactly like template
+    currentY -= 60;
+    page.drawText('***Weeknight Rescue Coverage will be paid out in monthly check***', {
+      x: width / 2 - 180,
+      y: currentY,
+      size: 10,
+      font: helveticaFont,
+      color: rgb(0, 0, 0),
+    });
     
-    // Add signature if provided - positioned over the signature line
+    // Add signature if provided - positioned over signature line
     if (data.signatureData && data.signatureData.trim() !== '') {
       try {
-        // Ensure the signature data has the proper data URL prefix
-        const signatureData = data.signatureData.startsWith('data:') 
-          ? data.signatureData 
-          : `data:image/png;base64,${data.signatureData}`;
-        pdf.addImage(signatureData, "PNG", 80, 78, 60, 15); // Positioned over signature line
+        // Remove data URL prefix if present
+        const base64Data = data.signatureData.replace(/^data:image\/[a-z]+;base64,/, '');
+        const signatureImage = await pdfDoc.embedPng(base64Data);
+        
+        page.drawImage(signatureImage, {
+          x: 150,
+          y: height - 195,
+          width: 100,
+          height: 25,
+        });
       } catch (error) {
         console.warn("Could not add signature to PDF, continuing without signature:", error);
-        // Continue without signature rather than failing
       }
     }
     
+    // Serialize the PDF to bytes
+    const pdfBytes = await pdfDoc.save();
+    
     // Convert to base64
-    const pdfOutput = pdf.output("arraybuffer");
-    
-    // Use a more memory-efficient method to convert to base64
-    const uint8Array = new Uint8Array(pdfOutput);
-    let binary = '';
-    const chunkSize = 8192; // Process in chunks to avoid call stack issues
-    
-    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-      const chunk = uint8Array.slice(i, i + chunkSize);
-      binary += String.fromCharCode.apply(null, Array.from(chunk));
-    }
-    
-    const base64String = btoa(binary);
+    const base64String = btoa(String.fromCharCode(...pdfBytes));
     return base64String;
   } catch (error) {
     console.error("PDF Generation Error:", error);
