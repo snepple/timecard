@@ -1,0 +1,242 @@
+chunk-WERSD76P.js?v=c9175074:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+timesheet.tsx:638 Form data being passed to PDF generator (email): {employeeName: 'Sam Nepple', employeeNumber: '936', weekEnding: '2025-08-30', selectedEmployee: 'samnepple', rescueCoverageMonday: false, …}
+pdf-generator.ts:92 Available form fields: (36) ['Employee Signature', 'Employee Name', 'Employee ID', 'Week Ending Date', 'Monday Weeknight Rescue Coverage', 'Tuesday Weeknight Rescue Coverage', 'Wednesday Weeknight Rescue Coverage', 'Thuresday Weeknight Rescue Coverage', 'Total Hours for Week', 'Monday Date', 'Tuesday Date', 'Wednesday Date', 'Thursday Date', 'Friday Date', 'Saturday Date', 'Sunday Start Time', 'Monday Start Time', 'Tuesday Start Time', 'Wednesday Start Time', 'Thursday Start Time', 'Friday Start Time', 'Saturday Start Time', 'Sunday End Time', 'Monday End Time', 'Tuesday End Time', 'Wednesday End Time', 'Thursday End Time', 'Friday End Time', 'Saturday End Time', 'Sunday Total Hours', 'Monday Total Hours', 'Tuesday Total Hours', 'Wednesday Total Hours', 'Thursday Total Hours', 'Friday Total Hours', 'Saturday Total Hours']
+pdf-generator.ts:93 Available form fields (detailed): Employee Signature, Employee Name, Employee ID, Week Ending Date, Monday Weeknight Rescue Coverage, Tuesday Weeknight Rescue Coverage, Wednesday Weeknight Rescue Coverage, Thuresday Weeknight Rescue Coverage, Total Hours for Week, Monday Date, Tuesday Date, Wednesday Date, Thursday Date, Friday Date, Saturday Date, Sunday Start Time, Monday Start Time, Tuesday Start Time, Wednesday Start Time, Thursday Start Time, Friday Start Time, Saturday Start Time, Sunday End Time, Monday End Time, Tuesday End Time, Wednesday End Time, Thursday End Time, Friday End Time, Saturday End Time, Sunday Total Hours, Monday Total Hours, Tuesday Total Hours, Wednesday Total Hours, Thursday Total Hours, Friday Total Hours, Saturday Total Hours
+pdf-generator.ts:96 Rescue coverage data: {monday: false, tuesday: false, wednesday: true, thursday: false}
+ Field Name not found or not fillable
+ Field EmployeeName not found or not fillable
+ Filled Employee Name with: Sam Nepple
+ Field Employee_Name not found or not fillable
+ Field name not found or not fillable
+ Field employeename not found or not fillable
+ Field Number not found or not fillable
+ Field EmployeeNumber not found or not fillable
+ Field Employee Number not found or not fillable
+ Field Employee_Number not found or not fillable
+ Field number not found or not fillable
+ Field employeenumber not found or not fillable
+ Field ID not found or not fillable
+ Field EmployeeID not found or not fillable
+ Filled Employee ID with: 936
+ Field WeekEnding not found or not fillable
+ Field Week Ending not found or not fillable
+ Field Week_Ending not found or not fillable
+ Field weekending not found or not fillable
+ Field DateWeekEnding not found or not fillable
+ Field Date Week Ending not found or not fillable
+ Field WeekEndingDate not found or not fillable
+ Filled Week Ending Date with: 8/29/25
+ Field EndingDate not found or not fillable
+ Field Ending Date not found or not fillable
+ Field Week End not found or not fillable
+ Field WeekEnd not found or not fillable
+ Field weekendingdate not found or not fillable
+ Field endingdate not found or not fillable
+ Field weekend not found or not fillable
+ Field SundayDate not found or not fillable
+ Field Sunday_Date not found or not fillable
+ Field Date_Sunday not found or not fillable
+ Field Sunday Date not found or not fillable
+ Field dateSunday not found or not fillable
+ Field sundayDate not found or not fillable
+ Field sunday_date not found or not fillable
+ Field sundaydate not found or not fillable
+ Field SundayStart not found or not fillable
+ Field Sunday_Start not found or not fillable
+ Field Start_Sunday not found or not fillable
+ Field Sunday Start not found or not fillable
+ Field SundayStartTime not found or not fillable
+ Field Sunday_StartTime not found or not fillable
+ Filled Sunday Start Time with: 07:00
+ Field startSunday not found or not fillable
+ Field sundayStart not found or not fillable
+ Field sunday_start not found or not fillable
+ Field sundaystart not found or not fillable
+ Field SundayEnd not found or not fillable
+ Field Sunday_End not found or not fillable
+ Field End_Sunday not found or not fillable
+ Field Sunday End not found or not fillable
+ Field SundayEndTime not found or not fillable
+ Field Sunday_EndTime not found or not fillable
+ Filled Sunday End Time with: 15:00
+ Field endSunday not found or not fillable
+ Field sundayEnd not found or not fillable
+ Field sunday_end not found or not fillable
+ Field sundayend not found or not fillable
+ Field SundayTotal not found or not fillable
+ Field Sunday_Total not found or not fillable
+ Field Total_Sunday not found or not fillable
+ Field Sunday Total not found or not fillable
+ Field SundayHours not found or not fillable
+ Field Sunday_Hours not found or not fillable
+ Field Sunday Hours not found or not fillable
+ Field SundayTotalHours not found or not fillable
+ Field totalSunday not found or not fillable
+ Field sundayTotal not found or not fillable
+ Field sunday_total not found or not fillable
+ Field sundaytotal not found or not fillable
+ Field sundayhours not found or not fillable
+ Filled Sunday Total Hours with: 8.00
+ Field Sunday_Total_Hours not found or not fillable
+ Field TotalHoursSunday not found or not fillable
+ Field HoursSunday not found or not fillable
+ Field Hours_Sunday not found or not fillable
+ Field SundayHrs not found or not fillable
+ Field Sunday_Hrs not found or not fillable
+ Field MondayDate not found or not fillable
+ Field Monday_Date not found or not fillable
+ Field Date_Monday not found or not fillable
+ Filled Monday Date with: 8/24/25
+ Field dateMonday not found or not fillable
+ Field mondayDate not found or not fillable
+ Field monday_date not found or not fillable
+ Field mondaydate not found or not fillable
+ Field TuesdayDate not found or not fillable
+ Field Tuesday_Date not found or not fillable
+ Field Date_Tuesday not found or not fillable
+ Filled Tuesday Date with: 8/25/25
+ Field dateTuesday not found or not fillable
+ Field tuesdayDate not found or not fillable
+ Field tuesday_date not found or not fillable
+ Field tuesdaydate not found or not fillable
+ Field WednesdayDate not found or not fillable
+ Field Wednesday_Date not found or not fillable
+ Field Date_Wednesday not found or not fillable
+ Filled Wednesday Date with: 8/26/25
+ Field dateWednesday not found or not fillable
+ Field wednesdayDate not found or not fillable
+ Field wednesday_date not found or not fillable
+ Field wednesdaydate not found or not fillable
+ Field ThursdayDate not found or not fillable
+ Field Thursday_Date not found or not fillable
+ Field Date_Thursday not found or not fillable
+ Filled Thursday Date with: 8/27/25
+ Field dateThursday not found or not fillable
+ Field thursdayDate not found or not fillable
+ Field thursday_date not found or not fillable
+ Field thursdaydate not found or not fillable
+ Field FridayDate not found or not fillable
+ Field Friday_Date not found or not fillable
+ Field Date_Friday not found or not fillable
+ Filled Friday Date with: 8/28/25
+ Field dateFriday not found or not fillable
+ Field fridayDate not found or not fillable
+ Field friday_date not found or not fillable
+ Field fridaydate not found or not fillable
+ Field SaturdayDate not found or not fillable
+ Field Saturday_Date not found or not fillable
+ Field Date_Saturday not found or not fillable
+ Filled Saturday Date with: 8/29/25
+ Field dateSaturday not found or not fillable
+ Field saturdayDate not found or not fillable
+ Field saturday_date not found or not fillable
+ Field saturdaydate not found or not fillable
+ Field TotalWeeklyHours not found or not fillable
+ Field Total Weekly Hours not found or not fillable
+ Field WeeklyTotal not found or not fillable
+ Field Weekly Total not found or not fillable
+ Field TotalHours not found or not fillable
+ Field Total Hours not found or not fillable
+ Field totalweeklyhours not found or not fillable
+ Field weeklytotal not found or not fillable
+ Field totalhours not found or not fillable
+ Filled Total Hours for Week with: 8.00
+ Field TotalHoursForWeek not found or not fillable
+ Field Total_Hours_for_Week not found or not fillable
+ Field WeekTotal not found or not fillable
+ Field Week Total not found or not fillable
+ Field GrandTotal not found or not fillable
+ Field Grand Total not found or not fillable
+pdf-generator.ts:110 Field OverallTotal not found or not fillable
+pdf-generator.ts:110 Field totalhours for week not found or not fillable
+pdf-generator.ts:110 Field total hours for week not found or not fillable
+pdf-generator.ts:110 Field weektotal not found or not fillable
+pdf-generator.ts:110 Field grandtotal not found or not fillable
+pdf-generator.ts:275 Trying to set rescue coverage checkbox, checked: false
+pdf-generator.ts:125 Checkbox MondayCoverage not found
+pdf-generator.ts:125 Checkbox Monday Coverage not found
+pdf-generator.ts:125 Checkbox Monday_Coverage not found
+pdf-generator.ts:125 Checkbox mondaycoverage not found
+pdf-generator.ts:125 Checkbox RescueMonday not found
+pdf-generator.ts:125 Checkbox Monday Rescue not found
+pdf-generator.ts:125 Checkbox Monday_Rescue not found
+pdf-generator.ts:125 Checkbox mondayrescue not found
+pdf-generator.ts:125 Checkbox Rescue_Monday not found
+pdf-generator.ts:125 Checkbox rescue_monday not found
+pdf-generator.ts:125 Checkbox CoverageMonday not found
+pdf-generator.ts:125 Checkbox coverage_monday not found
+pdf-generator.ts:125 Checkbox Mon Coverage not found
+pdf-generator.ts:125 Checkbox MonCoverage not found
+pdf-generator.ts:125 Checkbox mon_coverage not found
+pdf-generator.ts:275 Trying to set rescue coverage checkbox, checked: false
+pdf-generator.ts:125 Checkbox TuesdayCoverage not found
+pdf-generator.ts:125 Checkbox Tuesday Coverage not found
+pdf-generator.ts:125 Checkbox Tuesday_Coverage not found
+pdf-generator.ts:125 Checkbox tuesdaycoverage not found
+pdf-generator.ts:125 Checkbox RescueTuesday not found
+pdf-generator.ts:125 Checkbox Tuesday Rescue not found
+pdf-generator.ts:125 Checkbox Tuesday_Rescue not found
+pdf-generator.ts:125 Checkbox tuesdayrescue not found
+pdf-generator.ts:125 Checkbox Rescue_Tuesday not found
+pdf-generator.ts:125 Checkbox rescue_tuesday not found
+pdf-generator.ts:125 Checkbox CoverageTuesday not found
+pdf-generator.ts:125 Checkbox coverage_tuesday not found
+pdf-generator.ts:125 Checkbox Tue Coverage not found
+pdf-generator.ts:125 Checkbox TueCoverage not found
+pdf-generator.ts:125 Checkbox tue_coverage not found
+pdf-generator.ts:275 Trying to set rescue coverage checkbox, checked: true
+pdf-generator.ts:125 Checkbox WednesdayCoverage not found
+pdf-generator.ts:125 Checkbox Wednesday Coverage not found
+pdf-generator.ts:125 Checkbox Wednesday_Coverage not found
+pdf-generator.ts:125 Checkbox wednesdaycoverage not found
+pdf-generator.ts:125 Checkbox RescueWednesday not found
+pdf-generator.ts:125 Checkbox Wednesday Rescue not found
+pdf-generator.ts:125 Checkbox Wednesday_Rescue not found
+pdf-generator.ts:125 Checkbox wednesdayrescue not found
+pdf-generator.ts:125 Checkbox Rescue_Wednesday not found
+pdf-generator.ts:125 Checkbox rescue_wednesday not found
+pdf-generator.ts:125 Checkbox CoverageWednesday not found
+pdf-generator.ts:125 Checkbox coverage_wednesday not found
+pdf-generator.ts:125 Checkbox Wed Coverage not found
+pdf-generator.ts:125 Checkbox WedCoverage not found
+pdf-generator.ts:125 Checkbox wed_coverage not found
+pdf-generator.ts:275 Trying to set rescue coverage checkbox, checked: false
+pdf-generator.ts:125 Checkbox ThursdayCoverage not found
+pdf-generator.ts:125 Checkbox Thursday Coverage not found
+pdf-generator.ts:125 Checkbox Thursday_Coverage not found
+pdf-generator.ts:125 Checkbox thursdaycoverage not found
+pdf-generator.ts:125 Checkbox RescueThursday not found
+pdf-generator.ts:125 Checkbox Thursday Rescue not found
+pdf-generator.ts:125 Checkbox Thursday_Rescue not found
+pdf-generator.ts:125 Checkbox thursdayrescue not found
+pdf-generator.ts:125 Checkbox Rescue_Thursday not found
+pdf-generator.ts:125 Checkbox rescue_thursday not found
+pdf-generator.ts:125 Checkbox CoverageThursday not found
+pdf-generator.ts:125 Checkbox coverage_thursday not found
+pdf-generator.ts:125 Checkbox Thu Coverage not found
+pdf-generator.ts:125 Checkbox ThuCoverage not found
+pdf-generator.ts:125 Checkbox thu_coverage not found
+pdf-generator.ts:311 Could not flatten form: Error: Unexpected N type: undefined
+    at PDFAnnotation2.getNormalAppearance (pdf-lib.js?v=c9175074:12243:13)
+    at PDFForm2.findWidgetAppearanceRef (pdf-lib.js?v=c9175074:17930:30)
+    at PDFForm2.flatten (pdf-lib.js?v=c9175074:17846:32)
+    at generateTimeSheetPDF (pdf-generator.ts:308:12)
+    at async handleEmail (timesheet.tsx:639:26)
+generateTimeSheetPDF @ pdf-generator.ts:311
+await in generateTimeSheetPDF
+handleEmail @ timesheet.tsx:639
+callCallback2 @ chunk-WERSD76P.js?v=c9175074:3674
+invokeGuardedCallbackDev @ chunk-WERSD76P.js?v=c9175074:3699
+invokeGuardedCallback @ chunk-WERSD76P.js?v=c9175074:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-WERSD76P.js?v=c9175074:3736
+executeDispatch @ chunk-WERSD76P.js?v=c9175074:7014
+processDispatchQueueItemsInOrder @ chunk-WERSD76P.js?v=c9175074:7034
+processDispatchQueue @ chunk-WERSD76P.js?v=c9175074:7043
+dispatchEventsForPlugins @ chunk-WERSD76P.js?v=c9175074:7051
+(anonymous) @ chunk-WERSD76P.js?v=c9175074:7174
+batchedUpdates$1 @ chunk-WERSD76P.js?v=c9175074:18913
+batchedUpdates @ chunk-WERSD76P.js?v=c9175074:3579
+dispatchEventForPluginEventSystem @ chunk-WERSD76P.js?v=c9175074:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-WERSD76P.js?v=c9175074:5478
+dispatchEvent @ chunk-WERSD76P.js?v=c9175074:5472
+dispatchDiscreteEvent @ chunk-WERSD76P.js?v=c9175074:5449

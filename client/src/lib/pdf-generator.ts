@@ -90,15 +90,6 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
     const fields = form.getFields();
     const fieldNames = fields.map(field => field.getName());
     console.log('Available form fields:', fieldNames);
-    console.log('Available form fields (detailed):', fieldNames.join(', '));
-    
-    // Log rescue coverage data being passed
-    console.log('Rescue coverage data:', {
-      monday: data.rescueCoverageMonday,
-      tuesday: data.rescueCoverageTuesday, 
-      wednesday: data.rescueCoverageWednesday,
-      thursday: data.rescueCoverageThursday
-    });
     
     // Helper function to safely fill text fields
     const fillTextField = (fieldName: string, value: string) => {
@@ -107,7 +98,7 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
         field.setText(value);
         console.log(`Filled ${fieldName} with: ${value}`);
       } catch (e) {
-        console.log(`Field ${fieldName} not found or not fillable`);
+        // Field not found - this is normal for optional fields
       }
     };
     
@@ -122,7 +113,7 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
         }
         console.log(`Set ${fieldName} checkbox to: ${checked}`);
       } catch (e) {
-        console.log(`Checkbox ${fieldName} not found`);
+        // Checkbox not found - this is normal when trying multiple field name patterns
       }
     };
     
@@ -235,48 +226,30 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
       }
     }
     
-    // Fill rescue coverage checkboxes - try more field name patterns
+    // Fill rescue coverage checkboxes - use the exact field names from PDF template
     const coverageFields = [
       { 
-        names: [
-          'MondayCoverage', 'Monday Coverage', 'Monday_Coverage', 'mondaycoverage', 'RescueMonday',
-          'Monday Rescue', 'Monday_Rescue', 'mondayrescue', 'Rescue_Monday', 'rescue_monday',
-          'CoverageMonday', 'coverage_monday', 'Mon Coverage', 'MonCoverage', 'mon_coverage'
-        ], 
+        fieldName: 'Monday Weeknight Rescue Coverage',
         checked: data.rescueCoverageMonday 
       },
       { 
-        names: [
-          'TuesdayCoverage', 'Tuesday Coverage', 'Tuesday_Coverage', 'tuesdaycoverage', 'RescueTuesday',
-          'Tuesday Rescue', 'Tuesday_Rescue', 'tuesdayrescue', 'Rescue_Tuesday', 'rescue_tuesday',
-          'CoverageTuesday', 'coverage_tuesday', 'Tue Coverage', 'TueCoverage', 'tue_coverage'
-        ], 
+        fieldName: 'Tuesday Weeknight Rescue Coverage',
         checked: data.rescueCoverageTuesday 
       },
       { 
-        names: [
-          'WednesdayCoverage', 'Wednesday Coverage', 'Wednesday_Coverage', 'wednesdaycoverage', 'RescueWednesday',
-          'Wednesday Rescue', 'Wednesday_Rescue', 'wednesdayrescue', 'Rescue_Wednesday', 'rescue_wednesday',
-          'CoverageWednesday', 'coverage_wednesday', 'Wed Coverage', 'WedCoverage', 'wed_coverage'
-        ], 
+        fieldName: 'Wednesday Weeknight Rescue Coverage',
         checked: data.rescueCoverageWednesday 
       },
       { 
-        names: [
-          'ThursdayCoverage', 'Thursday Coverage', 'Thursday_Coverage', 'thursdaycoverage', 'RescueThursday',
-          'Thursday Rescue', 'Thursday_Rescue', 'thursdayrescue', 'Rescue_Thursday', 'rescue_thursday',
-          'CoverageThursday', 'coverage_thursday', 'Thu Coverage', 'ThuCoverage', 'thu_coverage'
-        ], 
+        fieldName: 'Thuresday Weeknight Rescue Coverage', // Note: PDF template has typo "Thuresday"
         checked: data.rescueCoverageThursday 
       },
     ];
     
-    coverageFields.forEach(({ names, checked }) => {
-      console.log(`Trying to set rescue coverage checkbox, checked: ${checked}`);
-      for (const fieldName of names) {
-        // Always set the checkbox state (true or false) to ensure proper unchecking
-        checkBox(fieldName, checked || false);
-      }
+    coverageFields.forEach(({ fieldName, checked }) => {
+      console.log(`Set ${fieldName} checkbox to: ${checked}`);
+      // Always set the checkbox state (true or false) to ensure proper unchecking
+      checkBox(fieldName, checked || false);
     });
     
     // Add signature as image overlay (since signature field is not fillable)
