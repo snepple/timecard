@@ -17,6 +17,7 @@ export default function LoginScreen({ type, onSuccess }: LoginScreenProps) {
   const [password, setPassword] = useState('');
   const [isMobile, setIsMobile] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
   const { login } = useAuth();
   const { toast } = useToast();
 
@@ -30,6 +31,36 @@ export default function LoginScreen({ type, onSuccess }: LoginScreenProps) {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Auto-login effect
+  useEffect(() => {
+    if (isLoading || autoLoginAttempted) return;
+
+    const isAppLogin = type === 'app';
+    
+    if (isAppLogin) {
+      // For app login: auto-login when 4 digits are entered
+      if (password.length === 4 && /^\d{4}$/.test(password)) {
+        setAutoLoginAttempted(true);
+        handleSubmit();
+      }
+    } else {
+      // For admin login: auto-login after 500ms of no typing
+      const timer = setTimeout(() => {
+        if (password.length >= 3) {
+          setAutoLoginAttempted(true);
+          handleSubmit();
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [password, isLoading, autoLoginAttempted, type]);
+
+  // Reset auto-login flag when password changes
+  useEffect(() => {
+    setAutoLoginAttempted(false);
+  }, [password]);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -58,7 +89,8 @@ export default function LoginScreen({ type, onSuccess }: LoginScreenProps) {
 
   const handleNumberPress = (number: string) => {
     if (type === 'admin' || password.length < 20) {
-      setPassword(prev => prev + number);
+      const newPassword = password + number;
+      setPassword(newPassword);
     }
   };
 
@@ -125,6 +157,13 @@ export default function LoginScreen({ type, onSuccess }: LoginScreenProps) {
                     setPassword(numericValue);
                   } else {
                     setPassword(e.target.value);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !isAppLogin && password.length >= 3) {
+                    e.preventDefault();
+                    setAutoLoginAttempted(true);
+                    handleSubmit();
                   }
                 }}
                 placeholder={isAppLogin ? "Enter 4-digit code" : "Enter admin password"}
