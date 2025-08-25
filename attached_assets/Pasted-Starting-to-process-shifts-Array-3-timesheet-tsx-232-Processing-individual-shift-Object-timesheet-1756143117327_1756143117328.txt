@@ -1,0 +1,32 @@
+Starting to process shifts: Array(3)
+timesheet.tsx:232 Processing individual shift: Object
+timesheet.tsx:237 Shift date: 2025-09-17, dayOfWeek: 3, dayKey: wednesday
+timesheet.tsx:251 Position: Firefighter, StartHour: 11, EndHour: 19, IsNightDuty: false
+timesheet.tsx:232 Processing individual shift: Object
+timesheet.tsx:237 Shift date: 2025-09-17, dayOfWeek: 3, dayKey: wednesday
+timesheet.tsx:251 Position: Firefighter, StartHour: 22, EndHour: 10, IsNightDuty: true
+timesheet.tsx:255 Night duty detected on wednesday, setting rescue coverage
+timesheet.tsx:264 Set Wednesday rescue coverage
+timesheet.tsx:232 Processing individual shift: Object
+timesheet.tsx:237 Shift date: 2025-09-18, dayOfWeek: 4, dayKey: thursday
+timesheet.tsx:251 Position: Firefighter, StartHour: 22, EndHour: 10, IsNightDuty: true
+timesheet.tsx:255 Night duty detected on thursday, setting rescue coverage
+timesheet.tsx:267 Set Thursday rescue coverage
+timesheet.tsx:230 Starting to process shifts: [{…}]
+timesheet.tsx:232 Processing individual shift: {employeeNumber: 'samnepple', employeeName: 'Sam Nepple', startTime: '2025-09-11T11:00:00.000Z', endTime: '2025-09-11T19:00:00.000Z', position: 'Firefighter', …}
+timesheet.tsx:237 Shift date: 2025-09-11, dayOfWeek: 4, dayKey: thursday
+timesheet.tsx:251 Position: Firefighter, StartHour: 11, EndHour: 19, IsNightDuty: false
+timesheet.tsx:230 Starting to process shifts: (3) [{…}, {…}, {…}]
+timesheet.tsx:232 Processing individual shift: {employeeNumber: 'samnepple', employeeName: 'Sam Nepple', startTime: '2025-09-17T11:00:00.000Z', endTime: '2025-09-17T19:00:00.000Z', position: 'Firefighter', …}
+timesheet.tsx:237 Shift date: 2025-09-17, dayOfWeek: 3, dayKey: wednesday
+timesheet.tsx:251 Position: Firefighter, StartHour: 11, EndHour: 19, IsNightDuty: false
+timesheet.tsx:232 Processing individual shift: {employeeNumber: 'samnepple', employeeName: 'Sam Nepple', startTime: '2025-09-17T22:00:00.000Z', endTime: '2025-09-18T10:00:00.000Z', position: 'Firefighter', …}
+timesheet.tsx:237 Shift date: 2025-09-17, dayOfWeek: 3, dayKey: wednesday
+timesheet.tsx:251 Position: Firefighter, StartHour: 22, EndHour: 10, IsNightDuty: true
+timesheet.tsx:255 Night duty detected on wednesday, setting rescue coverage
+timesheet.tsx:264 Set Wednesday rescue coverage
+timesheet.tsx:232 Processing individual shift: {employeeNumber: 'samnepple', employeeName: 'Sam Nepple', startTime: '2025-09-18T22:00:00.000Z', endTime: '2025-09-19T10:00:00.000Z', position: 'Firefighter', …}
+timesheet.tsx:237 Shift date: 2025-09-18, dayOfWeek: 4, dayKey: thursday
+timesheet.tsx:251 Position: Firefighter, StartHour: 22, EndHour: 10, IsNightDuty: true
+timesheet.tsx:255 Night duty detected on thursday, setting rescue coverage
+timesheet.tsx:267 Set Thursday rescue coverage

@@ -227,14 +227,11 @@ export default function TimesheetPage() {
       setValue("rescueCoverageThursday", false);
       
       // Populate from shifts
-      console.log('Starting to process shifts:', shifts);
       shifts.forEach((shift) => {
-        console.log('Processing individual shift:', shift);
         // Use the date string directly to avoid timezone issues
         const shiftDate = new Date(shift.date + 'T12:00:00'); // Add noon time to avoid timezone edge cases
         const dayOfWeek = shiftDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
         const dayKey = DAYS_OF_WEEK[dayOfWeek]?.key;
-        console.log(`Shift date: ${shift.date}, dayOfWeek: ${dayOfWeek}, dayKey: ${dayKey}`);
         
         if (dayKey) {
           // Check if this is a night duty shift for rescue coverage
@@ -248,24 +245,12 @@ export default function TimesheetPage() {
           const isNightDuty = (shift.position && shift.position.toLowerCase().includes('night duty')) ||
                               (startHour >= 18 || startHour <= 6) && (endHour >= 0 && endHour <= 12);
           
-          console.log(`Position: ${shift.position}, StartHour: ${startHour}, EndHour: ${endHour}, IsNightDuty: ${isNightDuty}`);
-          
           if (isNightDuty) {
             // Mark rescue coverage for weeknights only (Monday-Thursday)
-            console.log(`Night duty detected on ${dayKey}, setting rescue coverage`);
-            if (dayKey === 'monday') {
-              setValue("rescueCoverageMonday", true);
-              console.log('Set Monday rescue coverage');
-            } else if (dayKey === 'tuesday') {
-              setValue("rescueCoverageTuesday", true);
-              console.log('Set Tuesday rescue coverage');
-            } else if (dayKey === 'wednesday') {
-              setValue("rescueCoverageWednesday", true);
-              console.log('Set Wednesday rescue coverage');
-            } else if (dayKey === 'thursday') {
-              setValue("rescueCoverageThursday", true);
-              console.log('Set Thursday rescue coverage');
-            }
+            if (dayKey === 'monday') setValue("rescueCoverageMonday", true);
+            else if (dayKey === 'tuesday') setValue("rescueCoverageTuesday", true);
+            else if (dayKey === 'wednesday') setValue("rescueCoverageWednesday", true);
+            else if (dayKey === 'thursday') setValue("rescueCoverageThursday", true);
           } else {
             // Regular shift - populate daily time entry
             // Convert UTC times to local time strings
@@ -794,7 +779,8 @@ export default function TimesheetPage() {
                     <div>
                       <div className="text-xs text-gray-500 mb-2">1800-0600</div>
                       <Checkbox
-                        {...form.register(key as keyof TimesheetFormData)}
+                        checked={form.watch(key as keyof TimesheetFormData) || false}
+                        onCheckedChange={(checked) => form.setValue(key as keyof TimesheetFormData, checked)}
                         className="w-5 h-5"
                         data-testid={`checkbox-${key}`}
                       />
