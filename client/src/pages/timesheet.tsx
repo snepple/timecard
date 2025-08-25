@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
@@ -68,7 +69,10 @@ const timesheetSchema = z.object({
   rescueCoverageWednesday: z.boolean().default(false),
   rescueCoverageThursday: z.boolean().default(false),
   
-  signatureData: z.string().optional(),
+  signatureData: z.string().min(1, "Digital signature is required before submitting"),
+  acknowledgmentChecked: z.boolean().refine(val => val === true, {
+    message: "You must acknowledge that you have reviewed all times and totals for accuracy"
+  }),
   status: z.string().optional(),
   id: z.string().optional(),
 });
@@ -84,6 +88,20 @@ const DAYS_OF_WEEK = [
   { key: "friday", label: "Friday" },
   { key: "saturday", label: "Saturday" },
 ] as const;
+
+// Generate time options in 15-minute intervals
+function generateTimeOptions(): string[] {
+  const times: string[] = [];
+  for (let hour = 0; hour < 24; hour++) {
+    for (let minute = 0; minute < 60; minute += 15) {
+      const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      times.push(timeStr);
+    }
+  }
+  return times;
+}
+
+const TIME_OPTIONS = generateTimeOptions();
 
 interface Employee {
   firstName: string;
@@ -187,6 +205,7 @@ export default function TimesheetPage() {
       rescueCoverageTuesday: false,
       rescueCoverageWednesday: false,
       rescueCoverageThursday: false,
+      acknowledgmentChecked: false,
     },
   });
 
@@ -774,7 +793,8 @@ export default function TimesheetPage() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 max-w-4xl">
-        <form className="space-y-6">
+        <Form {...form}>
+          <form className="space-y-6">
           {/* Employee Information Card */}
           <Card>
             <CardContent className="p-6">
@@ -925,20 +945,52 @@ export default function TimesheetPage() {
                   </div>
                   <div className="col-span-6 md:col-span-3">
                     <Label className="text-sm font-medium text-secondary">Start Time</Label>
-                    <Input
-                      type="time"
-                      {...form.register(`${key}StartTime` as keyof TimesheetFormData)}
-                      className="mt-1 text-sm"
-                      data-testid={`input-${key}-start-time`}
+                    <FormField
+                      control={form.control}
+                      name={`${key}StartTime` as keyof TimesheetFormData}
+                      render={({ field }) => (
+                        <FormItem className="mt-1">
+                          <Select value={field.value?.toString() || ""} onValueChange={field.onChange}>
+                            <FormControl>
+                              <SelectTrigger className="text-sm" data-testid={`select-${key}-start-time`}>
+                                <SelectValue placeholder="Select time" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {TIME_OPTIONS.map((time) => (
+                                <SelectItem key={time} value={time}>
+                                  {time}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )}
                     />
                   </div>
                   <div className="col-span-6 md:col-span-3">
                     <Label className="text-sm font-medium text-secondary">End Time</Label>
-                    <Input
-                      type="time"
-                      {...form.register(`${key}EndTime` as keyof TimesheetFormData)}
-                      className="mt-1 text-sm"
-                      data-testid={`input-${key}-end-time`}
+                    <FormField
+                      control={form.control}
+                      name={`${key}EndTime` as keyof TimesheetFormData}
+                      render={({ field }) => (
+                        <FormItem className="mt-1">
+                          <Select value={field.value?.toString() || ""} onValueChange={field.onChange}>
+                            <FormControl>
+                              <SelectTrigger className="text-sm" data-testid={`select-${key}-end-time`}>
+                                <SelectValue placeholder="Select time" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {TIME_OPTIONS.map((time) => (
+                                <SelectItem key={time} value={time}>
+                                  {time}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )}
                     />
                   </div>
                   <div className="col-span-12 md:col-span-3">
@@ -1002,15 +1054,61 @@ export default function TimesheetPage() {
             </CardContent>
           </Card>
 
+          {/* Acknowledgment Card */}
+          <Card>
+            <CardContent className="p-6">
+              <FormField
+                control={form.control}
+                name="acknowledgmentChecked"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value === true}
+                        onCheckedChange={field.onChange}
+                        data-testid="checkbox-acknowledgment"
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-sm font-medium text-secondary">
+                        Acknowledgment (Required)
+                      </FormLabel>
+                      <FormDescription className="text-sm text-muted-foreground">
+                        I acknowledge that I have reviewed all times and totals for accuracy. 
+                        Times imported from the schedule should be verified and updated if they 
+                        differ from actual worked hours.
+                      </FormDescription>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
           {/* Digital Signature Card */}
           <Card>
             <CardContent className="p-6">
-              <h2 className="text-lg font-semibold text-secondary mb-4" data-testid="heading-signature">
-                Digital Signature
-              </h2>
-              <SignaturePad
-                onSignatureChange={setSignatureData}
-                data-testid="signature-pad"
+              <FormField
+                control={form.control}
+                name="signatureData"
+                render={() => (
+                  <FormItem>
+                    <FormLabel className="text-lg font-semibold text-secondary">
+                      Digital Signature (Required)
+                    </FormLabel>
+                    <FormControl>
+                      <SignaturePad
+                        onSignatureChange={(signature) => {
+                          setSignatureData(signature);
+                          form.setValue("signatureData", signature);
+                        }}
+                        data-testid="signature-pad"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </CardContent>
           </Card>
@@ -1087,6 +1185,7 @@ export default function TimesheetPage() {
             </Button>
           </div>
         </form>
+        </Form>
       </main>
 
       {/* Footer */}
