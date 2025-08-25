@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { PDFDocument, PDFForm } from "pdf-lib";
 
 interface TimesheetData {
   employeeName: string;
@@ -62,244 +62,185 @@ function formatHoursForPDF(hours?: number): string {
 
 export async function generateTimeSheetPDF(data: TimesheetData): Promise<string> {
   try {
-    // Create a new PDF document based on your template layout
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([612, 792]); // Standard letter size
-    const { width, height } = page.getSize();
+    // Load the fillable PDF template
+    const templateResponse = await fetch('/timesheet-template.pdf');
+    if (!templateResponse.ok) {
+      throw new Error('Could not load PDF template');
+    }
+    const templateBytes = await templateResponse.arrayBuffer();
     
-    // Get fonts
-    const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const helveticaBoldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    // Load the PDF document
+    const pdfDoc = await PDFDocument.load(templateBytes);
+    const form = pdfDoc.getForm();
     
-    // Header - centered exactly like template
-    page.drawText('Oakland Fire-Rescue', {
-      x: width / 2 - 85,
-      y: height - 80,
-      size: 14,
-      font: helveticaBoldFont,
-      color: rgb(0, 0, 0),
-    });
+    // Get all form fields to see what's available
+    const fields = form.getFields();
+    const fieldNames = fields.map(field => field.getName());
+    console.log('Available form fields:', fieldNames);
     
-    page.drawText('Weekly Time Sheet', {
-      x: width / 2 - 75,
-      y: height - 100,
-      size: 14,
-      font: helveticaBoldFont,
-      color: rgb(0, 0, 0),
-    });
+    // Helper function to safely fill text fields
+    const fillTextField = (fieldName: string, value: string) => {
+      try {
+        const field = form.getTextField(fieldName);
+        field.setText(value);
+        console.log(`Filled ${fieldName} with: ${value}`);
+      } catch (e) {
+        console.log(`Field ${fieldName} not found or not fillable`);
+      }
+    };
     
-    // Employee Information - matching template format
-    page.drawText(`Name: ${data.employeeName}`, {
-      x: 50,
-      y: height - 140,
-      size: 12,
-      font: helveticaFont,
-      color: rgb(0, 0, 0),
-    });
+    // Helper function to safely check checkboxes
+    const checkBox = (fieldName: string, checked: boolean) => {
+      try {
+        const field = form.getCheckBox(fieldName);
+        if (checked) {
+          field.check();
+        } else {
+          field.uncheck();
+        }
+        console.log(`Set ${fieldName} checkbox to: ${checked}`);
+      } catch (e) {
+        console.log(`Checkbox ${fieldName} not found`);
+      }
+    };
     
-    page.drawText(`Number: ${data.employeeNumber}`, {
-      x: 350,
-      y: height - 140,
-      size: 12,
-      font: helveticaFont,
-      color: rgb(0, 0, 0),
-    });
+    // Fill basic information fields
+    fillTextField('Name', data.employeeName);
+    fillTextField('Number', data.employeeNumber);
+    fillTextField('WeekEnding', data.weekEnding);
+    fillTextField('Week Ending', data.weekEnding);
     
-    page.drawText(`Week Ending: ${data.weekEnding}`, {
-      x: 50,
-      y: height - 170,
-      size: 12,
-      font: helveticaFont,
-      color: rgb(0, 0, 0),
-    });
+    // Try different patterns for basic fields
+    fillTextField('EmployeeName', data.employeeName);
+    fillTextField('EmployeeNumber', data.employeeNumber);
+    fillTextField('Employee Name', data.employeeName);
+    fillTextField('Employee Number', data.employeeNumber);
     
-    page.drawText('Signature:', {
-      x: 50,
-      y: height - 200,
-      size: 12,
-      font: helveticaFont,
-      color: rgb(0, 0, 0),
-    });
-    
-    // Table headers
-    const tableStartY = height - 250;
-    
-    page.drawText('Date', {
-      x: 160,
-      y: tableStartY,
-      size: 12,
-      font: helveticaBoldFont,
-      color: rgb(0, 0, 0),
-    });
-    
-    page.drawText('Start Time', {
-      x: 240,
-      y: tableStartY,
-      size: 12,
-      font: helveticaBoldFont,
-      color: rgb(0, 0, 0),
-    });
-    
-    page.drawText('End Time', {
-      x: 340,
-      y: tableStartY,
-      size: 12,
-      font: helveticaBoldFont,
-      color: rgb(0, 0, 0),
-    });
-    
-    page.drawText('Total Hours', {
-      x: 440,
-      y: tableStartY,
-      size: 12,
-      font: helveticaBoldFont,
-      color: rgb(0, 0, 0),
-    });
-    
-    // Days data
+    // Fill daily time entries - try multiple field name patterns
     const days = [
-      { name: "Sunday", date: data.sundayDate, start: data.sundayStartTime, end: data.sundayEndTime, total: data.sundayTotalHours },
-      { name: "Monday", date: data.mondayDate, start: data.mondayStartTime, end: data.mondayEndTime, total: data.mondayTotalHours },
-      { name: "Tuesday", date: data.tuesdayDate, start: data.tuesdayStartTime, end: data.tuesdayEndTime, total: data.tuesdayTotalHours },
-      { name: "Wednesday", date: data.wednesdayDate, start: data.wednesdayStartTime, end: data.wednesdayEndTime, total: data.wednesdayTotalHours },
-      { name: "Thursday", date: data.thursdayDate, start: data.thursdayStartTime, end: data.thursdayEndTime, total: data.thursdayTotalHours },
-      { name: "Friday", date: data.fridayDate, start: data.fridayStartTime, end: data.fridayEndTime, total: data.fridayTotalHours },
-      { name: "Saturday", date: data.saturdayDate, start: data.saturdayStartTime, end: data.saturdayEndTime, total: data.saturdayTotalHours },
+      { prefix: 'Sunday', date: data.sundayDate, start: data.sundayStartTime, end: data.sundayEndTime, total: data.sundayTotalHours },
+      { prefix: 'Monday', date: data.mondayDate, start: data.mondayStartTime, end: data.mondayEndTime, total: data.mondayTotalHours },
+      { prefix: 'Tuesday', date: data.tuesdayDate, start: data.tuesdayStartTime, end: data.tuesdayEndTime, total: data.tuesdayTotalHours },
+      { prefix: 'Wednesday', date: data.wednesdayDate, start: data.wednesdayStartTime, end: data.wednesdayEndTime, total: data.wednesdayTotalHours },
+      { prefix: 'Thursday', date: data.thursdayDate, start: data.thursdayStartTime, end: data.thursdayEndTime, total: data.thursdayTotalHours },
+      { prefix: 'Friday', date: data.fridayDate, start: data.fridayStartTime, end: data.fridayEndTime, total: data.fridayTotalHours },
+      { prefix: 'Saturday', date: data.saturdayDate, start: data.saturdayStartTime, end: data.saturdayEndTime, total: data.saturdayTotalHours },
     ];
-    
-    let currentY = tableStartY - 40;
     
     days.forEach((day) => {
-      // Day name
-      page.drawText(day.name, {
-        x: 60,
-        y: currentY,
-        size: 11,
-        font: helveticaFont,
-        color: rgb(0, 0, 0),
-      });
+      // Try various field naming patterns
+      const possibleDateFields = [
+        `${day.prefix}Date`, `${day.prefix}_Date`, `Date_${day.prefix}`, 
+        `${day.prefix} Date`, `date${day.prefix}`, `${day.prefix.toLowerCase()}Date`,
+        `${day.prefix.toLowerCase()}_date`, `${day.prefix.toLowerCase()}date`
+      ];
       
-      // Date
-      page.drawText(day.date || '', {
-        x: 160,
-        y: currentY,
-        size: 11,
-        font: helveticaFont,
-        color: rgb(0, 0, 0),
-      });
+      const possibleStartFields = [
+        `${day.prefix}Start`, `${day.prefix}_Start`, `Start_${day.prefix}`, 
+        `${day.prefix} Start`, `${day.prefix}StartTime`, `${day.prefix}_StartTime`,
+        `${day.prefix} Start Time`, `start${day.prefix}`, `${day.prefix.toLowerCase()}Start`,
+        `${day.prefix.toLowerCase()}_start`, `${day.prefix.toLowerCase()}start`
+      ];
       
-      // Start time
-      page.drawText(formatTimeForPDF(day.start), {
-        x: 250,
-        y: currentY,
-        size: 11,
-        font: helveticaFont,
-        color: rgb(0, 0, 0),
-      });
+      const possibleEndFields = [
+        `${day.prefix}End`, `${day.prefix}_End`, `End_${day.prefix}`, 
+        `${day.prefix} End`, `${day.prefix}EndTime`, `${day.prefix}_EndTime`,
+        `${day.prefix} End Time`, `end${day.prefix}`, `${day.prefix.toLowerCase()}End`,
+        `${day.prefix.toLowerCase()}_end`, `${day.prefix.toLowerCase()}end`
+      ];
       
-      // End time
-      page.drawText(formatTimeForPDF(day.end), {
-        x: 350,
-        y: currentY,
-        size: 11,
-        font: helveticaFont,
-        color: rgb(0, 0, 0),
-      });
+      const possibleTotalFields = [
+        `${day.prefix}Total`, `${day.prefix}_Total`, `Total_${day.prefix}`, 
+        `${day.prefix} Total`, `${day.prefix}Hours`, `${day.prefix}_Hours`,
+        `${day.prefix} Hours`, `${day.prefix}TotalHours`, `total${day.prefix}`,
+        `${day.prefix.toLowerCase()}Total`, `${day.prefix.toLowerCase()}_total`, 
+        `${day.prefix.toLowerCase()}total`, `${day.prefix.toLowerCase()}hours`
+      ];
       
-      // Total hours
-      page.drawText(formatHoursForPDF(day.total), {
-        x: 460,
-        y: currentY,
-        size: 11,
-        font: helveticaFont,
-        color: rgb(0, 0, 0),
-      });
+      // Try to fill each field type
+      for (const fieldName of possibleDateFields) {
+        if (day.date) {
+          fillTextField(fieldName, day.date);
+        }
+      }
       
-      currentY -= 25;
-    });
-    
-    // Total hours section
-    currentY -= 30;
-    page.drawText('Total Hours for Week', {
-      x: 350,
-      y: currentY,
-      size: 12,
-      font: helveticaBoldFont,
-      color: rgb(0, 0, 0),
-    });
-    
-    page.drawText(formatHoursForPDF(data.totalWeeklyHours), {
-      x: 510,
-      y: currentY,
-      size: 12,
-      font: helveticaBoldFont,
-      color: rgb(0, 0, 0),
-    });
-    
-    // Weeknight Rescue Coverage
-    currentY -= 60;
-    page.drawText('Weeknight Rescue Coverage', {
-      x: width / 2 - 100,
-      y: currentY,
-      size: 12,
-      font: helveticaBoldFont,
-      color: rgb(0, 0, 0),
-    });
-    
-    currentY -= 30;
-    const coverageDays = [
-      { name: "Monday", covered: data.rescueCoverageMonday, x: 130 },
-      { name: "Tuesday", covered: data.rescueCoverageTuesday, x: 220 },
-      { name: "Wednesday", covered: data.rescueCoverageWednesday, x: 310 },
-      { name: "Thursday", covered: data.rescueCoverageThursday, x: 420 },
-    ];
-    
-    coverageDays.forEach((day) => {
-      page.drawText(day.name, {
-        x: day.x,
-        y: currentY,
-        size: 11,
-        font: helveticaFont,
-        color: rgb(0, 0, 0),
-      });
+      for (const fieldName of possibleStartFields) {
+        if (day.start) {
+          fillTextField(fieldName, formatTimeForPDF(day.start));
+        }
+      }
       
-      if (day.covered) {
-        page.drawText('X', {
-          x: day.x + 10,
-          y: currentY - 20,
-          size: 14,
-          font: helveticaBoldFont,
-          color: rgb(0, 0, 0),
-        });
+      for (const fieldName of possibleEndFields) {
+        if (day.end) {
+          fillTextField(fieldName, formatTimeForPDF(day.end));
+        }
+      }
+      
+      for (const fieldName of possibleTotalFields) {
+        if (day.total) {
+          fillTextField(fieldName, formatHoursForPDF(day.total));
+        }
       }
     });
     
-    // Footer note
-    currentY -= 60;
-    page.drawText('***Weeknight Rescue Coverage will be paid out in monthly check***', {
-      x: width / 2 - 200,
-      y: currentY,
-      size: 10,
-      font: helveticaFont,
-      color: rgb(0, 0, 0),
+    // Fill total weekly hours
+    const possibleTotalWeeklyFields = [
+      'TotalWeeklyHours', 'Total Weekly Hours', 'WeeklyTotal', 'Weekly Total',
+      'TotalHours', 'Total Hours', 'totalweeklyhours', 'weeklytotal', 'totalhours'
+    ];
+    
+    for (const fieldName of possibleTotalWeeklyFields) {
+      if (data.totalWeeklyHours) {
+        fillTextField(fieldName, formatHoursForPDF(data.totalWeeklyHours));
+      }
+    }
+    
+    // Fill rescue coverage checkboxes
+    const coverageFields = [
+      { names: ['MondayCoverage', 'Monday Coverage', 'Monday_Coverage', 'mondaycoverage', 'RescueMonday'], checked: data.rescueCoverageMonday },
+      { names: ['TuesdayCoverage', 'Tuesday Coverage', 'Tuesday_Coverage', 'tuesdaycoverage', 'RescueTuesday'], checked: data.rescueCoverageTuesday },
+      { names: ['WednesdayCoverage', 'Wednesday Coverage', 'Wednesday_Coverage', 'wednesdaycoverage', 'RescueWednesday'], checked: data.rescueCoverageWednesday },
+      { names: ['ThursdayCoverage', 'Thursday Coverage', 'Thursday_Coverage', 'thursdaycoverage', 'RescueThursday'], checked: data.rescueCoverageThursday },
+    ];
+    
+    coverageFields.forEach(({ names, checked }) => {
+      for (const fieldName of names) {
+        if (checked) {
+          checkBox(fieldName, true);
+        }
+      }
     });
     
-    // Add signature if provided
+    // Add signature as image overlay (since signature field is not fillable)
     if (data.signatureData) {
       try {
+        const pages = pdfDoc.getPages();
+        const firstPage = pages[0];
+        
         // Remove data URL prefix if present
         const base64Data = data.signatureData.replace(/^data:image\/[a-z]+;base64,/, '');
         const signatureImage = await pdfDoc.embedPng(base64Data);
         
-        page.drawImage(signatureImage, {
-          x: 120,
-          y: height - 190,
-          width: 100,
-          height: 20,
+        // Position signature where the signature line is on the template
+        // You may need to adjust these coordinates based on your template layout
+        firstPage.drawImage(signatureImage, {
+          x: 120, // Adjust X position as needed
+          y: 630, // Adjust Y position as needed
+          width: 120,
+          height: 30,
         });
+        console.log('Added signature image overlay');
       } catch (error) {
-        console.warn("Could not add signature to PDF, continuing without signature:", error);
+        console.warn("Could not add signature to PDF:", error);
       }
+    }
+    
+    // Flatten the form to prevent further editing and ensure compatibility
+    try {
+      form.flatten();
+      console.log('Form flattened successfully');
+    } catch (error) {
+      console.warn("Could not flatten form:", error);
     }
     
     // Serialize the PDF
