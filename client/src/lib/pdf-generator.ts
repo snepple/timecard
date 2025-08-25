@@ -68,38 +68,34 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
     pdf.setFontSize(16);
     pdf.setFont("helvetica", "bold");
     
-    // Header
-    pdf.text("Oakland Fire-Rescue", 20, 20);
+    // Header - centered
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    pdf.text("Oakland Fire-Rescue", pageWidth/2, 20, { align: 'center' });
     pdf.setFontSize(14);
-    pdf.text("Weekly Time Sheet", 20, 30);
+    pdf.text("Weekly Time Sheet", pageWidth/2, 35, { align: 'center' });
     
     // Employee Information
     pdf.setFontSize(12);
     pdf.setFont("helvetica", "normal");
-    pdf.text(`Name: ${data.employeeName}`, 20, 50);
-    pdf.text(`Number: ${data.employeeNumber}`, 120, 50);
-    pdf.text(`Week Ending: ${data.weekEnding}`, 20, 60);
+    pdf.text(`Name: ${data.employeeName}`, 20, 55);
+    pdf.text(`Number: ${data.employeeNumber}`, 120, 55);
+    pdf.text(`Week Ending: ${data.weekEnding}`, 20, 70);
     
     // Signature line
-    pdf.text("Signature: ___________________________", 20, 80);
+    pdf.text("Signature: ___________________________", 20, 85);
     
-    // Table headers
-    const startY = 100;
-    pdf.setFontSize(10);
+    // Table headers with proper spacing to match the form
+    const startY = 105;
+    pdf.setFontSize(11);
     pdf.setFont("helvetica", "bold");
     
-    // Draw table structure
-    pdf.line(20, startY, 190, startY); // Top line
+    // Column headers - positioned to match the form exactly
+    pdf.text("Date", 65, startY);
+    pdf.text("Start Time", 105, startY);
+    pdf.text("End Time", 140, startY);
+    pdf.text("Total Hours", 175, startY);
     
-    // Column headers
-    pdf.text("Date", 50, startY + 10);
-    pdf.text("Start Time", 80, startY + 10);
-    pdf.text("End Time", 120, startY + 10);
-    pdf.text("Total Hours", 150, startY + 10);
-    
-    pdf.line(20, startY + 15, 190, startY + 15); // Header separator
-    
-    // Days data
+    // Days data with exact positioning to match form
     const days = [
       { name: "Sunday", date: data.sundayDate, start: data.sundayStartTime, end: data.sundayEndTime, total: data.sundayTotalHours },
       { name: "Monday", date: data.mondayDate, start: data.mondayStartTime, end: data.mondayEndTime, total: data.mondayTotalHours },
@@ -111,67 +107,66 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
     ];
     
     pdf.setFont("helvetica", "normal");
-    let currentY = startY + 25;
+    pdf.setFontSize(11);
+    let currentY = startY + 20;
     
     days.forEach((day, index) => {
+      // Day name - left aligned
       pdf.text(day.name, 20, currentY);
-      pdf.text(day.date || "", 50, currentY);
-      pdf.text(formatTimeForPDF(day.start), 80, currentY);
-      pdf.text(formatTimeForPDF(day.end), 120, currentY);
-      pdf.text(formatHoursForPDF(day.total), 155, currentY);
       
-      if (index < days.length - 1) {
-        pdf.line(20, currentY + 5, 190, currentY + 5);
-      }
-      currentY += 15;
+      // Date, times, and hours - positioned to match form columns
+      pdf.text(day.date || "", 65, currentY);
+      pdf.text(formatTimeForPDF(day.start), 105, currentY);
+      pdf.text(formatTimeForPDF(day.end), 140, currentY);
+      pdf.text(formatHoursForPDF(day.total), 175, currentY);
+      
+      currentY += 18; // Increased spacing to match form
     });
     
-    // Bottom line
-    pdf.line(20, currentY, 190, currentY);
-    
-    // Total hours
-    currentY += 20;
+    // Total hours section - positioned to match form exactly  
+    currentY += 15;
     pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(12);
     pdf.text("Total Hours for Week", 100, currentY);
-    pdf.text(formatHoursForPDF(data.totalWeeklyHours), 155, currentY);
+    pdf.text(formatHoursForPDF(data.totalWeeklyHours), 165, currentY);
+    pdf.text("0", 180, currentY); // Additional 0 as shown in form
     
-    // Weeknight Rescue Coverage
+    // Weeknight Rescue Coverage - centered like in the form
     currentY += 30;
     pdf.setFontSize(12);
-    pdf.text("Weeknight Rescue Coverage", 20, currentY);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Weeknight Rescue Coverage", pageWidth/2, currentY, { align: 'center' });
     
-    currentY += 15;
-    pdf.setFontSize(10);
+    currentY += 20;
+    pdf.setFontSize(11);
     pdf.setFont("helvetica", "normal");
     
+    // Position coverage days to match the form layout exactly
     const coverageDays = [
-      { name: "Monday", covered: data.rescueCoverageMonday },
-      { name: "Tuesday", covered: data.rescueCoverageTuesday },
-      { name: "Wednesday", covered: data.rescueCoverageWednesday },
-      { name: "Thursday", covered: data.rescueCoverageThursday },
+      { name: "Monday", covered: data.rescueCoverageMonday, x: 45 },
+      { name: "Tuesday", covered: data.rescueCoverageTuesday, x: 85 },
+      { name: "Wednesday", covered: data.rescueCoverageWednesday, x: 125 },
+      { name: "Thursday", covered: data.rescueCoverageThursday, x: 170 },
     ];
     
-    let xPos = 20;
     coverageDays.forEach((day) => {
-      pdf.text(day.name, xPos, currentY);
-      pdf.text("1800-0600", xPos, currentY + 10);
+      pdf.text(day.name, day.x, currentY);
       if (day.covered) {
-        pdf.text("✓", xPos + 5, currentY + 20);
+        pdf.text("✓", day.x + 5, currentY + 15);
       }
-      xPos += 40;
     });
     
     currentY += 35;
-    pdf.text("***Weeknight Rescue Coverage will be paid out in monthly check***", 20, currentY);
+    pdf.text("***Weeknight Rescue Coverage will be paid out in monthly check***", pageWidth/2, currentY, { align: 'center' });
     
-    // Add signature if provided
+    // Add signature if provided - positioned over the signature line
     if (data.signatureData && data.signatureData.trim() !== '') {
       try {
         // Ensure the signature data has the proper data URL prefix
         const signatureData = data.signatureData.startsWith('data:') 
           ? data.signatureData 
           : `data:image/png;base64,${data.signatureData}`;
-        pdf.addImage(signatureData, "PNG", 20, 75, 60, 15);
+        pdf.addImage(signatureData, "PNG", 80, 78, 60, 15); // Positioned over signature line
       } catch (error) {
         console.warn("Could not add signature to PDF, continuing without signature:", error);
         // Continue without signature rather than failing
