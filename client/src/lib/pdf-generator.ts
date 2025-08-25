@@ -91,6 +91,14 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
     const fieldNames = fields.map(field => field.getName());
     console.log('Available form fields:', fieldNames);
     
+    // Log rescue coverage data being passed
+    console.log('Rescue coverage data:', {
+      monday: data.rescueCoverageMonday,
+      tuesday: data.rescueCoverageTuesday, 
+      wednesday: data.rescueCoverageWednesday,
+      thursday: data.rescueCoverageThursday
+    });
+    
     // Helper function to safely fill text fields
     const fillTextField = (fieldName: string, value: string) => {
       try {
@@ -263,6 +271,7 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
     ];
     
     coverageFields.forEach(({ names, checked }) => {
+      console.log(`Trying to set rescue coverage checkbox, checked: ${checked}`);
       for (const fieldName of names) {
         // Always set the checkbox state (true or false) to ensure proper unchecking
         checkBox(fieldName, checked || false);
