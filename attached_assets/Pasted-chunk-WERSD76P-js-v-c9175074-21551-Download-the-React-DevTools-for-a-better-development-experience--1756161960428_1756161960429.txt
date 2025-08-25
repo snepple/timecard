@@ -1,0 +1,240 @@
+chunk-WERSD76P.js?v=c9175074:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+chunk-WERSD76P.js?v=c9175074:5760 Unable to preventDefault inside passive event listener invocation.
+preventDefault @ chunk-WERSD76P.js?v=c9175074:5760
+chunk-WERSD76P.js?v=c9175074:5760 Unable to preventDefault inside passive event listener invocation.
+preventDefault @ chunk-WERSD76P.js?v=c9175074:5760
+chunk-WERSD76P.js?v=c9175074:5760 Unable to preventDefault inside passive event listener invocation.
+preventDefault @ chunk-WERSD76P.js?v=c9175074:5760
+chunk-WERSD76P.js?v=c9175074:5760 Unable to preventDefault inside passive event listener invocation.
+preventDefault @ chunk-WERSD76P.js?v=c9175074:5760
+chunk-WERSD76P.js?v=c9175074:5760 Unable to preventDefault inside passive event listener invocation.
+preventDefault @ chunk-WERSD76P.js?v=c9175074:5760
+chunk-WERSD76P.js?v=c9175074:5760 Unable to preventDefault inside passive event listener invocation.
+preventDefault @ chunk-WERSD76P.js?v=c9175074:5760
+chunk-WERSD76P.js?v=c9175074:5760 Unable to preventDefault inside passive event listener invocation.
+preventDefault @ chunk-WERSD76P.js?v=c9175074:5760
+chunk-WERSD76P.js?v=c9175074:5760 Unable to preventDefault inside passive event listener invocation.
+preventDefault @ chunk-WERSD76P.js?v=c9175074:5760
+pdf-generator.ts:92 Available form fields: Array(36)
+pdf-generator.ts:95 Rescue coverage data: Object
+pdf-generator.ts:109 Field Name not found or not fillable
+pdf-generator.ts:109 Field EmployeeName not found or not fillable
+pdf-generator.ts:107 Filled Employee Name with: Sam Nepple
+pdf-generator.ts:109 Field Employee_Name not found or not fillable
+pdf-generator.ts:109 Field name not found or not fillable
+pdf-generator.ts:109 Field employeename not found or not fillable
+pdf-generator.ts:109 Field Number not found or not fillable
+pdf-generator.ts:109 Field EmployeeNumber not found or not fillable
+pdf-generator.ts:109 Field Employee Number not found or not fillable
+pdf-generator.ts:109 Field Employee_Number not found or not fillable
+pdf-generator.ts:109 Field number not found or not fillable
+pdf-generator.ts:109 Field employeenumber not found or not fillable
+pdf-generator.ts:109 Field ID not found or not fillable
+pdf-generator.ts:109 Field EmployeeID not found or not fillable
+pdf-generator.ts:107 Filled Employee ID with: 936
+pdf-generator.ts:109 Field WeekEnding not found or not fillable
+pdf-generator.ts:109 Field Week Ending not found or not fillable
+pdf-generator.ts:109 Field Week_Ending not found or not fillable
+pdf-generator.ts:109 Field weekending not found or not fillable
+pdf-generator.ts:109 Field DateWeekEnding not found or not fillable
+pdf-generator.ts:109 Field Date Week Ending not found or not fillable
+pdf-generator.ts:109 Field WeekEndingDate not found or not fillable
+pdf-generator.ts:107 Filled Week Ending Date with: 8/29/25
+pdf-generator.ts:109 Field EndingDate not found or not fillable
+pdf-generator.ts:109 Field Ending Date not found or not fillable
+pdf-generator.ts:109 Field Week End not found or not fillable
+pdf-generator.ts:109 Field WeekEnd not found or not fillable
+pdf-generator.ts:109 Field weekendingdate not found or not fillable
+pdf-generator.ts:109 Field endingdate not found or not fillable
+pdf-generator.ts:109 Field weekend not found or not fillable
+pdf-generator.ts:109 Field SundayDate not found or not fillable
+pdf-generator.ts:109 Field Sunday_Date not found or not fillable
+pdf-generator.ts:109 Field Date_Sunday not found or not fillable
+pdf-generator.ts:109 Field Sunday Date not found or not fillable
+pdf-generator.ts:109 Field dateSunday not found or not fillable
+pdf-generator.ts:109 Field sundayDate not found or not fillable
+pdf-generator.ts:109 Field sunday_date not found or not fillable
+pdf-generator.ts:109 Field sundaydate not found or not fillable
+pdf-generator.ts:109 Field SundayStart not found or not fillable
+pdf-generator.ts:109 Field Sunday_Start not found or not fillable
+pdf-generator.ts:109 Field Start_Sunday not found or not fillable
+pdf-generator.ts:109 Field Sunday Start not found or not fillable
+pdf-generator.ts:109 Field SundayStartTime not found or not fillable
+pdf-generator.ts:109 Field Sunday_StartTime not found or not fillable
+pdf-generator.ts:107 Filled Sunday Start Time with: 07:00
+pdf-generator.ts:109 Field startSunday not found or not fillable
+pdf-generator.ts:109 Field sundayStart not found or not fillable
+pdf-generator.ts:109 Field sunday_start not found or not fillable
+pdf-generator.ts:109 Field sundaystart not found or not fillable
+pdf-generator.ts:109 Field SundayEnd not found or not fillable
+pdf-generator.ts:109 Field Sunday_End not found or not fillable
+pdf-generator.ts:109 Field End_Sunday not found or not fillable
+pdf-generator.ts:109 Field Sunday End not found or not fillable
+pdf-generator.ts:109 Field SundayEndTime not found or not fillable
+pdf-generator.ts:109 Field Sunday_EndTime not found or not fillable
+pdf-generator.ts:107 Filled Sunday End Time with: 15:00
+pdf-generator.ts:109 Field endSunday not found or not fillable
+pdf-generator.ts:109 Field sundayEnd not found or not fillable
+pdf-generator.ts:109 Field sunday_end not found or not fillable
+pdf-generator.ts:109 Field sundayend not found or not fillable
+pdf-generator.ts:109 Field SundayTotal not found or not fillable
+pdf-generator.ts:109 Field Sunday_Total not found or not fillable
+pdf-generator.ts:109 Field Total_Sunday not found or not fillable
+pdf-generator.ts:109 Field Sunday Total not found or not fillable
+pdf-generator.ts:109 Field SundayHours not found or not fillable
+pdf-generator.ts:109 Field Sunday_Hours not found or not fillable
+pdf-generator.ts:109 Field Sunday Hours not found or not fillable
+pdf-generator.ts:109 Field SundayTotalHours not found or not fillable
+pdf-generator.ts:109 Field totalSunday not found or not fillable
+pdf-generator.ts:109 Field sundayTotal not found or not fillable
+pdf-generator.ts:109 Field sunday_total not found or not fillable
+pdf-generator.ts:109 Field sundaytotal not found or not fillable
+pdf-generator.ts:109 Field sundayhours not found or not fillable
+pdf-generator.ts:107 Filled Sunday Total Hours with: 8.00
+pdf-generator.ts:109 Field Sunday_Total_Hours not found or not fillable
+pdf-generator.ts:109 Field TotalHoursSunday not found or not fillable
+pdf-generator.ts:109 Field HoursSunday not found or not fillable
+pdf-generator.ts:109 Field Hours_Sunday not found or not fillable
+pdf-generator.ts:109 Field SundayHrs not found or not fillable
+pdf-generator.ts:109 Field Sunday_Hrs not found or not fillable
+pdf-generator.ts:109 Field MondayDate not found or not fillable
+pdf-generator.ts:109 Field Monday_Date not found or not fillable
+pdf-generator.ts:109 Field Date_Monday not found or not fillable
+pdf-generator.ts:107 Filled Monday Date with: 8/24/25
+pdf-generator.ts:109 Field dateMonday not found or not fillable
+pdf-generator.ts:109 Field mondayDate not found or not fillable
+pdf-generator.ts:109 Field monday_date not found or not fillable
+pdf-generator.ts:109 Field mondaydate not found or not fillable
+pdf-generator.ts:109 Field TuesdayDate not found or not fillable
+pdf-generator.ts:109 Field Tuesday_Date not found or not fillable
+pdf-generator.ts:109 Field Date_Tuesday not found or not fillable
+pdf-generator.ts:107 Filled Tuesday Date with: 8/25/25
+pdf-generator.ts:109 Field dateTuesday not found or not fillable
+pdf-generator.ts:109 Field tuesdayDate not found or not fillable
+pdf-generator.ts:109 Field tuesday_date not found or not fillable
+pdf-generator.ts:109 Field tuesdaydate not found or not fillable
+pdf-generator.ts:109 Field WednesdayDate not found or not fillable
+pdf-generator.ts:109 Field Wednesday_Date not found or not fillable
+pdf-generator.ts:109 Field Date_Wednesday not found or not fillable
+pdf-generator.ts:107 Filled Wednesday Date with: 8/26/25
+pdf-generator.ts:109 Field dateWednesday not found or not fillable
+pdf-generator.ts:109 Field wednesdayDate not found or not fillable
+pdf-generator.ts:109 Field wednesday_date not found or not fillable
+pdf-generator.ts:109 Field wednesdaydate not found or not fillable
+pdf-generator.ts:109 Field ThursdayDate not found or not fillable
+pdf-generator.ts:109 Field Thursday_Date not found or not fillable
+pdf-generator.ts:109 Field Date_Thursday not found or not fillable
+pdf-generator.ts:107 Filled Thursday Date with: 8/27/25
+pdf-generator.ts:109 Field dateThursday not found or not fillable
+pdf-generator.ts:109 Field thursdayDate not found or not fillable
+pdf-generator.ts:109 Field thursday_date not found or not fillable
+pdf-generator.ts:109 Field thursdaydate not found or not fillable
+pdf-generator.ts:109 Field FridayDate not found or not fillable
+pdf-generator.ts:109 Field Friday_Date not found or not fillable
+pdf-generator.ts:109 Field Date_Friday not found or not fillable
+pdf-generator.ts:107 Filled Friday Date with: 8/28/25
+pdf-generator.ts:109 Field dateFriday not found or not fillable
+pdf-generator.ts:109 Field fridayDate not found or not fillable
+pdf-generator.ts:109 Field friday_date not found or not fillable
+pdf-generator.ts:109 Field fridaydate not found or not fillable
+pdf-generator.ts:109 Field SaturdayDate not found or not fillable
+pdf-generator.ts:109 Field Saturday_Date not found or not fillable
+pdf-generator.ts:109 Field Date_Saturday not found or not fillable
+pdf-generator.ts:107 Filled Saturday Date with: 8/29/25
+pdf-generator.ts:109 Field dateSaturday not found or not fillable
+pdf-generator.ts:109 Field saturdayDate not found or not fillable
+pdf-generator.ts:109 Field saturday_date not found or not fillable
+pdf-generator.ts:109 Field saturdaydate not found or not fillable
+pdf-generator.ts:109 Field TotalWeeklyHours not found or not fillable
+pdf-generator.ts:109 Field Total Weekly Hours not found or not fillable
+pdf-generator.ts:109 Field WeeklyTotal not found or not fillable
+pdf-generator.ts:109 Field Weekly Total not found or not fillable
+pdf-generator.ts:109 Field TotalHours not found or not fillable
+pdf-generator.ts:109 Field Total Hours not found or not fillable
+pdf-generator.ts:109 Field totalweeklyhours not found or not fillable
+pdf-generator.ts:109 Field weeklytotal not found or not fillable
+pdf-generator.ts:109 Field totalhours not found or not fillable
+pdf-generator.ts:107 Filled Total Hours for Week with: 8.00
+pdf-generator.ts:109 Field TotalHoursForWeek not found or not fillable
+pdf-generator.ts:109 Field Total_Hours_for_Week not found or not fillable
+pdf-generator.ts:109 Field WeekTotal not found or not fillable
+pdf-generator.ts:109 Field Week Total not found or not fillable
+pdf-generator.ts:109 Field GrandTotal not found or not fillable
+pdf-generator.ts:109 Field Grand Total not found or not fillable
+pdf-generator.ts:109 Field OverallTotal not found or not fillable
+pdf-generator.ts:109 Field totalhours for week not found or not fillable
+pdf-generator.ts:109 Field total hours for week not found or not fillable
+pdf-generator.ts:109 Field weektotal not found or not fillable
+pdf-generator.ts:109 Field grandtotal not found or not fillable
+pdf-generator.ts:274 Trying to set rescue coverage checkbox, checked: false
+pdf-generator.ts:124 Checkbox MondayCoverage not found
+pdf-generator.ts:124 Checkbox Monday Coverage not found
+pdf-generator.ts:124 Checkbox Monday_Coverage not found
+pdf-generator.ts:124 Checkbox mondaycoverage not found
+pdf-generator.ts:124 Checkbox RescueMonday not found
+pdf-generator.ts:124 Checkbox Monday Rescue not found
+pdf-generator.ts:124 Checkbox Monday_Rescue not found
+pdf-generator.ts:124 Checkbox mondayrescue not found
+pdf-generator.ts:124 Checkbox Rescue_Monday not found
+pdf-generator.ts:124 Checkbox rescue_monday not found
+pdf-generator.ts:124 Checkbox CoverageMonday not found
+pdf-generator.ts:124 Checkbox coverage_monday not found
+pdf-generator.ts:124 Checkbox Mon Coverage not found
+pdf-generator.ts:124 Checkbox MonCoverage not found
+pdf-generator.ts:124 Checkbox mon_coverage not found
+pdf-generator.ts:274 Trying to set rescue coverage checkbox, checked: false
+pdf-generator.ts:124 Checkbox TuesdayCoverage not found
+pdf-generator.ts:124 Checkbox Tuesday Coverage not found
+pdf-generator.ts:124 Checkbox Tuesday_Coverage not found
+pdf-generator.ts:124 Checkbox tuesdaycoverage not found
+pdf-generator.ts:124 Checkbox RescueTuesday not found
+pdf-generator.ts:124 Checkbox Tuesday Rescue not found
+pdf-generator.ts:124 Checkbox Tuesday_Rescue not found
+pdf-generator.ts:124 Checkbox tuesdayrescue not found
+pdf-generator.ts:124 Checkbox Rescue_Tuesday not found
+pdf-generator.ts:124 Checkbox rescue_tuesday not found
+pdf-generator.ts:124 Checkbox CoverageTuesday not found
+pdf-generator.ts:124 Checkbox coverage_tuesday not found
+pdf-generator.ts:124 Checkbox Tue Coverage not found
+pdf-generator.ts:124 Checkbox TueCoverage not found
+pdf-generator.ts:124 Checkbox tue_coverage not found
+pdf-generator.ts:274 Trying to set rescue coverage checkbox, checked: true
+pdf-generator.ts:124 Checkbox WednesdayCoverage not found
+pdf-generator.ts:124 Checkbox Wednesday Coverage not found
+pdf-generator.ts:124 Checkbox Wednesday_Coverage not found
+pdf-generator.ts:124 Checkbox wednesdaycoverage not found
+pdf-generator.ts:124 Checkbox RescueWednesday not found
+pdf-generator.ts:124 Checkbox Wednesday Rescue not found
+pdf-generator.ts:124 Checkbox Wednesday_Rescue not found
+pdf-generator.ts:124 Checkbox wednesdayrescue not found
+pdf-generator.ts:124 Checkbox Rescue_Wednesday not found
+pdf-generator.ts:124 Checkbox rescue_wednesday not found
+pdf-generator.ts:124 Checkbox CoverageWednesday not found
+pdf-generator.ts:124 Checkbox coverage_wednesday not found
+pdf-generator.ts:124 Checkbox Wed Coverage not found
+pdf-generator.ts:124 Checkbox WedCoverage not found
+pdf-generator.ts:124 Checkbox wed_coverage not found
+pdf-generator.ts:274 Trying to set rescue coverage checkbox, checked: false
+pdf-generator.ts:124 Checkbox ThursdayCoverage not found
+pdf-generator.ts:124 Checkbox Thursday Coverage not found
+pdf-generator.ts:124 Checkbox Thursday_Coverage not found
+pdf-generator.ts:124 Checkbox thursdaycoverage not found
+pdf-generator.ts:124 Checkbox RescueThursday not found
+pdf-generator.ts:124 Checkbox Thursday Rescue not found
+pdf-generator.ts:124 Checkbox Thursday_Rescue not found
+pdf-generator.ts:124 Checkbox thursdayrescue not found
+pdf-generator.ts:124 Checkbox Rescue_Thursday not found
+pdf-generator.ts:124 Checkbox rescue_thursday not found
+pdf-generator.ts:124 Checkbox CoverageThursday not found
+pdf-generator.ts:124 Checkbox coverage_thursday not found
+pdf-generator.ts:124 Checkbox Thu Coverage not found
+pdf-generator.ts:124 Checkbox ThuCoverage not found
+pdf-generator.ts:124 Checkbox thu_coverage not found
+pdf-generator.ts:299 Added signature image overlay
+pdf-generator.ts:310 Could not flatten form: Error: Unexpected N type: undefined
+    at PDFAnnotation2.getNormalAppearance (pdf-lib.js?v=c9175074:12243:13)
+    at PDFForm2.findWidgetAppearanceRef (pdf-lib.js?v=c9175074:17930:30)
+    at PDFForm2.flatten (pdf-lib.js?v=c9175074:17846:32)
+    at generateTimeSheetPDF (pdf-generator.ts:307:12)
+    at async handleEmail (timesheet.tsx:638:26)
+generateTimeSheetPDF @ pdf-generator.ts:310

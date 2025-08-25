@@ -90,6 +90,7 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
     const fields = form.getFields();
     const fieldNames = fields.map(field => field.getName());
     console.log('Available form fields:', fieldNames);
+    console.log('Available form fields (detailed):', fieldNames.join(', '));
     
     // Log rescue coverage data being passed
     console.log('Rescue coverage data:', {

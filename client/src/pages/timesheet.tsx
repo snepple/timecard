@@ -635,6 +635,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       setIsLoading(true);
       
       // Generate PDF first for preview
+      console.log('Form data being passed to PDF generator (email):', formData);
       const pdfDataUrl = await generateTimeSheetPDF({
         ...formData,
         signatureData,
@@ -743,6 +744,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
 
     setIsLoading(true);
     try {
+      console.log('Form data being passed to PDF generator:', formData);
       const pdfBuffer = await generateTimeSheetPDF({
         ...formData,
         signatureData,
