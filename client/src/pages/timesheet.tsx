@@ -17,7 +17,7 @@ import { generateTimeSheetPDF } from "@/lib/pdf-generator";
 import { apiRequest } from "@/lib/queryClient";
 import SignaturePad from "@/components/ui/signature-pad";
 import { getCurrentWeekEndingDate, isSaturday, getNextSaturday, getPreviousSaturday } from "@/lib/date-utils";
-import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle, Check, ChevronsUpDown } from "lucide-react";
+import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle, Check, ChevronsUpDown, RotateCcw } from "lucide-react";
 
 const timesheetSchema = z.object({
   employeeName: z.string().min(1, "Employee name is required"),
@@ -310,6 +310,32 @@ export default function TimesheetPage() {
       setValue("employeeName", "");
       setValue("employeeNumber", "");
     }
+  };
+
+  // Handle clearing all fields
+  const handleClearAll = () => {
+    // Reset form to default values
+    form.reset({
+      employeeName: "",
+      employeeNumber: "",
+      weekEnding: getCurrentWeekEndingDate(),
+      selectedEmployee: "",
+      rescueCoverageMonday: false,
+      rescueCoverageTuesday: false,
+      rescueCoverageWednesday: false,
+      rescueCoverageThursday: false,
+    });
+    
+    // Clear local state
+    setSelectedEmployeeNumber("");
+    setSignatureData("");
+    setCurrentTimesheet(null);
+    setEmployeeSearchOpen(false);
+    
+    toast({
+      title: "Cleared",
+      description: "All fields have been cleared. Ready for new timesheet.",
+    });
   };
 
   // Handle week ending change
@@ -837,7 +863,17 @@ export default function TimesheetPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClearAll}
+              data-testid="button-clear-all"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Clear All
+            </Button>
+            
             <Button
               type="button"
               variant="secondary"
