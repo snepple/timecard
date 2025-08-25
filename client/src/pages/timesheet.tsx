@@ -118,6 +118,8 @@ export default function TimesheetPage() {
   const [showEmployeeIdPrompt, setShowEmployeeIdPrompt] = useState(false);
   const [tempEmployeeData, setTempEmployeeData] = useState<{ id: string; name: string } | null>(null);
   const [employeeIdInput, setEmployeeIdInput] = useState("");
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [employeeEmail, setEmployeeEmail] = useState("");
 
   // Fetch schedule data (employees and shifts)
   const scheduleQuery = useQuery<ScheduleData>({
@@ -450,50 +452,31 @@ export default function TimesheetPage() {
     }
   };
 
-  const saveTimesheetMutation = useMutation({
-    mutationFn: async (data: TimesheetFormData) => {
-      const response = await apiRequest("POST", "/api/timesheets", {
-        ...data,
-        signatureData: signatureData,
-      });
-      return response.json();
-    },
-    onSuccess: (data) => {
-      setCurrentTimesheet(data);
-      toast({
-        title: "Success",
-        description: "Timesheet saved successfully!",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to save timesheet. Please try again.",
-        variant: "destructive",
-      });
-    },
+
+  // Query to get employee email if it exists
+  const employeeEmailQuery = useQuery({
+    queryKey: [`/api/employee-numbers/${watchedValues.employeeNumber}/email`],
+    enabled: !!watchedValues.employeeNumber,
+    retry: false,
   });
 
   const emailTimesheetMutation = useMutation({
-    mutationFn: async (data: { pdfBuffer: string; employeeName: string; weekEnding: string }) => {
-      const response = await apiRequest("POST", "/api/timesheets/email", {
-        to: "bonnie@oaklandfire.gov",
-        employeeName: data.employeeName,
-        weekEnding: data.weekEnding,
-        pdfBuffer: data.pdfBuffer,
-      });
+    mutationFn: async (data: { employeeNumber: string; employeeEmail: string; timesheetData: { employeeName: string; weekEnding: string; pdfBuffer: string } }) => {
+      const response = await apiRequest("POST", "/api/timesheet/submit-email", data);
       return response.json();
     },
     onSuccess: () => {
       toast({
         title: "Success",
-        description: "Timesheet emailed to Bonnie successfully!",
+        description: "Timesheet submitted successfully via email!",
       });
+      setShowEmailDialog(false);
+      setEmployeeEmail("");
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to email timesheet. Please try again.",
+        description: "Failed to submit timesheet via email. Please try again.",
         variant: "destructive",
       });
     },
@@ -520,13 +503,6 @@ export default function TimesheetPage() {
     },
   });
 
-  const handleSave = () => {
-    const formData = getValues();
-    saveTimesheetMutation.mutate({
-      ...formData,
-      signatureData,
-    });
-  };
 
   const handleSubmitForApproval = () => {
     if (!currentTimesheet?.id) {
@@ -576,6 +552,7 @@ export default function TimesheetPage() {
     }
   };
 
+
   const handleEmail = async () => {
     const formData = getValues();
     if (!formData.employeeName || !formData.employeeNumber || !formData.weekEnding) {
@@ -587,17 +564,42 @@ export default function TimesheetPage() {
       return;
     }
 
-    setIsLoading(true);
+    // Check if we have the employee's email stored
+    const existingEmail = employeeEmailQuery.data?.email;
+    if (existingEmail) {
+      setEmployeeEmail(existingEmail);
+    }
+    
+    setShowEmailDialog(true);
+  };
+
+  const handleEmailSubmit = async () => {
+    if (!employeeEmail) {
+      toast({
+        title: "Email Required",
+        description: "Please enter your email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const formData = getValues();
+    
     try {
+      setIsLoading(true);
       const pdfBuffer = await generateTimeSheetPDF({
         ...formData,
         signatureData,
       });
       
       emailTimesheetMutation.mutate({
-        pdfBuffer: pdfBuffer,
-        employeeName: formData.employeeName,
-        weekEnding: formData.weekEnding,
+        employeeNumber: formData.employeeNumber,
+        employeeEmail: employeeEmail,
+        timesheetData: {
+          employeeName: formData.employeeName,
+          weekEnding: formData.weekEnding,
+          pdfBuffer: pdfBuffer,
+        },
       });
     } catch (error) {
       toast({
@@ -658,7 +660,7 @@ export default function TimesheetPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Loading Overlay */}
-      {(isLoading || saveTimesheetMutation.isPending || emailTimesheetMutation.isPending) && (
+      {(isLoading || emailTimesheetMutation.isPending) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
@@ -959,7 +961,7 @@ export default function TimesheetPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <Button
               type="button"
               variant="outline"
@@ -968,17 +970,6 @@ export default function TimesheetPage() {
             >
               <RotateCcw className="mr-2 h-4 w-4" />
               Clear All
-            </Button>
-            
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleSave}
-              disabled={saveTimesheetMutation.isPending}
-              data-testid="button-save"
-            >
-              <Save className="mr-2 h-4 w-4" />
-              Save Draft
             </Button>
             
             {currentTimesheet && currentTimesheet.status === "draft" && (
@@ -1002,7 +993,7 @@ export default function TimesheetPage() {
               data-testid="button-email"
             >
               <Mail className="mr-2 h-4 w-4" />
-              Email to Bonnie
+              Submit by Email
             </Button>
             
             <Button
@@ -1058,6 +1049,41 @@ export default function TimesheetPage() {
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleEmployeeIdSubmit} disabled={updateEmployeeNumberMutation.isPending}>
               {updateEmployeeNumberMutation.isPending ? "Saving..." : "Save ID"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Email Submission Dialog */}
+      <AlertDialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Submit Timesheet by Email</AlertDialogTitle>
+            <AlertDialogDescription>
+              Enter your email address to submit your timesheet. We'll save this for future submissions.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="emailInput" className="text-sm font-medium">
+              Your Email Address
+            </Label>
+            <Input
+              id="emailInput"
+              type="email"
+              value={employeeEmail}
+              onChange={(e) => setEmployeeEmail(e.target.value)}
+              placeholder="Enter your email address"
+              data-testid="input-employee-email"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-email-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleEmailSubmit}
+              disabled={emailTimesheetMutation.isPending}
+              data-testid="button-email-submit"
+            >
+              {emailTimesheetMutation.isPending ? "Submitting..." : "Submit by Email"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

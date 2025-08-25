@@ -22,6 +22,16 @@ const emailConfigSchema = z.object({
   pdfBuffer: z.string(), // base64 encoded PDF
 });
 
+const emailSubmissionSchema = z.object({
+  employeeNumber: z.string(),
+  employeeEmail: z.string().email(),
+  timesheetData: z.object({
+    employeeName: z.string(),
+    weekEnding: z.string(),
+    pdfBuffer: z.string(), // base64 encoded PDF
+  }),
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Create timesheet
   app.post("/api/timesheets", async (req, res) => {
@@ -344,6 +354,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting employee number:", error);
       res.status(500).json({ message: "Failed to delete employee number" });
+    }
+  });
+
+  // Get employee email by employee number
+  app.get("/api/employee-numbers/:employeeNumber/email", async (req, res) => {
+    try {
+      const [employee] = await db
+        .select({ email: employeeNumbers.email })
+        .from(employeeNumbers)
+        .where(eq(employeeNumbers.employeeNumber, req.params.employeeNumber));
+      
+      if (!employee) {
+        res.status(404).json({ message: "Employee not found" });
+        return;
+      }
+      
+      res.json({ email: employee.email });
+    } catch (error) {
+      console.error("Error fetching employee email:", error);
+      res.status(500).json({ message: "Failed to fetch employee email" });
+    }
+  });
+
+  // Update employee email
+  app.put("/api/employee-numbers/:employeeNumber/email", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email || typeof email !== 'string') {
+        res.status(400).json({ message: "Valid email address is required" });
+        return;
+      }
+
+      const [employee] = await db
+        .update(employeeNumbers)
+        .set({ email, updatedAt: new Date() })
+        .where(eq(employeeNumbers.employeeNumber, req.params.employeeNumber))
+        .returning();
+      
+      if (!employee) {
+        res.status(404).json({ message: "Employee not found" });
+        return;
+      }
+      
+      res.json({ message: "Email updated successfully" });
+    } catch (error) {
+      console.error("Error updating employee email:", error);
+      res.status(500).json({ message: "Failed to update employee email" });
+    }
+  });
+
+  // Email submission endpoint
+  app.post("/api/timesheet/submit-email", async (req, res) => {
+    try {
+      const validatedData = emailSubmissionSchema.parse(req.body);
+      const { employeeNumber, employeeEmail, timesheetData } = validatedData;
+
+      // Store employee email for future use
+      await db
+        .update(employeeNumbers)
+        .set({ email: employeeEmail, updatedAt: new Date() })
+        .where(eq(employeeNumbers.employeeNumber, employeeNumber));
+
+      // Set up email transport
+      const transporter = nodemailer.createTransporter({
+        host: "smtp.gmail.com",
+        port: 587,
+        secure: false,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      });
+
+      // Convert base64 PDF to buffer
+      const pdfBuffer = Buffer.from(timesheetData.pdfBuffer, 'base64');
+
+      // Send email
+      const mailOptions = {
+        from: employeeEmail,
+        to: "sam@singingbrook.com",
+        cc: employeeEmail,
+        subject: `Timesheet Submission - ${timesheetData.employeeName} - Week Ending ${timesheetData.weekEnding}`,
+        text: `Please find attached the timesheet for ${timesheetData.employeeName} for the week ending ${timesheetData.weekEnding}.`,
+        html: `
+          <h3>Timesheet Submission</h3>
+          <p><strong>Employee:</strong> ${timesheetData.employeeName}</p>
+          <p><strong>Week Ending:</strong> ${timesheetData.weekEnding}</p>
+          <p>Please find the completed timesheet attached as a PDF.</p>
+        `,
+        attachments: [
+          {
+            filename: `Timesheet_${timesheetData.employeeName.replace(/\s+/g, '_')}_${timesheetData.weekEnding}.pdf`,
+            content: pdfBuffer,
+            contentType: 'application/pdf'
+          }
+        ],
+      };
+
+      await transporter.sendMail(mailOptions);
+      res.json({ message: "Timesheet submitted successfully via email" });
+    } catch (error) {
+      console.error("Error submitting timesheet via email:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Validation error", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to submit timesheet via email" });
+      }
     }
   });
 

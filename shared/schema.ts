@@ -79,6 +79,7 @@ export const employeeNumbers = pgTable("employee_numbers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   employeeName: varchar("employee_name").notNull(),
   employeeNumber: varchar("employee_number").notNull().default(""),
+  email: varchar("email"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

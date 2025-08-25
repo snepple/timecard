@@ -12,6 +12,10 @@ export interface IStorage {
   getTimesheetsByEmployee(employeeNumber: string): Promise<Timesheet[]>;
   updateTimesheet(id: string, timesheet: Partial<InsertTimesheet>): Promise<Timesheet | undefined>;
   
+  // Employee email operations
+  getEmployeeEmail(employeeNumber: string): Promise<string | undefined>;
+  updateEmployeeEmail(employeeNumber: string, email: string): Promise<void>;
+  
   // Approval workflow operations
   submitTimesheet(id: string): Promise<Timesheet | undefined>;
   getPendingTimesheets(): Promise<Timesheet[]>;
@@ -133,6 +137,16 @@ export class MemStorage implements IStorage {
     return Array.from(this.timesheets.values()).filter(
       (timesheet) => timesheet.status === status
     );
+  }
+
+  async getEmployeeEmail(employeeNumber: string): Promise<string | undefined> {
+    // For MemStorage, we don't have persistent employee data, so return undefined
+    return undefined;
+  }
+
+  async updateEmployeeEmail(employeeNumber: string, email: string): Promise<void> {
+    // For MemStorage, we don't persist employee data
+    return;
   }
 }
 
