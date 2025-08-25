@@ -718,7 +718,7 @@ export default function TimesheetPage() {
                       data-testid="select-employee"
                     >
                       {selectedEmployeeNumber
-                        ? scheduleQuery.data?.employees?.find((employee) => employee.employeeNumber === selectedEmployeeNumber)?.fullName + ` (#${selectedEmployeeNumber})`
+                        ? scheduleQuery.data?.employees?.find((employee) => employee.employeeNumber === selectedEmployeeNumber)?.fullName
                         : "Choose your name from the list"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
@@ -730,7 +730,11 @@ export default function TimesheetPage() {
                         <CommandEmpty>No employee found.</CommandEmpty>
                         <CommandGroup>
                           {scheduleQuery.data?.employees
-                            ?.sort((a, b) => a.fullName.localeCompare(b.fullName))
+                            ?.sort((a, b) => {
+                              const lastNameA = a.lastName || a.fullName.split(' ').pop() || '';
+                              const lastNameB = b.lastName || b.fullName.split(' ').pop() || '';
+                              return lastNameA.localeCompare(lastNameB);
+                            })
                             ?.map((employee) => (
                               <CommandItem
                                 key={employee.employeeNumber}
@@ -745,7 +749,7 @@ export default function TimesheetPage() {
                                     selectedEmployeeNumber === employee.employeeNumber ? "opacity-100" : "opacity-0"
                                   }`}
                                 />
-                                {employee.fullName} (#{employee.employeeNumber})
+                                {`${employee.lastName || employee.fullName.split(' ').pop()}, ${employee.firstName || employee.fullName.split(' ').slice(0, -1).join(' ')}`}
                               </CommandItem>
                             ))}
                         </CommandGroup>

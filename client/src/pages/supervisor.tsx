@@ -168,7 +168,7 @@ export default function SupervisorDashboard() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-secondary flex items-center" data-testid="heading-supervisor-dashboard">
             <AlertCircle className="text-primary mr-3 h-8 w-8" />
-            Employee Database Management
+            Admin
           </h1>
           <p className="text-gray-600 mt-2">Manage employee numbers and sync from WhenToWork schedule</p>
         </div>
