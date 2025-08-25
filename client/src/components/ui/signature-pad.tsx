@@ -10,8 +10,8 @@ interface SignaturePadProps {
 
 export default function SignaturePad({ 
   onSignatureChange, 
-  width = 400, 
-  height = 150 
+  width = 600, 
+  height = 200 
 }: SignaturePadProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -24,9 +24,17 @@ export default function SignaturePad({
     const context = canvas.getContext("2d");
     if (!context) return;
 
-    // Set canvas size
-    canvas.width = width;
-    canvas.height = height;
+    // Get the actual displayed size of the canvas
+    const rect = canvas.getBoundingClientRect();
+    const displayWidth = rect.width;
+    const displayHeight = rect.height;
+
+    // Set canvas internal size to match display size for crisp rendering
+    canvas.width = displayWidth * window.devicePixelRatio;
+    canvas.height = displayHeight * window.devicePixelRatio;
+
+    // Scale the context to match device pixel ratio
+    context.scale(window.devicePixelRatio, window.devicePixelRatio);
 
     // Configure drawing context
     context.strokeStyle = "#000";
@@ -36,7 +44,7 @@ export default function SignaturePad({
 
     // Clear canvas with white background
     context.fillStyle = "#fff";
-    context.fillRect(0, 0, width, height);
+    context.fillRect(0, 0, displayWidth, displayHeight);
   }, [width, height]);
 
   const startDrawing = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -118,13 +126,13 @@ export default function SignaturePad({
 
   return (
     <div className="space-y-4">
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-gray-50">
+      <div className="border-2 border-dashed border-gray-300 rounded-lg p-2 bg-gray-50 relative">
         <canvas
           ref={canvasRef}
-          className={`border border-gray-200 rounded cursor-crosshair touch-none ${
+          className={`w-full border border-gray-200 rounded cursor-crosshair touch-none ${
             hasSignature ? 'bg-white' : ''
           }`}
-          style={{ width: '100%', maxWidth: `${width}px`, height: `${height}px` }}
+          style={{ height: `${height}px`, minHeight: '200px' }}
           onMouseDown={startDrawing}
           onMouseMove={draw}
           onMouseUp={stopDrawing}
@@ -135,8 +143,8 @@ export default function SignaturePad({
           data-testid="signature-canvas"
         />
         {!hasSignature && (
-          <div className="text-center text-gray-500 mt-2">
-            <PenTool className="mx-auto mb-2 h-8 w-8" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 pointer-events-none">
+            <PenTool className="mb-2 h-8 w-8" />
             <p className="text-sm">Sign above</p>
             <p className="text-xs text-gray-400">Use mouse or touch to draw your signature</p>
           </div>
