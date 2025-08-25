@@ -67,14 +67,37 @@ export default function SupervisorDashboard() {
     enabled: activeTab === "employees",
   });
 
+  // Fetch schedule for syncing
+  const scheduleQuery = useQuery<{ employees: Array<{ firstName: string; lastName: string }> }>({
+    queryKey: ["/api/schedule"],
+    enabled: activeTab === "employees",
+  });
+
+  // Sync employees from schedule mutation
+  const syncEmployeesMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/employee-numbers/sync");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/employee-numbers"] });
+      toast({
+        title: "Employees synced",
+        description: "Employee names have been synced from the schedule.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to sync employees. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Create employee number mutation
   const createEmployeeMutation = useMutation({
     mutationFn: async (data: { employeeName: string; employeeNumber: string }) => {
-      return apiRequest("/api/employee-numbers", {
-        method: "POST",
-        body: JSON.stringify(data),
-        headers: { "Content-Type": "application/json" }
-      });
+      return apiRequest("POST", "/api/employee-numbers", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/employee-numbers"] });
@@ -97,11 +120,7 @@ export default function SupervisorDashboard() {
   // Update employee number mutation
   const updateEmployeeMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: { employeeName: string; employeeNumber: string } }) => {
-      return apiRequest(`/api/employee-numbers/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-        headers: { "Content-Type": "application/json" }
-      });
+      return apiRequest("PUT", `/api/employee-numbers/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/employee-numbers"] });
@@ -125,9 +144,7 @@ export default function SupervisorDashboard() {
   // Delete employee number mutation
   const deleteEmployeeMutation = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest(`/api/employee-numbers/${id}`, {
-        method: "DELETE",
-      });
+      return apiRequest("DELETE", `/api/employee-numbers/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/employee-numbers"] });
@@ -147,11 +164,7 @@ export default function SupervisorDashboard() {
 
   const approveMutation = useMutation({
     mutationFn: async ({ id, supervisorName, comments }: { id: string; supervisorName: string; comments?: string }) => {
-      return apiRequest(`/api/timesheets/${id}/approve`, {
-        method: "POST",
-        body: JSON.stringify({ supervisorName, comments }),
-        headers: { "Content-Type": "application/json" }
-      });
+      return apiRequest("POST", `/api/timesheets/${id}/approve`, { supervisorName, comments });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/timesheets/pending"] });
@@ -174,11 +187,7 @@ export default function SupervisorDashboard() {
 
   const rejectMutation = useMutation({
     mutationFn: async ({ id, supervisorName, comments }: { id: string; supervisorName: string; comments: string }) => {
-      return apiRequest(`/api/timesheets/${id}/reject`, {
-        method: "POST", 
-        body: JSON.stringify({ supervisorName, comments }),
-        headers: { "Content-Type": "application/json" }
-      });
+      return apiRequest("POST", `/api/timesheets/${id}/reject`, { supervisorName, comments });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/timesheets/pending"] });
@@ -361,7 +370,18 @@ export default function SupervisorDashboard() {
                   <div className="space-y-6">
                     {/* Add Employee Form */}
                     <div className="border-b pb-4">
-                      <h3 className="text-lg font-medium mb-4">Add New Employee Number</h3>
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-medium">Add New Employee Number</h3>
+                        <Button
+                          onClick={() => syncEmployeesMutation.mutate()}
+                          disabled={syncEmployeesMutation.isPending}
+                          variant="outline"
+                          className="flex items-center"
+                        >
+                          <Users className="w-4 h-4 mr-2" />
+                          Sync from Schedule
+                        </Button>
+                      </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                           <Label htmlFor="employeeName">Employee Name</Label>

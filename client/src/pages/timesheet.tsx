@@ -18,6 +18,7 @@ import { apiRequest } from "@/lib/queryClient";
 import SignaturePad from "@/components/ui/signature-pad";
 import { getCurrentWeekEndingDate, isSaturday, getNextSaturday, getPreviousSaturday } from "@/lib/date-utils";
 import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle, Check, ChevronsUpDown, RotateCcw } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const timesheetSchema = z.object({
   employeeName: z.string().min(1, "Employee name is required"),
@@ -114,11 +115,44 @@ export default function TimesheetPage() {
   const [selectedEmployeeNumber, setSelectedEmployeeNumber] = useState<string>("");
   const [currentTimesheet, setCurrentTimesheet] = useState<any>(null);
   const [employeeSearchOpen, setEmployeeSearchOpen] = useState(false);
+  const [showEmployeeIdPrompt, setShowEmployeeIdPrompt] = useState(false);
+  const [tempEmployeeData, setTempEmployeeData] = useState<{ id: string; name: string } | null>(null);
+  const [employeeIdInput, setEmployeeIdInput] = useState("");
 
   // Fetch schedule data (employees and shifts)
   const scheduleQuery = useQuery<ScheduleData>({
     queryKey: ['/api/schedule'],
     staleTime: 1000 * 60 * 60, // 1 hour
+  });
+
+  // Fetch employee numbers from database
+  const employeeNumbersQuery = useQuery<Array<{ id: string; employeeName: string; employeeNumber: string }>>({
+    queryKey: ['/api/employee-numbers'],
+    staleTime: 1000 * 60 * 30, // 30 minutes
+  });
+
+  // Update employee number mutation
+  const updateEmployeeNumberMutation = useMutation({
+    mutationFn: async ({ id, employeeNumber }: { id: string; employeeNumber: string }) => {
+      return apiRequest("PUT", `/api/employee-numbers/${id}`, { employeeName: tempEmployeeData?.name, employeeNumber });
+    },
+    onSuccess: () => {
+      employeeNumbersQuery.refetch();
+      setShowEmployeeIdPrompt(false);
+      setEmployeeIdInput("");
+      setTempEmployeeData(null);
+      toast({
+        title: "Employee ID saved",
+        description: "Your employee ID has been saved for future timesheets.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to save employee ID. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const form = useForm<TimesheetFormData>({
@@ -298,7 +332,22 @@ export default function TimesheetPage() {
     const employee = scheduleQuery.data?.employees?.find((emp) => emp.employeeNumber === employeeNumber);
     if (employee) {
       setValue("employeeName", employee.fullName);
-      setValue("employeeNumber", employee.employeeNumber);
+      
+      // Check if this employee exists in the database and has an employee number
+      const dbEmployee = employeeNumbersQuery.data?.find(emp => emp.employeeName === employee.fullName);
+      
+      if (dbEmployee && dbEmployee.employeeNumber && dbEmployee.employeeNumber.trim() !== "") {
+        // Employee has an ID in database, use it
+        setValue("employeeNumber", dbEmployee.employeeNumber);
+      } else if (dbEmployee && (!dbEmployee.employeeNumber || dbEmployee.employeeNumber.trim() === "")) {
+        // Employee exists in database but no employee number - prompt for it
+        setTempEmployeeData({ id: dbEmployee.id, name: employee.fullName });
+        setShowEmployeeIdPrompt(true);
+        setValue("employeeNumber", ""); // Clear until they provide ID
+      } else {
+        // Employee not in database - use schedule employee number
+        setValue("employeeNumber", employee.employeeNumber);
+      }
       
       // Auto-populate from schedule if week ending is set
       const weekEnding = getValues("weekEnding");
@@ -313,6 +362,26 @@ export default function TimesheetPage() {
   };
 
   // Handle clearing all fields
+  // Handle employee ID submission
+  const handleEmployeeIdSubmit = () => {
+    if (!employeeIdInput.trim()) {
+      toast({
+        title: "Employee ID required",
+        description: "Please enter your employee ID number.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (tempEmployeeData) {
+      updateEmployeeNumberMutation.mutate({
+        id: tempEmployeeData.id,
+        employeeNumber: employeeIdInput.trim()
+      });
+      setValue("employeeNumber", employeeIdInput.trim());
+    }
+  };
+
   const handleClearAll = () => {
     // Reset form to default values
     form.reset({
@@ -933,6 +1002,43 @@ export default function TimesheetPage() {
           <p className="text-xs text-gray-500 mt-1">Timesheet Application v1.0</p>
         </div>
       </footer>
+
+      {/* Employee ID Prompt Dialog */}
+      <AlertDialog open={showEmployeeIdPrompt} onOpenChange={setShowEmployeeIdPrompt}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Employee ID Required</AlertDialogTitle>
+            <AlertDialogDescription>
+              We need your employee ID number to complete your timesheet. This will be saved for future use.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="employeeIdInput" className="text-sm font-medium">
+              Employee ID Number
+            </Label>
+            <Input
+              id="employeeIdInput"
+              value={employeeIdInput}
+              onChange={(e) => setEmployeeIdInput(e.target.value)}
+              placeholder="Enter your employee ID"
+              className="mt-2"
+              autoFocus
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowEmployeeIdPrompt(false);
+              setEmployeeIdInput("");
+              setTempEmployeeData(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleEmployeeIdSubmit} disabled={updateEmployeeNumberMutation.isPending}>
+              {updateEmployeeNumberMutation.isPending ? "Saving..." : "Save ID"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

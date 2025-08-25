@@ -347,6 +347,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Sync employees from schedule
+  app.post("/api/employee-numbers/sync", async (req, res) => {
+    try {
+      // Get current employees from schedule
+      const scheduleResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule`);
+      const scheduleData = await scheduleResponse.json();
+      
+      if (!scheduleData.employees) {
+        res.status(400).json({ message: "No employee data in schedule" });
+        return;
+      }
+      
+      // Get existing employee names
+      const existingEmployees = await db.select().from(employeeNumbers);
+      const existingNames = new Set(existingEmployees.map(emp => emp.employeeName));
+      
+      // Add employees from schedule who don't exist
+      const newEmployees = [];
+      for (const emp of scheduleData.employees) {
+        const fullName = `${emp.firstName} ${emp.lastName}`;
+        if (!existingNames.has(fullName)) {
+          const [newEmployee] = await db
+            .insert(employeeNumbers)
+            .values({ 
+              employeeName: fullName, 
+              employeeNumber: "" // Will be filled when they create timesheet
+            })
+            .returning();
+          newEmployees.push(newEmployee);
+        }
+      }
+      
+      res.json({ 
+        message: `Synced ${newEmployees.length} new employees from schedule`,
+        newEmployees 
+      });
+    } catch (error) {
+      console.error("Error syncing employees:", error);
+      res.status(500).json({ message: "Failed to sync employees from schedule" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
