@@ -63,6 +63,14 @@ function formatHoursForPDF(hours?: number): string {
 function formatDateForPDF(dateStr?: string): string {
   if (!dateStr) return "";
   try {
+    // Handle YYYY-MM-DD format to avoid timezone issues
+    if (dateStr.includes('-') && dateStr.length === 10) {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const yearShort = year.toString().slice(-2);
+      return `${month}/${day}/${yearShort}`;
+    }
+    
+    // Fallback to original Date parsing for other formats
     const date = new Date(dateStr);
     const month = date.getMonth() + 1; // getMonth() returns 0-11
     const day = date.getDate();
