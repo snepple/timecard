@@ -18,7 +18,7 @@ import { generateTimeSheetPDF } from "@/lib/pdf-generator";
 import { apiRequest } from "@/lib/queryClient";
 import SignaturePad from "@/components/ui/signature-pad";
 import { getCurrentWeekEndingDate, isSaturday, getNextSaturday, getPreviousSaturday } from "@/lib/date-utils";
-import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle, Check, ChevronsUpDown, RotateCcw, LogOut } from "lucide-react";
+import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle, Check, ChevronsUpDown, RotateCcw, LogOut, Plus, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const dayShiftSchema = z.object({
@@ -401,13 +401,6 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             const currentShifts = getValues(`${dayKey}Shifts` as keyof TimesheetFormData) as DayShift[];
             const allShifts = [...currentShifts, ...dayShifts];
             setValue(`${dayKey}Shifts` as keyof TimesheetFormData, allShifts);
-            
-            // Also populate the individual start and end time fields if this is the first shift for the day
-            if (currentShifts.length === 0 && dayShifts.length > 0) {
-              const firstShift = dayShifts[0];
-              setValue(`${dayKey}StartTime` as keyof TimesheetFormData, firstShift.startTime);
-              setValue(`${dayKey}EndTime` as keyof TimesheetFormData, firstShift.endTime);
-            }
           }
         }
       });
@@ -1024,79 +1017,138 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                         Daily Time Entry
                       </h2>
                       
-                      {DAYS_OF_WEEK.map(({ key, label }) => (
-                        <div key={key} className="grid grid-cols-12 gap-2 items-center py-3 border-b border-gray-200 last:border-b-0">
-                          <div className="col-span-12 md:col-span-3">
-                            <Label className="text-sm font-medium text-secondary">{label}</Label>
-                            <Input
-                              type="date"
-                              {...form.register(`${key}Date` as keyof TimesheetFormData)}
-                              readOnly
-                              className="mt-1 text-sm bg-gray-50"
-                              data-testid={`input-${key}-date`}
-                            />
-                          </div>
-                          <div className="col-span-6 md:col-span-3">
-                            <Label className="text-sm font-medium text-secondary">Start Time</Label>
-                            <FormField
-                              control={form.control}
-                              name={`${key}StartTime` as keyof TimesheetFormData}
-                              render={({ field }) => (
-                                <FormItem className="mt-1">
-                                  <Select value={field.value?.toString() || ""} onValueChange={field.onChange}>
-                                    <FormControl>
-                                      <SelectTrigger className="text-sm" data-testid={`select-${key}-start-time`}>
+                      {DAYS_OF_WEEK.map(({ key, label }) => {
+                        const dayShifts = watchedValues[`${key}Shifts` as keyof TimesheetFormData] as DayShift[] || [];
+                        
+                        const addShift = () => {
+                          const currentShifts = getValues(`${key}Shifts` as keyof TimesheetFormData) as DayShift[] || [];
+                          const newShift = { startTime: "", endTime: "", hours: 0 };
+                          setValue(`${key}Shifts` as keyof TimesheetFormData, [...currentShifts, newShift]);
+                        };
+                        
+                        const removeShift = (index: number) => {
+                          const currentShifts = getValues(`${key}Shifts` as keyof TimesheetFormData) as DayShift[] || [];
+                          const updatedShifts = currentShifts.filter((_, i) => i !== index);
+                          setValue(`${key}Shifts` as keyof TimesheetFormData, updatedShifts);
+                        };
+                        
+                        const updateShiftTime = (index: number, field: 'startTime' | 'endTime', value: string) => {
+                          const currentShifts = getValues(`${key}Shifts` as keyof TimesheetFormData) as DayShift[] || [];
+                          const updatedShifts = [...currentShifts];
+                          updatedShifts[index] = { ...updatedShifts[index], [field]: value };
+                          
+                          // Calculate hours if both times are set
+                          if (updatedShifts[index].startTime && updatedShifts[index].endTime) {
+                            updatedShifts[index].hours = calculateHours(
+                              updatedShifts[index].startTime, 
+                              updatedShifts[index].endTime
+                            );
+                          }
+                          
+                          setValue(`${key}Shifts` as keyof TimesheetFormData, updatedShifts);
+                        };
+                        
+                        return (
+                          <div key={key} className="py-4 border-b border-gray-200 last:border-b-0">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <Label className="text-sm font-medium text-secondary">{label}</Label>
+                                <Input
+                                  type="date"
+                                  {...form.register(`${key}Date` as keyof TimesheetFormData)}
+                                  readOnly
+                                  className="text-sm bg-gray-50 w-auto"
+                                  data-testid={`input-${key}-date`}
+                                />
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-secondary">
+                                  Total: {typeof watchedValues[`${key}TotalHours` as keyof TimesheetFormData] === 'number' 
+                                    ? (watchedValues[`${key}TotalHours` as keyof TimesheetFormData] as number).toFixed(2) 
+                                    : "0.00"} hrs
+                                </span>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={addShift}
+                                  className="text-xs"
+                                  data-testid={`button-add-shift-${key}`}
+                                >
+                                  <Plus className="h-3 w-3 mr-1" />
+                                  Add Shift
+                                </Button>
+                              </div>
+                            </div>
+                            
+                            {/* Show shifts */}
+                            {dayShifts.length === 0 ? (
+                              <div className="text-center py-4 text-gray-500 text-sm">
+                                No shifts added. Click "Add Shift" to get started.
+                              </div>
+                            ) : (
+                              dayShifts.map((shift, index) => (
+                                <div key={index} className="grid grid-cols-12 gap-2 items-center py-2 bg-gray-50 rounded mb-2 p-3">
+                                  <div className="col-span-4">
+                                    <Label className="text-xs text-gray-600">Start Time</Label>
+                                    <Select 
+                                      value={shift.startTime || ""} 
+                                      onValueChange={(value) => updateShiftTime(index, 'startTime', value)}
+                                    >
+                                      <SelectTrigger className="text-sm h-8" data-testid={`select-${key}-shift-${index}-start-time`}>
                                         <SelectValue placeholder="Select time" />
                                       </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      {TIME_OPTIONS.map((time) => (
-                                        <SelectItem key={time} value={time}>
-                                          {time}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                          <div className="col-span-6 md:col-span-3">
-                            <Label className="text-sm font-medium text-secondary">End Time</Label>
-                            <FormField
-                              control={form.control}
-                              name={`${key}EndTime` as keyof TimesheetFormData}
-                              render={({ field }) => (
-                                <FormItem className="mt-1">
-                                  <Select value={field.value?.toString() || ""} onValueChange={field.onChange}>
-                                    <FormControl>
-                                      <SelectTrigger className="text-sm" data-testid={`select-${key}-end-time`}>
+                                      <SelectContent>
+                                        {TIME_OPTIONS.map((time) => (
+                                          <SelectItem key={time} value={time}>
+                                            {time}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div className="col-span-4">
+                                    <Label className="text-xs text-gray-600">End Time</Label>
+                                    <Select 
+                                      value={shift.endTime || ""} 
+                                      onValueChange={(value) => updateShiftTime(index, 'endTime', value)}
+                                    >
+                                      <SelectTrigger className="text-sm h-8" data-testid={`select-${key}-shift-${index}-end-time`}>
                                         <SelectValue placeholder="Select time" />
                                       </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      {TIME_OPTIONS.map((time) => (
-                                        <SelectItem key={time} value={time}>
-                                          {time}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </FormItem>
-                              )}
-                            />
+                                      <SelectContent>
+                                        {TIME_OPTIONS.map((time) => (
+                                          <SelectItem key={time} value={time}>
+                                            {time}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div className="col-span-3 text-center">
+                                    <Label className="text-xs text-gray-600">Hours</Label>
+                                    <div className="text-sm font-medium pt-1" data-testid={`text-${key}-shift-${index}-hours`}>
+                                      {shift.hours?.toFixed(2) || "0.00"}
+                                    </div>
+                                  </div>
+                                  <div className="col-span-1 text-center">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => removeShift(index)}
+                                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                                      data-testid={`button-remove-shift-${key}-${index}`}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))
+                            )}
                           </div>
-                          <div className="col-span-12 md:col-span-3">
-                            <Label className="text-sm font-medium text-secondary">Total Hours</Label>
-                            <Input
-                              value={typeof watchedValues[`${key}TotalHours` as keyof TimesheetFormData] === 'number' ? (watchedValues[`${key}TotalHours` as keyof TimesheetFormData] as number).toFixed(2) : ""}
-                              readOnly
-                              className="mt-1 text-sm bg-gray-50 text-center font-semibold"
-                              data-testid={`text-${key}-total-hours`}
-                            />
-                          </div>
-                        </div>
-              ))}
+                        );
+                      })}
 
               {/* Weekly Total */}
               <div className="mt-6 p-4 bg-primary/5 rounded-lg border-l-4 border-primary">
