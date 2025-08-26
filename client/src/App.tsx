@@ -44,29 +44,30 @@ function AuthenticatedRouter() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* iOS-style Navigation Bar */}
+      <header className="ios-nav-bar px-4 py-3 sticky top-0 z-50">
+        <div className="flex items-center justify-between">
+          <h1 className="ios-headline font-semibold text-foreground">Oakland Fire-Rescue</h1>
+          <Link
+            href="/supervisor"
+            className="ios-button ios-button-secondary px-3 py-2 text-sm"
+            data-testid="nav-admin"
+          >
+            <Shield className="h-4 w-4 mr-1" />
+            Admin
+          </Link>
+        </div>
+      </header>
+
       {/* Main content */}
-      <div className="flex-1">
+      <main className="flex-1 pb-safe">
         <Switch>
           <Route path="/" component={() => <TimesheetPage logout={logout} />} />
           <Route path="/supervisor" component={SupervisorRoute} />
           <Route component={NotFound} />
         </Switch>
-      </div>
-
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 py-4">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <Link
-            href="/supervisor"
-            className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-600 hover:text-primary hover:bg-gray-50 rounded-md transition-colors"
-            data-testid="nav-admin"
-          >
-            <Shield className="h-4 w-4 mr-2" />
-            Admin
-          </Link>
-        </div>
-      </footer>
+      </main>
     </div>
   );
 }

@@ -1,45 +1,49 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* iOS System Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: hsl(0 0% 100%);
-  --foreground: hsl(210 25% 7.8431%);
-  --card: hsl(180 6.6667% 97.0588%);
-  --card-foreground: hsl(210 25% 7.8431%);
+  /* iOS-inspired design system */
+  --background: hsl(0 0% 98%);
+  --foreground: hsl(0 0% 9%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(0 0% 9%);
   --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(210 25% 7.8431%);
-  --primary: hsl(203.8863 88.2845% 53.1373%);
+  --popover-foreground: hsl(0 0% 9%);
+  --primary: hsl(211 100% 50%); /* iOS Blue */
   --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(210 25% 7.8431%);
-  --secondary-foreground: hsl(0 0% 100%);
-  --muted: hsl(240 1.9608% 90%);
-  --muted-foreground: hsl(210 25% 7.8431%);
-  --accent: hsl(211.5789 51.3514% 92.7451%);
-  --accent-foreground: hsl(203.8863 88.2845% 53.1373%);
-  --destructive: hsl(356.3033 90.5579% 54.3137%);
+  --secondary: hsl(240 5% 96%);
+  --secondary-foreground: hsl(240 6% 10%);
+  --muted: hsl(240 5% 96%);
+  --muted-foreground: hsl(240 4% 46%);
+  --accent: hsl(240 5% 96%);
+  --accent-foreground: hsl(240 6% 10%);
+  --destructive: hsl(0 84% 60%); /* iOS Red */
   --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(201.4286 30.4348% 90.9804%);
-  --input: hsl(200 23.0769% 97.4510%);
-  --ring: hsl(202.8169 89.1213% 53.1373%);
-  --chart-1: hsl(203.8863 88.2845% 53.1373%);
-  --chart-2: hsl(159.7826 100% 36.0784%);
-  --chart-3: hsl(42.0290 92.8251% 56.2745%);
-  --chart-4: hsl(147.1429 78.5047% 41.9608%);
-  --chart-5: hsl(341.4894 75.2000% 50.9804%);
-  --sidebar: hsl(180 6.6667% 97.0588%);
-  --sidebar-foreground: hsl(210 25% 7.8431%);
-  --sidebar-primary: hsl(203.8863 88.2845% 53.1373%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(211.5789 51.3514% 92.7451%);
-  --sidebar-accent-foreground: hsl(203.8863 88.2845% 53.1373%);
-  --sidebar-ring: hsl(202.8169 89.1213% 53.1373%);
-  --font-sans: 'Inter', 'Open Sans', sans-serif;
-  --font-serif: Georgia, serif;
-  --font-mono: Menlo, monospace;
-  --radius: 1.3rem;
+  --border: hsl(240 6% 90%);
+  --input: hsl(240 6% 95%);
+  --ring: hsl(211 100% 50%);
+  
+  /* iOS System Colors */
+  --ios-blue: hsl(211 100% 50%);
+  --ios-green: hsl(142 76% 36%);
+  --ios-orange: hsl(28 100% 50%);
+  --ios-red: hsl(0 84% 60%);
+  --ios-purple: hsl(281 61% 48%);
+  --ios-pink: hsl(322 100% 68%);
+  --ios-yellow: hsl(48 100% 50%);
+  --ios-gray: hsl(240 4% 46%);
+  
+  /* iOS Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+  --font-serif: ui-serif, Georgia, serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Monaco, 'Cascadia Code', monospace;
+  
+  /* iOS Radius - more subtle curves */
+  --radius: 12px;
   --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
   --shadow-sm: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
@@ -59,41 +63,36 @@
 }
 
 .dark {
+  /* iOS Dark Mode */
   --background: hsl(0 0% 0%);
-  --foreground: hsl(200 6.6667% 91.1765%);
-  --card: hsl(228 9.8039% 10%);
-  --card-foreground: hsl(0 0% 85.0980%);
-  --popover: hsl(0 0% 0%);
-  --popover-foreground: hsl(200 6.6667% 91.1765%);
-  --primary: hsl(203.7736 87.6033% 52.5490%);
+  --foreground: hsl(0 0% 95%);
+  --card: hsl(0 0% 8%);
+  --card-foreground: hsl(0 0% 95%);
+  --popover: hsl(0 0% 8%);
+  --popover-foreground: hsl(0 0% 95%);
+  --primary: hsl(209 100% 60%); /* iOS Blue Dark */
   --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(195.0000 15.3846% 94.9020%);
-  --secondary-foreground: hsl(210 25% 7.8431%);
-  --muted: hsl(0 0% 9.4118%);
-  --muted-foreground: hsl(210 3.3898% 46.2745%);
-  --accent: hsl(205.7143 70% 7.8431%);
-  --accent-foreground: hsl(203.7736 87.6033% 52.5490%);
-  --destructive: hsl(356.3033 90.5579% 54.3137%);
+  --secondary: hsl(240 4% 16%);
+  --secondary-foreground: hsl(0 0% 95%);
+  --muted: hsl(240 4% 16%);
+  --muted-foreground: hsl(240 5% 64%);
+  --accent: hsl(240 4% 16%);
+  --accent-foreground: hsl(0 0% 95%);
+  --destructive: hsl(0 91% 71%); /* iOS Red Dark */
   --destructive-foreground: hsl(0 0% 100%);
-  --border: hsl(210 5.2632% 14.9020%);
-  --input: hsl(207.6923 27.6596% 18.4314%);
-  --ring: hsl(202.8169 89.1213% 53.1373%);
-  --chart-1: hsl(203.8863 88.2845% 53.1373%);
-  --chart-2: hsl(159.7826 100% 36.0784%);
-  --chart-3: hsl(42.0290 92.8251% 56.2745%);
-  --chart-4: hsl(147.1429 78.5047% 41.9608%);
-  --chart-5: hsl(341.4894 75.2000% 50.9804%);
-  --sidebar: hsl(228 9.8039% 10%);
-  --sidebar-foreground: hsl(0 0% 85.0980%);
-  --sidebar-primary: hsl(202.8169 89.1213% 53.1373%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(205.7143 70% 7.8431%);
-  --sidebar-accent-foreground: hsl(203.7736 87.6033% 52.5490%);
-  --sidebar-ring: hsl(202.8169 89.1213% 53.1373%);
-  --font-sans: 'Inter', 'Open Sans', sans-serif;
-  --font-serif: Georgia, serif;
-  --font-mono: Menlo, monospace;
-  --radius: 1.3rem;
+  --border: hsl(240 4% 16%);
+  --input: hsl(240 4% 16%);
+  --ring: hsl(209 100% 60%);
+  
+  /* iOS Dark System Colors */
+  --ios-blue: hsl(209 100% 60%);
+  --ios-green: hsl(141 70% 48%);
+  --ios-orange: hsl(28 100% 58%);
+  --ios-red: hsl(0 91% 71%);
+  --ios-purple: hsl(281 61% 58%);
+  --ios-pink: hsl(322 100% 72%);
+  --ios-yellow: hsl(48 100% 60%);
+  --ios-gray: hsl(240 5% 64%);
   --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
   --shadow-sm: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
@@ -111,63 +110,141 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    /* iOS-style smooth scrolling */
+    -webkit-overflow-scrolling: touch;
   }
 }
 
-/* Custom styles for the Oakland Fire-Rescue theme */
-.bg-primary {
-  background-color: var(--oakland-primary);
+/* iOS Component Styles */
+@layer components {
+  .ios-card {
+    @apply bg-card border-0 rounded-xl shadow-sm;
+  }
+  
+  .ios-button {
+    @apply rounded-xl font-medium transition-all duration-150 active:scale-95;
+  }
+  
+  .ios-button-primary {
+    @apply ios-button bg-primary text-primary-foreground;
+  }
+  
+  .ios-button-primary:hover {
+    background-color: hsl(var(--primary) / 0.9);
+  }
+  
+  .ios-button-secondary {
+    @apply ios-button bg-secondary text-secondary-foreground;
+  }
+  
+  .ios-button-secondary:hover {
+    background-color: hsl(var(--secondary) / 0.8);
+  }
+  
+  .ios-input {
+    @apply border-0 rounded-xl px-4 py-3 text-base focus:ring-2 focus:ring-primary transition-colors;
+    background-color: hsl(var(--secondary) / 0.5);
+  }
+  
+  .ios-input:focus {
+    background-color: hsl(var(--background));
+  }
+  
+  .ios-list {
+    @apply bg-card rounded-xl divide-y divide-border overflow-hidden;
+  }
+  
+  .ios-list-item {
+    @apply px-4 py-3 transition-colors;
+  }
+  
+  .ios-list-item:hover {
+    background-color: hsl(var(--secondary) / 0.5);
+  }
+  
+  .ios-list-item:active {
+    background-color: hsl(var(--secondary) / 0.8);
+  }
+  
+  .ios-nav-bar {
+    @apply backdrop-blur-sm border-b;
+    background-color: hsl(var(--background) / 0.95);
+    border-color: hsl(var(--border) / 0.3);
+  }
+  
+  .ios-segment-control {
+    @apply bg-secondary rounded-xl p-1 inline-flex;
+  }
+  
+  .ios-segment-item {
+    @apply px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150;
+  }
+  
+  .ios-segment-item-active {
+    @apply bg-background shadow-sm text-foreground;
+  }
+  
+  .ios-sheet {
+    @apply bg-background rounded-t-xl border-t border-border/30;
+  }
 }
 
-.text-primary {
-  color: var(--oakland-primary);
-}
+/* iOS Typography */
+.ios-title-1 { @apply text-3xl font-bold leading-tight; }
+.ios-title-2 { @apply text-2xl font-semibold leading-tight; }
+.ios-title-3 { @apply text-xl font-semibold leading-snug; }
+.ios-headline { @apply text-lg font-semibold leading-snug; }
+.ios-body { @apply text-base leading-relaxed; }
+.ios-callout { @apply text-base font-medium leading-relaxed; }
+.ios-subhead { @apply text-sm font-medium leading-normal; }
+.ios-footnote { @apply text-xs leading-normal; }
+.ios-caption { @apply text-xs font-medium leading-none; }
 
-.bg-secondary {
-  background-color: var(--oakland-secondary);
-}
+/* iOS Colors */
+.text-ios-blue { color: var(--ios-blue); }
+.text-ios-green { color: var(--ios-green); }
+.text-ios-orange { color: var(--ios-orange); }
+.text-ios-red { color: var(--ios-red); }
+.text-ios-purple { color: var(--ios-purple); }
+.text-ios-pink { color: var(--ios-pink); }
+.text-ios-yellow { color: var(--ios-yellow); }
+.text-ios-gray { color: var(--ios-gray); }
 
-.text-secondary {
-  color: var(--oakland-secondary);
-}
+.bg-ios-blue { background-color: var(--ios-blue); }
+.bg-ios-green { background-color: var(--ios-green); }
+.bg-ios-orange { background-color: var(--ios-orange); }
+.bg-ios-red { background-color: var(--ios-red); }
+.bg-ios-purple { background-color: var(--ios-purple); }
+.bg-ios-pink { background-color: var(--ios-pink); }
+.bg-ios-yellow { background-color: var(--ios-yellow); }
+.bg-ios-gray { background-color: var(--ios-gray); }
 
-.bg-accent {
-  background-color: var(--oakland-accent);
-}
-
-.text-accent {
-  color: var(--oakland-accent);
-}
-
-.bg-background {
-  background-color: var(--oakland-background);
-}
-
-/* Mobile optimizations */
+/* iOS Mobile optimizations */
 @media (max-width: 768px) {
   .container {
-    @apply px-2;
+    @apply px-4;
   }
   
-  .grid-cols-12 {
-    @apply grid-cols-1 gap-y-2;
+  .ios-mobile-grid {
+    @apply grid grid-cols-1 gap-3;
   }
   
-  .md\:col-span-3 {
-    @apply col-span-1;
+  .ios-mobile-spacing {
+    @apply px-4 py-2;
   }
 }
 
-/* Touch-friendly input sizing */
+/* iOS Touch targets */
 @media (pointer: coarse) {
-  input[type="time"],
-  input[type="date"],
-  input[type="text"],
-  input[type="number"] {
-    @apply text-base min-h-12;
+  .ios-touch-target {
+    @apply min-h-11 min-w-11;
+  }
+  
+  input, select, textarea {
+    @apply text-base min-h-11;
   }
   
   button {
-    @apply min-h-12;
+    @apply min-h-11;
   }
 }

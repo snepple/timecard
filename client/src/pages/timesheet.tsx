@@ -815,60 +815,45 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Loading Overlay */}
+      {/* iOS-style Loading Overlay */}
       {(isLoading || emailTimesheetMutation.isPending) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 text-center">
+          <div className="ios-card p-8 text-center max-w-xs">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-gray-700">Processing...</p>
+            <p className="ios-body text-muted-foreground">Processing...</p>
           </div>
         </div>
       )}
 
-      {/* Header */}
-      <header className="bg-primary text-white shadow-lg">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Flame className="text-2xl" data-testid="logo-flame" />
-              <div>
-                <h1 className="text-xl font-bold" data-testid="header-title">Oakland Fire-Rescue</h1>
-                <p className="text-blue-100 text-sm" data-testid="header-subtitle">Weekly Time Sheet</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
+
+      {/* iOS-style Main Content */}
+      <main className="px-4 py-6 max-w-4xl mx-auto space-y-4">
+        <div className="ios-mobile-spacing">
+          <h1 className="ios-title-1 text-foreground mb-2">Weekly Timesheet</h1>
+          <p className="ios-body text-muted-foreground mb-6">Oakland Fire-Rescue Department</p>
+          
+          {logout && (
+            <div className="flex justify-end">
               <Button
                 variant="ghost"
                 size="sm"
-                className="p-2 hover:bg-blue-700 rounded-full text-white"
-                data-testid="button-help"
+                onClick={logout}
+                className="ios-button text-ios-blue p-2"
+                data-testid="logout-button"
               >
-                <HelpCircle className="text-xl" />
+                <LogOut className="text-base mr-1" />
+                Sign Out
               </Button>
-              {logout && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={logout}
-                  className="p-2 hover:bg-blue-700 rounded-full text-white"
-                  data-testid="logout-button"
-                >
-                  <LogOut className="text-xl" />
-                </Button>
-              )}
             </div>
-          </div>
+          )}
         </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-6 max-w-4xl">
+        
         <Form {...form}>
-          <form className="space-y-6">
-          {/* Employee Information Card */}
-          <Card>
-            <CardContent className="p-6">
-              <h2 className="text-lg font-semibold text-secondary mb-4" data-testid="heading-employee-info">
+          <form className="space-y-4">
+          {/* Employee Information Card - iOS style */}
+          <div className="ios-card">
+            <div className="p-6">
+              <h2 className="ios-headline mb-4" data-testid="heading-employee-info">
                 Employee Information
               </h2>
               
@@ -885,13 +870,15 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                       variant="outline"
                       role="combobox"
                       aria-expanded={employeeSearchOpen}
-                      className="w-full justify-between"
+                      className="w-full justify-between ios-input h-12 text-left"
                       disabled={scheduleQuery.isLoading || !scheduleQuery.data?.employees?.length}
                       data-testid="select-employee"
                     >
-                      {selectedEmployeeNumber
-                        ? scheduleQuery.data?.employees?.find((employee) => employee.employeeNumber === selectedEmployeeNumber)?.fullName
-                        : "Choose your name from the list"}
+                      <span className="ios-body">
+                        {selectedEmployeeNumber
+                          ? scheduleQuery.data?.employees?.find((employee) => employee.employeeNumber === selectedEmployeeNumber)?.fullName
+                          : "Choose your name from the list"}
+                      </span>
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -938,14 +925,17 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
               
               {/* Selected Employee Display */}
               {selectedEmployeeNumber && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-center">
-                    <User className="text-primary mr-2 h-5 w-5" />
+                <div className="ios-card bg-primary/5 border-l-4 border-primary">
+                  <div className="p-4">
+                    <div className="flex items-center mb-2">
+                      <User className="text-primary mr-2 h-5 w-5" />
+                      <span className="ios-callout text-foreground">Selected Employee</span>
+                    </div>
                     <div>
-                      <p className="font-medium text-gray-900">
+                      <p className="ios-body font-medium text-foreground">
                         {scheduleQuery.data?.employees?.find((emp) => emp.employeeNumber === selectedEmployeeNumber)?.fullName}
                       </p>
-                      <p className="text-sm text-gray-600">Employee #: {watchedValues.employeeNumber || selectedEmployeeNumber}</p>
+                      <p className="ios-footnote text-muted-foreground">Employee #: {watchedValues.employeeNumber || selectedEmployeeNumber}</p>
                     </div>
                   </div>
                 </div>
@@ -965,13 +955,14 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                       value={currentEmployeeEmail}
                       onChange={(e) => setCurrentEmployeeEmail(e.target.value)}
                       placeholder="Enter your email address"
-                      className="flex-1"
+                      className="flex-1 ios-input"
                       data-testid="input-employee-email"
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
+                      className="ios-button ios-button-primary"
                       onClick={async () => {
                         try {
                           await apiRequest("PUT", `/api/employee-numbers/${selectedEmployeeNumber}/email`, { 
@@ -1016,13 +1007,13 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                   />
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* Week Selection Card */}
-          <Card>
-            <CardContent className="p-6">
-              <h2 className="text-lg font-semibold text-secondary mb-4" data-testid="heading-week-selection">
+          {/* Week Selection Card - iOS style */}
+          <div className="ios-card">
+            <div className="p-6">
+              <h2 className="ios-headline mb-4" data-testid="heading-week-selection">
                 Week Selection
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
@@ -1034,6 +1025,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                   <Input
                     id="weekEnding"
                     type="date"
+                    className="ios-input"
                     {...form.register("weekEnding", {
                       onChange: (e) => handleWeekEndingChange(e.target.value)
                     })}
@@ -1041,13 +1033,13 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                   />
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* Time Entry Card */}
-          <Card>
-            <CardContent className="p-6">
-              <h2 className="text-lg font-semibold text-secondary mb-4" data-testid="heading-time-entry">
+          {/* Time Entry Card - iOS style */}
+          <div className="ios-card">
+            <div className="p-6">
+              <h2 className="ios-headline mb-4" data-testid="heading-time-entry">
                 Daily Time Entry
               </h2>
               
@@ -1137,13 +1129,13 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                   </span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* Weeknight Rescue Coverage Card */}
-          <Card>
-            <CardContent className="p-6">
-              <h2 className="text-lg font-semibold text-secondary mb-4" data-testid="heading-rescue-coverage">
+          {/* Weeknight Rescue Coverage Card - iOS style */}
+          <div className="ios-card">
+            <div className="p-6">
+              <h2 className="ios-headline mb-4" data-testid="heading-rescue-coverage">
                 Weeknight Rescue Coverage
               </h2>
               <p className="text-xs text-gray-600 mb-4 italic">
@@ -1181,12 +1173,12 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* Acknowledgment Card */}
-          <Card>
-            <CardContent className="p-6">
+          {/* Acknowledgment Card - iOS style */}
+          <div className="ios-card">
+            <div className="p-6">
               <FormField
                 control={form.control}
                 name="acknowledgmentChecked"
@@ -1213,18 +1205,18 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                   </FormItem>
                 )}
               />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* Digital Signature Card */}
-          <Card>
-            <CardContent className="p-6">
+          {/* Digital Signature Card - iOS style */}
+          <div className="ios-card">
+            <div className="p-6">
               <FormField
                 control={form.control}
                 name="signatureData"
                 render={() => (
                   <FormItem>
-                    <FormLabel className="text-lg font-semibold text-secondary">
+                    <FormLabel className="ios-headline">
                       Digital Signature <span className="text-red-500">*</span>
                     </FormLabel>
                     <FormControl>
@@ -1240,16 +1232,17 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                   </FormItem>
                 )}
               />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Action Buttons */}
-          {/* Status Indicator */}
+          {/* Status Indicator - iOS style */}
           {currentTimesheet && (
-            <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-secondary mb-1">Timesheet Status</h3>
+            <div className="ios-card mb-6">
+              <div className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="ios-callout mb-1">Timesheet Status</h3>
                   <div className="flex items-center gap-3">
                     {getStatusBadge(currentTimesheet.status)}
                     {currentTimesheet.supervisorComments && (
@@ -1265,6 +1258,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                     <p>{new Date(currentTimesheet.approvedAt).toLocaleDateString()}</p>
                   </div>
                 )}
+                </div>
               </div>
             </div>
           )}
@@ -1273,6 +1267,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             <Button
               type="button"
               variant="outline"
+              className="ios-button ios-button-secondary"
               onClick={handleClearAll}
               data-testid="button-clear-all"
             >
@@ -1283,7 +1278,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             {currentTimesheet && currentTimesheet.status === "draft" && (
               <Button
                 type="button"
-                className="bg-primary hover:bg-primary/90"
+                className="ios-button ios-button-primary"
                 onClick={handleSubmitForApproval}
                 disabled={submitTimesheetMutation.isPending}
                 data-testid="button-submit"
@@ -1295,7 +1290,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             
             <Button
               type="button"
-              className="bg-accent hover:bg-accent/90"
+              className="ios-button ios-button-primary bg-accent hover:bg-accent/90"
               onClick={handleEmail}
               disabled={emailTimesheetMutation.isPending}
               data-testid="button-email"
@@ -1306,6 +1301,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             
             <Button
               type="button"
+              className="ios-button ios-button-secondary"
               onClick={handlePrint}
               disabled={isLoading}
               data-testid="button-print"
@@ -1318,11 +1314,11 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         </Form>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-6 mt-12">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-sm text-gray-400">© 2024 Oakland Fire-Rescue Department</p>
-          <p className="text-xs text-gray-500 mt-1">Timesheet Application v1.0</p>
+      {/* iOS-style Footer */}
+      <footer className="bg-secondary/20 py-6 mt-12 ios-mobile-spacing">
+        <div className="text-center">
+          <p className="ios-footnote text-muted-foreground">© 2024 Oakland Fire-Rescue Department</p>
+          <p className="ios-caption2 text-muted-foreground mt-1">Timesheet Application v1.0</p>
         </div>
       </footer>
 
@@ -1344,7 +1340,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
               value={employeeIdInput}
               onChange={(e) => setEmployeeIdInput(e.target.value)}
               placeholder="Enter your employee ID"
-              className="mt-2"
+              className="mt-2 ios-input"
               autoFocus
             />
           </div>
