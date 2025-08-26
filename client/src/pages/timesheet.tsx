@@ -401,6 +401,13 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             const currentShifts = getValues(`${dayKey}Shifts` as keyof TimesheetFormData) as DayShift[];
             const allShifts = [...currentShifts, ...dayShifts];
             setValue(`${dayKey}Shifts` as keyof TimesheetFormData, allShifts);
+            
+            // Also populate the individual start and end time fields if this is the first shift for the day
+            if (currentShifts.length === 0 && dayShifts.length > 0) {
+              const firstShift = dayShifts[0];
+              setValue(`${dayKey}StartTime` as keyof TimesheetFormData, firstShift.startTime);
+              setValue(`${dayKey}EndTime` as keyof TimesheetFormData, firstShift.endTime);
+            }
           }
         }
       });
