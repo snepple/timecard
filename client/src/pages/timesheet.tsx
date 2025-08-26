@@ -403,6 +403,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             setValue(`${dayKey}Shifts` as keyof TimesheetFormData, allShifts);
           }
         }
+      });
       
       toast({
         title: "Schedule loaded", 
@@ -874,9 +875,9 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         
         <Form {...form}>
           <form className="space-y-4">
-          {/* Employee Selection or Selected Employee Display */}
-          {!selectedEmployeeNumber ? (
-            <div className="ios-card">
+            {/* Employee Selection or Selected Employee Display */}
+            {!selectedEmployeeNumber ? (
+              <div className="ios-card">
               <div className="p-6">
                 <h2 className="ios-headline mb-4" data-testid="heading-employee-selection">
                   Select Employee
@@ -978,12 +979,12 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                 </div>
               </div>
             </div>
-          )}
+            )}
 
-          {/* Week Selection Card - Only show when employee is selected */}
-          {selectedEmployeeNumber && (
-            <div className="ios-card">
-              <div className="p-6">
+            {/* Week Selection Card - Only show when employee is selected */}
+            {selectedEmployeeNumber && (
+              <div className="ios-card">
+                <div className="p-6">
                 <h2 className="ios-headline mb-4" data-testid="heading-week-selection">
                   Week Selection
                 </h2>
@@ -1000,25 +1001,25 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                   })}
                   data-testid="input-week-ending"
                 />
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Show rest of form only when both employee and week are selected */}
-          {selectedEmployeeNumber && watchedValues.weekEnding && (
-            <>
-            <div className="space-y-4">
+            {/* Show rest of form only when both employee and week are selected */}
+            {selectedEmployeeNumber && watchedValues.weekEnding && (
+              <>
+                <div className="space-y-4">
 
-          {/* Time Entry Card - iOS style */}
-          <div className="ios-card">
-            <div className="p-6">
-              <h2 className="ios-headline mb-4" data-testid="heading-time-entry">
-                Daily Time Entry
-              </h2>
-              
-              {DAYS_OF_WEEK.map(({ key, label }) => (
-                <div key={key} className="grid grid-cols-12 gap-2 items-center py-3 border-b border-gray-200 last:border-b-0">
-                  <div className="col-span-12 md:col-span-3">
+                  {/* Time Entry Card - iOS style */}
+                  <div className="ios-card">
+                    <div className="p-6">
+                      <h2 className="ios-headline mb-4" data-testid="heading-time-entry">
+                        Daily Time Entry
+                      </h2>
+                      
+                      {DAYS_OF_WEEK.map(({ key, label }) => (
+                        <div key={key} className="grid grid-cols-12 gap-2 items-center py-3 border-b border-gray-200 last:border-b-0">
+                          <div className="col-span-12 md:col-span-3">
                     <Label className="text-sm font-medium text-secondary">{label}</Label>
                     <Input
                       type="date"
@@ -1256,9 +1257,11 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
               <Printer className="mr-2 h-4 w-4" />
               Print PDF
             </Button>
-          </div>
-          )}
-        </form>
+            </div>
+            </div>
+            </>
+            )}
+          </form>
         </Form>
       </main>
 
