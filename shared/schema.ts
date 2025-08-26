@@ -9,40 +9,33 @@ export const timesheets = pgTable("timesheets", {
   employeeNumber: text("employee_number").notNull(),
   weekEnding: text("week_ending").notNull(),
   
-  // Daily time entries
+  // Daily time entries - now supporting multiple shifts per day
   sundayDate: text("sunday_date"),
-  sundayStartTime: text("sunday_start_time"),
-  sundayEndTime: text("sunday_end_time"),
+  sundayShifts: text("sunday_shifts").default("[]"), // JSON array of shift objects
   sundayTotalHours: decimal("sunday_total_hours", { precision: 5, scale: 2 }),
   
   mondayDate: text("monday_date"),
-  mondayStartTime: text("monday_start_time"),
-  mondayEndTime: text("monday_end_time"),
+  mondayShifts: text("monday_shifts").default("[]"), // JSON array of shift objects
   mondayTotalHours: decimal("monday_total_hours", { precision: 5, scale: 2 }),
   
   tuesdayDate: text("tuesday_date"),
-  tuesdayStartTime: text("tuesday_start_time"),
-  tuesdayEndTime: text("tuesday_end_time"),
+  tuesdayShifts: text("tuesday_shifts").default("[]"), // JSON array of shift objects
   tuesdayTotalHours: decimal("tuesday_total_hours", { precision: 5, scale: 2 }),
   
   wednesdayDate: text("wednesday_date"),
-  wednesdayStartTime: text("wednesday_start_time"),
-  wednesdayEndTime: text("wednesday_end_time"),
+  wednesdayShifts: text("wednesday_shifts").default("[]"), // JSON array of shift objects
   wednesdayTotalHours: decimal("wednesday_total_hours", { precision: 5, scale: 2 }),
   
   thursdayDate: text("thursday_date"),
-  thursdayStartTime: text("thursday_start_time"),
-  thursdayEndTime: text("thursday_end_time"),
+  thursdayShifts: text("thursday_shifts").default("[]"), // JSON array of shift objects
   thursdayTotalHours: decimal("thursday_total_hours", { precision: 5, scale: 2 }),
   
   fridayDate: text("friday_date"),
-  fridayStartTime: text("friday_start_time"),
-  fridayEndTime: text("friday_end_time"),
+  fridayShifts: text("friday_shifts").default("[]"), // JSON array of shift objects
   fridayTotalHours: decimal("friday_total_hours", { precision: 5, scale: 2 }),
   
   saturdayDate: text("saturday_date"),
-  saturdayStartTime: text("saturday_start_time"),
-  saturdayEndTime: text("saturday_end_time"),
+  saturdayShifts: text("saturday_shifts").default("[]"), // JSON array of shift objects
   saturdayTotalHours: decimal("saturday_total_hours", { precision: 5, scale: 2 }),
   
   totalWeeklyHours: decimal("total_weekly_hours", { precision: 6, scale: 2 }),
@@ -73,6 +66,26 @@ export const insertTimesheetSchema = createInsertSchema(timesheets).omit({
 
 export type InsertTimesheet = z.infer<typeof insertTimesheetSchema>;
 export type Timesheet = typeof timesheets.$inferSelect;
+
+// Type for individual shift entries within a day
+export interface DayShift {
+  startTime: string;
+  endTime: string;
+  hours: number;
+}
+
+// Helper type for timesheet form data that includes parsed shifts
+export interface TimesheetFormData extends Omit<InsertTimesheet, 
+  'sundayShifts' | 'mondayShifts' | 'tuesdayShifts' | 'wednesdayShifts' | 
+  'thursdayShifts' | 'fridayShifts' | 'saturdayShifts'> {
+  sundayShifts: DayShift[];
+  mondayShifts: DayShift[];
+  tuesdayShifts: DayShift[];
+  wednesdayShifts: DayShift[];
+  thursdayShifts: DayShift[];
+  fridayShifts: DayShift[];
+  saturdayShifts: DayShift[];
+}
 
 // Employee Numbers table for supervisor management
 export const employeeNumbers = pgTable("employee_numbers", {

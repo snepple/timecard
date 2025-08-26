@@ -21,6 +21,12 @@ import { getCurrentWeekEndingDate, isSaturday, getNextSaturday, getPreviousSatur
 import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle, Check, ChevronsUpDown, RotateCcw, LogOut } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
+const dayShiftSchema = z.object({
+  startTime: z.string().min(1, "Start time is required"),
+  endTime: z.string().min(1, "End time is required"), 
+  hours: z.number().min(0, "Hours must be positive"),
+});
+
 const timesheetSchema = z.object({
   employeeName: z.string().min(1, "Employee name is required"),
   employeeNumber: z.string().min(1, "Employee number is required"),
@@ -28,38 +34,31 @@ const timesheetSchema = z.object({
   weekEnding: z.string().min(1, "Week ending date is required"),
   
   sundayDate: z.string().optional(),
-  sundayStartTime: z.string().optional(),
-  sundayEndTime: z.string().optional(),
+  sundayShifts: z.array(dayShiftSchema).default([]),
   sundayTotalHours: z.number().optional(),
   
   mondayDate: z.string().optional(),
-  mondayStartTime: z.string().optional(),
-  mondayEndTime: z.string().optional(),
+  mondayShifts: z.array(dayShiftSchema).default([]),
   mondayTotalHours: z.number().optional(),
   
   tuesdayDate: z.string().optional(),
-  tuesdayStartTime: z.string().optional(),
-  tuesdayEndTime: z.string().optional(),
+  tuesdayShifts: z.array(dayShiftSchema).default([]),
   tuesdayTotalHours: z.number().optional(),
   
   wednesdayDate: z.string().optional(),
-  wednesdayStartTime: z.string().optional(),
-  wednesdayEndTime: z.string().optional(),
+  wednesdayShifts: z.array(dayShiftSchema).default([]),
   wednesdayTotalHours: z.number().optional(),
   
   thursdayDate: z.string().optional(),
-  thursdayStartTime: z.string().optional(),
-  thursdayEndTime: z.string().optional(),
+  thursdayShifts: z.array(dayShiftSchema).default([]),
   thursdayTotalHours: z.number().optional(),
   
   fridayDate: z.string().optional(),
-  fridayStartTime: z.string().optional(),
-  fridayEndTime: z.string().optional(),
+  fridayShifts: z.array(dayShiftSchema).default([]),
   fridayTotalHours: z.number().optional(),
   
   saturdayDate: z.string().optional(),
-  saturdayStartTime: z.string().optional(),
-  saturdayEndTime: z.string().optional(),
+  saturdayShifts: z.array(dayShiftSchema).default([]),
   saturdayTotalHours: z.number().optional(),
   
   totalWeeklyHours: z.number().optional(),
@@ -78,6 +77,7 @@ const timesheetSchema = z.object({
 });
 
 type TimesheetFormData = z.infer<typeof timesheetSchema>;
+type DayShift = z.infer<typeof dayShiftSchema>;
 
 const DAYS_OF_WEEK = [
   { key: "sunday", label: "Sunday" },
@@ -102,6 +102,38 @@ function generateTimeOptions(): string[] {
 }
 
 const TIME_OPTIONS = generateTimeOptions();
+
+// Helper function to combine back-to-back shifts
+function combineBackToBackShifts(shifts: Shift[]): Shift[] {
+  if (shifts.length <= 1) return shifts;
+  
+  const combined: Shift[] = [];
+  let currentShift = { ...shifts[0] };
+  
+  for (let i = 1; i < shifts.length; i++) {
+    const nextShift = shifts[i];
+    const currentEndTime = new Date(currentShift.endTime);
+    const nextStartTime = new Date(nextShift.startTime);
+    
+    // Check if shifts are back-to-back (within 1 hour of each other)
+    const timeDiff = Math.abs(nextStartTime.getTime() - currentEndTime.getTime());
+    const isBackToBack = timeDiff <= 60 * 60 * 1000; // 1 hour in milliseconds
+    
+    if (isBackToBack) {
+      // Combine with current shift
+      currentShift.endTime = nextShift.endTime;
+      currentShift.duration = currentShift.duration + nextShift.duration;
+    } else {
+      // Save current shift and start new one
+      combined.push(currentShift);
+      currentShift = { ...nextShift };
+    }
+  }
+  
+  // Add the final shift
+  combined.push(currentShift);
+  return combined;
+}
 
 interface Employee {
   firstName: string;
@@ -202,6 +234,13 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
   const form = useForm<TimesheetFormData>({
     resolver: zodResolver(timesheetSchema),
     defaultValues: {
+      sundayShifts: [],
+      mondayShifts: [],
+      tuesdayShifts: [],
+      wednesdayShifts: [],
+      thursdayShifts: [],
+      fridayShifts: [],
+      saturdayShifts: [],
       employeeName: "",
       employeeNumber: "",
       weekEnding: getCurrentWeekEndingDate(), // Default to current week
@@ -217,15 +256,15 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
   const { watch, setValue, getValues } = form;
   const watchedValues = watch();
 
-  // Auto-calculate daily hours when start/end times change
+  // Auto-calculate daily hours when shifts change
   useEffect(() => {
     DAYS_OF_WEEK.forEach(({ key }) => {
-      const startTime = watchedValues[`${key}StartTime` as keyof TimesheetFormData] as string;
-      const endTime = watchedValues[`${key}EndTime` as keyof TimesheetFormData] as string;
-      
-      if (startTime && endTime) {
-        const hours = calculateHours(startTime, endTime);
-        setValue(`${key}TotalHours` as keyof TimesheetFormData, hours);
+      const shifts = watchedValues[`${key}Shifts` as keyof TimesheetFormData] as DayShift[];
+      if (shifts && shifts.length > 0) {
+        const totalHours = shifts.reduce((sum, shift) => sum + shift.hours, 0);
+        setValue(`${key}TotalHours` as keyof TimesheetFormData, parseFloat(totalHours.toFixed(2)));
+      } else {
+        setValue(`${key}TotalHours` as keyof TimesheetFormData, 0);
       }
     });
   }, [watchedValues, setValue]);
@@ -263,10 +302,9 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       
       const shifts: Shift[] = await response.json();
       
-      // Clear existing time entries
+      // Clear existing shifts
       DAYS_OF_WEEK.forEach(({ key }) => {
-        setValue(`${key}StartTime` as keyof TimesheetFormData, "");
-        setValue(`${key}EndTime` as keyof TimesheetFormData, "");
+        setValue(`${key}Shifts` as keyof TimesheetFormData, []);
         setValue(`${key}TotalHours` as keyof TimesheetFormData, 0);
       });
       
@@ -289,19 +327,14 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       
       // Process each date group
       shiftsByDate.forEach((dayShifts, dateStr) => {
-        // Combine all shifts for this calendar date
-        let combinedStartTime: Date | null = null;
-        let combinedEndTime: Date | null = null;
-        let totalDuration = 0;
         let hasNightDuty = false;
+        let regularShifts: Shift[] = [];
         
         // Sort shifts by start time for this date
         dayShifts.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
         
+        // Separate night duty from regular shifts
         dayShifts.forEach((shift) => {
-          const startTime = new Date(shift.startTime);
-          const endTime = new Date(shift.endTime);
-          
           // Check for night duty/rescue coverage - ONLY by explicit "Night Duty" label
           const isNightDuty = shift.position && shift.position.toLowerCase().includes('night duty');
           
@@ -311,22 +344,17 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             return;
           }
           
-          // Combine only regular shifts (not night duty) - find earliest start and latest end
-          if (!combinedStartTime || startTime < combinedStartTime) {
-            combinedStartTime = startTime;
-          }
-          if (!combinedEndTime || endTime > combinedEndTime) {
-            combinedEndTime = endTime;
-          }
-          
-          totalDuration += shift.duration;
+          regularShifts.push(shift);
         });
         
-        if (!combinedStartTime || !combinedEndTime) return;
+        if (regularShifts.length === 0 && !hasNightDuty) return;
         
-        // Determine which timesheet day this belongs to based on 7am boundaries
+        // Determine which timesheet day this belongs to based on the first shift's start time
+        const firstShift = regularShifts[0] || dayShifts[0];
+        const startTime = new Date(firstShift.startTime);
+        
         // Convert to Eastern time for proper 7am calculation
-        const startTimeET = new Date((combinedStartTime as Date).toLocaleString("en-US", {timeZone: "America/New_York"}));
+        const startTimeET = new Date(startTime.toLocaleString("en-US", {timeZone: "America/New_York"}));
         const startHour = startTimeET.getHours();
         
         // Get the calendar date this shift starts on
@@ -341,61 +369,44 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         const dayKey = DAYS_OF_WEEK[timesheetDay]?.key;
         
         if (dayKey) {
+          // Mark rescue coverage for weeknights if night duty is present
           if (hasNightDuty) {
-            // Mark rescue coverage for weeknights only (Monday-Thursday)
             if (dayKey === 'monday') setValue("rescueCoverageMonday", true);
             else if (dayKey === 'tuesday') setValue("rescueCoverageTuesday", true);
             else if (dayKey === 'wednesday') setValue("rescueCoverageWednesday", true);
             else if (dayKey === 'thursday') setValue("rescueCoverageThursday", true);
           }
           
-          // Always populate time entries for combined shifts
-          const startTimeStr = (combinedStartTime as Date).toLocaleTimeString('en-US', { 
-            hour12: false, 
-            hour: '2-digit', 
-            minute: '2-digit',
-            timeZone: 'America/New_York'
-          });
-          const endTimeStr = (combinedEndTime as Date).toLocaleTimeString('en-US', { 
-            hour12: false, 
-            hour: '2-digit', 
-            minute: '2-digit',
-            timeZone: 'America/New_York'
-          });
-          
-          // Check if there's already a shift for this timesheet day (from previous combined shifts)
-          const currentStartTime = getValues(`${dayKey}StartTime` as keyof TimesheetFormData) as string;
-          const currentEndTime = getValues(`${dayKey}EndTime` as keyof TimesheetFormData) as string;
-          const currentHours = getValues(`${dayKey}TotalHours` as keyof TimesheetFormData) as number || 0;
-          
-          if (currentStartTime && currentEndTime) {
-            // Combine with existing shift for this timesheet day
-            const existingStart = new Date(`1970-01-01T${currentStartTime}:00`);
-            const existingEnd = new Date(`1970-01-01T${currentEndTime}:00`);
-            const newStart = new Date(`1970-01-01T${startTimeStr}:00`);
-            const newEnd = new Date(`1970-01-01T${endTimeStr}:00`);
+          // Process regular shifts - check if they should be combined or kept separate
+          if (regularShifts.length > 0) {
+            const processedShifts = combineBackToBackShifts(regularShifts);
             
-            const finalStartTime = existingStart < newStart ? existingStart : newStart;
-            const finalEndTime = existingEnd > newEnd ? existingEnd : newEnd;
+            const dayShifts = processedShifts.map(shift => ({
+              startTime: new Date(shift.startTime).toLocaleTimeString('en-US', { 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit',
+                timeZone: 'America/New_York'
+              }),
+              endTime: new Date(shift.endTime).toLocaleTimeString('en-US', { 
+                hour12: false, 
+                hour: '2-digit', 
+                minute: '2-digit',
+                timeZone: 'America/New_York'
+              }),
+              hours: shift.duration
+            }));
             
-            const finalStartStr = finalStartTime.toTimeString().substring(0, 5);
-            const finalEndStr = finalEndTime.toTimeString().substring(0, 5);
-            
-            setValue(`${dayKey}StartTime` as keyof TimesheetFormData, finalStartStr);
-            setValue(`${dayKey}EndTime` as keyof TimesheetFormData, finalEndStr);
-            setValue(`${dayKey}TotalHours` as keyof TimesheetFormData, currentHours + totalDuration);
-          } else {
-            // First shift for this timesheet day
-            setValue(`${dayKey}StartTime` as keyof TimesheetFormData, startTimeStr);
-            setValue(`${dayKey}EndTime` as keyof TimesheetFormData, endTimeStr);
-            setValue(`${dayKey}TotalHours` as keyof TimesheetFormData, totalDuration);
+            // Get existing shifts for this day and add new ones
+            const currentShifts = getValues(`${dayKey}Shifts` as keyof TimesheetFormData) as DayShift[];
+            const allShifts = [...currentShifts, ...dayShifts];
+            setValue(`${dayKey}Shifts` as keyof TimesheetFormData, allShifts);
           }
         }
-      });
       
       toast({
-        title: "Schedule loaded",
-        description: `Populated timecard from ${shifts.length} scheduled shifts (combined by timesheet day).`,
+        title: "Schedule loaded", 
+        description: `Populated timecard from ${shifts.length} scheduled shifts (handling multiple shifts per day).`,
       });
     } catch (error) {
       console.error("Error auto-populating from schedule:", error);
