@@ -43,6 +43,10 @@ export default function SignaturePad({
     context.lineCap = "round";
     context.lineJoin = "round";
     context.globalCompositeOperation = "source-over";
+    
+    // Enable antialiasing and smoothing for better line quality
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
 
     // Clear canvas with white background
     context.fillStyle = "#fff";
@@ -101,10 +105,32 @@ export default function SignaturePad({
     
     // Draw smooth line from last point to current point
     if (lastPointRef.current) {
-      context.beginPath();
-      context.moveTo(lastPointRef.current.x, lastPointRef.current.y);
-      context.lineTo(x, y);
-      context.stroke();
+      const lastX = lastPointRef.current.x;
+      const lastY = lastPointRef.current.y;
+      
+      // Calculate distance to determine if we need interpolation
+      const distance = Math.sqrt((x - lastX) ** 2 + (y - lastY) ** 2);
+      
+      if (distance > 2) {
+        // For longer distances, interpolate points for smoother lines
+        const steps = Math.ceil(distance / 2);
+        for (let i = 1; i <= steps; i++) {
+          const ratio = i / steps;
+          const interpX = lastX + (x - lastX) * ratio;
+          const interpY = lastY + (y - lastY) * ratio;
+          
+          context.beginPath();
+          context.moveTo(lastX + (interpX - lastX) * (i - 1) / steps, lastY + (interpY - lastY) * (i - 1) / steps);
+          context.lineTo(interpX, interpY);
+          context.stroke();
+        }
+      } else {
+        // For short distances, draw directly
+        context.beginPath();
+        context.moveTo(lastX, lastY);
+        context.lineTo(x, y);
+        context.stroke();
+      }
     }
     
     lastPointRef.current = { x, y };
@@ -143,21 +169,20 @@ export default function SignaturePad({
       <div className="border-2 border-dashed border-gray-300 rounded-lg p-2 bg-gray-50 relative">
         <canvas
           ref={canvasRef}
-          className={`w-full border border-gray-200 rounded cursor-crosshair touch-none ${
+          className={`w-full border border-gray-200 rounded cursor-crosshair touch-none select-none ${
             hasSignature ? 'bg-white' : ''
           }`}
-          style={{ height: `${height}px`, minHeight: '200px' }}
+          style={{ 
+            height: `${height}px`, 
+            minHeight: '200px',
+            touchAction: 'none',
+            userSelect: 'none'
+          }}
           onPointerDown={startDrawing}
           onPointerMove={draw}
           onPointerUp={stopDrawing}
           onPointerLeave={stopDrawing}
-          onMouseDown={startDrawing}
-          onMouseMove={draw}
-          onMouseUp={stopDrawing}
-          onMouseLeave={stopDrawing}
-          onTouchStart={startDrawing}
-          onTouchMove={draw}
-          onTouchEnd={stopDrawing}
+          onPointerCancel={stopDrawing}
           data-testid="signature-canvas"
         />
         {!hasSignature && (
