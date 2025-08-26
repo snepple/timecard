@@ -334,12 +334,14 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         dayShifts.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
         
         // Separate night duty from regular shifts
+        let nightDutyShifts: Shift[] = [];
         dayShifts.forEach((shift) => {
           // Check for night duty/rescue coverage - ONLY by explicit "Night Duty" label
           const isNightDuty = shift.position && shift.position.toLowerCase().includes('night duty');
           
           if (isNightDuty) {
             hasNightDuty = true;
+            nightDutyShifts.push(shift);
             // Skip night duty shifts for time calculations - they only affect rescue coverage
             return;
           }
@@ -347,10 +349,37 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
           regularShifts.push(shift);
         });
         
-        if (regularShifts.length === 0 && !hasNightDuty) return;
+        // Handle Night Duty shifts for rescue coverage (separate from regular shift processing)
+        if (hasNightDuty && nightDutyShifts.length > 0) {
+          nightDutyShifts.forEach(nightShift => {
+            const nightStartTime = new Date(nightShift.startTime);
+            const nightStartTimeET = new Date(nightStartTime.toLocaleString("en-US", {timeZone: "America/New_York"}));
+            const nightStartHour = nightStartTimeET.getHours();
+            
+            // Get the calendar date this night duty shift starts on
+            const nightShiftCalendarDate = new Date(dateStr + 'T12:00:00');
+            let nightTimesheetDay = nightShiftCalendarDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+            
+            // If night duty starts before 7am, it belongs to the previous timesheet day
+            if (nightStartHour < 7) {
+              nightTimesheetDay = (nightTimesheetDay - 1 + 7) % 7; // Wrap around for Sunday
+            }
+            
+            const nightDayKey = DAYS_OF_WEEK[nightTimesheetDay]?.key;
+            
+            // Mark rescue coverage for weeknights only (Monday-Thursday)
+            if (nightDayKey === 'monday') setValue("rescueCoverageMonday", true);
+            else if (nightDayKey === 'tuesday') setValue("rescueCoverageTuesday", true);
+            else if (nightDayKey === 'wednesday') setValue("rescueCoverageWednesday", true);
+            else if (nightDayKey === 'thursday') setValue("rescueCoverageThursday", true);
+          });
+        }
         
-        // Determine which timesheet day this belongs to based on the first shift's start time
-        const firstShift = regularShifts[0] || dayShifts[0];
+        // Process regular shifts only if there are any
+        if (regularShifts.length === 0) return;
+        
+        // Determine which timesheet day this belongs to based on the first regular shift's start time
+        const firstShift = regularShifts[0];
         const startTime = new Date(firstShift.startTime);
         
         // Convert to Eastern time for proper 7am calculation
@@ -369,13 +398,6 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         const dayKey = DAYS_OF_WEEK[timesheetDay]?.key;
         
         if (dayKey) {
-          // Mark rescue coverage for weeknights if night duty is present
-          if (hasNightDuty) {
-            if (dayKey === 'monday') setValue("rescueCoverageMonday", true);
-            else if (dayKey === 'tuesday') setValue("rescueCoverageTuesday", true);
-            else if (dayKey === 'wednesday') setValue("rescueCoverageWednesday", true);
-            else if (dayKey === 'thursday') setValue("rescueCoverageThursday", true);
-          }
           
           // Process regular shifts - check if they should be combined or kept separate
           if (regularShifts.length > 0) {
