@@ -15,13 +15,6 @@ interface ScheduleCache {
 let scheduleCache: ScheduleCache | null = null;
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
-const emailConfigSchema = z.object({
-  to: z.string().email(),
-  employeeName: z.string(),
-  weekEnding: z.string(),
-  pdfBuffer: z.string(), // base64 encoded PDF
-});
-
 const emailSubmissionSchema = z.object({
   employeeNumber: z.string(),
   employeeEmail: z.string().email(),
@@ -91,52 +84,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Email timesheet
-  app.post("/api/timesheets/email", async (req, res) => {
-    try {
-      const { to, employeeName, weekEnding, pdfBuffer } = emailConfigSchema.parse(req.body);
-      
-      // Configure nodemailer (you'll need to set up email credentials)
-      const transporter = nodemailer.createTransporter({
-        host: process.env.SMTP_HOST || "smtp.gmail.com",
-        port: parseInt(process.env.SMTP_PORT || "587"),
-        secure: false,
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
-        },
-      });
-
-      const mailOptions = {
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
-        to: to,
-        subject: `Weekly Time Sheet - ${employeeName} - Week Ending ${weekEnding}`,
-        text: `Please find attached the weekly time sheet for ${employeeName} for the week ending ${weekEnding}.`,
-        html: `
-          <p>Dear Bonnie,</p>
-          <p>Please find attached the weekly time sheet for <strong>${employeeName}</strong> for the week ending <strong>${weekEnding}</strong>.</p>
-          <p>Best regards,<br>Oakland Fire-Rescue Timesheet System</p>
-        `,
-        attachments: [
-          {
-            filename: `${employeeName}_TimeSheet_${weekEnding.replace(/\//g, '')}.pdf`,
-            content: Buffer.from(pdfBuffer, 'base64'),
-            contentType: 'application/pdf',
-          },
-        ],
-      };
-
-      await transporter.sendMail(mailOptions);
-      res.json({ message: "Email sent successfully" });
-    } catch (error) {
-      console.error("Email error:", error);
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ message: "Invalid email data", errors: error.errors });
-      } else {
-        res.status(500).json({ message: "Failed to send email" });
-      }
-    }
-  });
 
   // Submit timesheet for approval
   app.post("/api/timesheets/:id/submit", async (req, res) => {
