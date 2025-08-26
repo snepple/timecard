@@ -352,6 +352,12 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         // Handle Night Duty shifts for rescue coverage (separate from regular shift processing)
         if (hasNightDuty && nightDutyShifts.length > 0) {
           nightDutyShifts.forEach(nightShift => {
+            console.log('Processing Night Duty shift:', {
+              date: dateStr,
+              position: nightShift.position,
+              startTime: nightShift.startTime
+            });
+            
             const nightStartTime = new Date(nightShift.startTime);
             const nightStartTimeET = new Date(nightStartTime.toLocaleString("en-US", {timeZone: "America/New_York"}));
             const nightStartHour = nightStartTimeET.getHours();
@@ -367,11 +373,34 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             
             const nightDayKey = DAYS_OF_WEEK[nightTimesheetDay]?.key;
             
+            console.log('Night Duty mapping:', {
+              originalDate: dateStr,
+              startHour: nightStartHour,
+              dayOfWeek: nightTimesheetDay,
+              dayKey: nightDayKey,
+              willSetRescueCoverage: ['monday', 'tuesday', 'wednesday', 'thursday'].includes(nightDayKey || '')
+            });
+            
             // Mark rescue coverage for weeknights only (Monday-Thursday)
-            if (nightDayKey === 'monday') setValue("rescueCoverageMonday", true);
-            else if (nightDayKey === 'tuesday') setValue("rescueCoverageTuesday", true);
-            else if (nightDayKey === 'wednesday') setValue("rescueCoverageWednesday", true);
-            else if (nightDayKey === 'thursday') setValue("rescueCoverageThursday", true);
+            if (nightDayKey === 'monday') {
+              console.log('Setting rescue coverage for Monday');
+              setValue("rescueCoverageMonday", true);
+            }
+            else if (nightDayKey === 'tuesday') {
+              console.log('Setting rescue coverage for Tuesday');
+              setValue("rescueCoverageTuesday", true);
+            }
+            else if (nightDayKey === 'wednesday') {
+              console.log('Setting rescue coverage for Wednesday');
+              setValue("rescueCoverageWednesday", true);
+            }
+            else if (nightDayKey === 'thursday') {
+              console.log('Setting rescue coverage for Thursday');
+              setValue("rescueCoverageThursday", true);
+            }
+            else {
+              console.log('Night Duty shift on non-weeknight, no rescue coverage set');
+            }
           });
         }
         
