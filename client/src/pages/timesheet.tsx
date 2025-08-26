@@ -874,7 +874,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         </div>
         
         <Form {...form}>
-          <form className="space-y-4">
+          <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
             {/* Employee Selection or Selected Employee Display */}
             {!selectedEmployeeNumber ? (
               <div className="ios-card">
@@ -979,7 +979,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                 </div>
               </div>
             </div>
-            )}
+          )}
 
             {/* Week Selection Card - Only show when employee is selected */}
             {selectedEmployeeNumber && (
@@ -1007,8 +1007,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
 
             {/* Show rest of form only when both employee and week are selected */}
             {selectedEmployeeNumber && watchedValues.weekEnding && (
-              <>
-                <div className="space-y-4">
+              <div className="space-y-4">
 
                   {/* Time Entry Card - iOS style */}
                   <div className="ios-card">
@@ -1020,75 +1019,75 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                       {DAYS_OF_WEEK.map(({ key, label }) => (
                         <div key={key} className="grid grid-cols-12 gap-2 items-center py-3 border-b border-gray-200 last:border-b-0">
                           <div className="col-span-12 md:col-span-3">
-                    <Label className="text-sm font-medium text-secondary">{label}</Label>
-                    <Input
-                      type="date"
-                      {...form.register(`${key}Date` as keyof TimesheetFormData)}
-                      readOnly
-                      className="mt-1 text-sm bg-gray-50"
-                      data-testid={`input-${key}-date`}
-                    />
-                  </div>
-                  <div className="col-span-6 md:col-span-3">
-                    <Label className="text-sm font-medium text-secondary">Start Time</Label>
-                    <FormField
-                      control={form.control}
-                      name={`${key}StartTime` as keyof TimesheetFormData}
-                      render={({ field }) => (
-                        <FormItem className="mt-1">
-                          <Select value={field.value?.toString() || ""} onValueChange={field.onChange}>
-                            <FormControl>
-                              <SelectTrigger className="text-sm" data-testid={`select-${key}-start-time`}>
-                                <SelectValue placeholder="Select time" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {TIME_OPTIONS.map((time) => (
-                                <SelectItem key={time} value={time}>
-                                  {time}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <div className="col-span-6 md:col-span-3">
-                    <Label className="text-sm font-medium text-secondary">End Time</Label>
-                    <FormField
-                      control={form.control}
-                      name={`${key}EndTime` as keyof TimesheetFormData}
-                      render={({ field }) => (
-                        <FormItem className="mt-1">
-                          <Select value={field.value?.toString() || ""} onValueChange={field.onChange}>
-                            <FormControl>
-                              <SelectTrigger className="text-sm" data-testid={`select-${key}-end-time`}>
-                                <SelectValue placeholder="Select time" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {TIME_OPTIONS.map((time) => (
-                                <SelectItem key={time} value={time}>
-                                  {time}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <div className="col-span-12 md:col-span-3">
-                    <Label className="text-sm font-medium text-secondary">Total Hours</Label>
-                    <Input
-                      value={typeof watchedValues[`${key}TotalHours` as keyof TimesheetFormData] === 'number' ? (watchedValues[`${key}TotalHours` as keyof TimesheetFormData] as number).toFixed(2) : ""}
-                      readOnly
-                      className="mt-1 text-sm bg-gray-50 text-center font-semibold"
-                      data-testid={`text-${key}-total-hours`}
-                    />
-                  </div>
-                </div>
+                            <Label className="text-sm font-medium text-secondary">{label}</Label>
+                            <Input
+                              type="date"
+                              {...form.register(`${key}Date` as keyof TimesheetFormData)}
+                              readOnly
+                              className="mt-1 text-sm bg-gray-50"
+                              data-testid={`input-${key}-date`}
+                            />
+                          </div>
+                          <div className="col-span-6 md:col-span-3">
+                            <Label className="text-sm font-medium text-secondary">Start Time</Label>
+                            <FormField
+                              control={form.control}
+                              name={`${key}StartTime` as keyof TimesheetFormData}
+                              render={({ field }) => (
+                                <FormItem className="mt-1">
+                                  <Select value={field.value?.toString() || ""} onValueChange={field.onChange}>
+                                    <FormControl>
+                                      <SelectTrigger className="text-sm" data-testid={`select-${key}-start-time`}>
+                                        <SelectValue placeholder="Select time" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {TIME_OPTIONS.map((time) => (
+                                        <SelectItem key={time} value={time}>
+                                          {time}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          <div className="col-span-6 md:col-span-3">
+                            <Label className="text-sm font-medium text-secondary">End Time</Label>
+                            <FormField
+                              control={form.control}
+                              name={`${key}EndTime` as keyof TimesheetFormData}
+                              render={({ field }) => (
+                                <FormItem className="mt-1">
+                                  <Select value={field.value?.toString() || ""} onValueChange={field.onChange}>
+                                    <FormControl>
+                                      <SelectTrigger className="text-sm" data-testid={`select-${key}-end-time`}>
+                                        <SelectValue placeholder="Select time" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {TIME_OPTIONS.map((time) => (
+                                        <SelectItem key={time} value={time}>
+                                          {time}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          <div className="col-span-12 md:col-span-3">
+                            <Label className="text-sm font-medium text-secondary">Total Hours</Label>
+                            <Input
+                              value={typeof watchedValues[`${key}TotalHours` as keyof TimesheetFormData] === 'number' ? (watchedValues[`${key}TotalHours` as keyof TimesheetFormData] as number).toFixed(2) : ""}
+                              readOnly
+                              className="mt-1 text-sm bg-gray-50 text-center font-semibold"
+                              data-testid={`text-${key}-total-hours`}
+                            />
+                          </div>
+                        </div>
               ))}
 
               {/* Weekly Total */}
@@ -1257,11 +1256,11 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
               <Printer className="mr-2 h-4 w-4" />
               Print PDF
             </Button>
-            </div>
-            </div>
-            </>
-            )}
-          </form>
+          </div>
+          </div>
+        </div>
+          )}
+        </form>
         </Form>
       </main>
 
