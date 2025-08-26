@@ -389,8 +389,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Email submission endpoint
   app.post("/api/timesheet/submit-email", async (req, res) => {
     try {
+      console.log("Email submission request received");
       const validatedData = emailSubmissionSchema.parse(req.body);
       const { employeeNumber, employeeEmail, timesheetData } = validatedData;
+      console.log("Email validation passed for employee:", employeeNumber);
 
       // Store employee email for future use
       await db
@@ -430,6 +432,13 @@ Oakland Fire-Rescue Timesheet System`;
         .replace(/\{employeeName\}/g, timesheetData.employeeName)
         .replace(/\{weekEnding\}/g, timesheetData.weekEnding);
 
+      // Check if SMTP credentials are configured
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.error("SMTP credentials not configured");
+        res.status(500).json({ message: "Email service not configured. Please contact administrator." });
+        return;
+      }
+
       // Set up email transport
       const transporter = nodemailer.createTransport({
         host: "smtp.gmail.com",
@@ -441,8 +450,21 @@ Oakland Fire-Rescue Timesheet System`;
         },
       });
 
+      console.log("Testing SMTP connection...");
+      // Test the connection
+      try {
+        await transporter.verify();
+        console.log("SMTP connection verified successfully");
+      } catch (smtpError) {
+        console.error("SMTP connection failed:", smtpError);
+        res.status(500).json({ message: "Email service unavailable. Please try again later." });
+        return;
+      }
+
       // Convert base64 PDF to buffer
+      console.log("Converting PDF buffer...");
       const pdfBuffer = Buffer.from(timesheetData.pdfBuffer.replace('data:application/pdf;base64,', ''), 'base64');
+      console.log("PDF buffer size:", pdfBuffer.length, "bytes");
 
       // Send email
       const mailOptions = {

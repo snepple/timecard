@@ -348,13 +348,13 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
           }
           
           // Always populate time entries for combined shifts
-          const startTimeStr = combinedStartTime!.toLocaleTimeString('en-US', { 
+          const startTimeStr = (combinedStartTime as Date).toLocaleTimeString('en-US', { 
             hour12: false, 
             hour: '2-digit', 
             minute: '2-digit',
             timeZone: 'America/New_York'
           });
-          const endTimeStr = combinedEndTime!.toLocaleTimeString('en-US', { 
+          const endTimeStr = (combinedEndTime as Date).toLocaleTimeString('en-US', { 
             hour12: false, 
             hour: '2-digit', 
             minute: '2-digit',
@@ -530,10 +530,26 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       setShowEmailDialog(false);
       setEmployeeEmail("");
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Email submission error:", error);
+      let errorMessage = "Failed to submit timesheet via email. Please try again.";
+      
+      // Try to extract more specific error message
+      if (error instanceof Error) {
+        if (error.message.includes("500:") || error.message.includes("Internal")) {
+          errorMessage = "Server error - please check email configuration in admin settings.";
+        } else if (error.message.includes("400:") || error.message.includes("Validation")) {
+          errorMessage = "Invalid data - please check all required fields are filled.";
+        } else if (error.message.includes("SMTP") || error.message.includes("email")) {
+          errorMessage = "Email service error - please contact administrator.";
+        } else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to submit timesheet via email. Please try again.",
+        title: "Email Submission Failed",
+        description: errorMessage,
         variant: "destructive",
       });
     },
