@@ -307,9 +307,11 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
           
           if (isNightDuty) {
             hasNightDuty = true;
+            // Skip night duty shifts for time calculations - they only affect rescue coverage
+            return;
           }
           
-          // Combine shifts - find earliest start and latest end
+          // Combine only regular shifts (not night duty) - find earliest start and latest end
           if (!combinedStartTime || startTime < combinedStartTime) {
             combinedStartTime = startTime;
           }
