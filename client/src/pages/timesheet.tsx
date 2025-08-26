@@ -830,7 +830,6 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       <main className="px-4 py-6 max-w-4xl mx-auto space-y-4">
         <div className="ios-mobile-spacing">
           <h1 className="ios-title-1 text-foreground mb-2">Weekly Timesheet</h1>
-          <p className="ios-body text-muted-foreground mb-6">Oakland Fire-Rescue Department</p>
           
           {logout && (
             <div className="flex justify-end">
@@ -850,11 +849,11 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         
         <Form {...form}>
           <form className="space-y-4">
-          {/* Employee Information Card - iOS style */}
+          {/* Initial Selection Card - Employee and Week */}
           <div className="ios-card">
             <div className="p-6">
-              <h2 className="ios-headline mb-4" data-testid="heading-employee-info">
-                Employee Information
+              <h2 className="ios-headline mb-4" data-testid="heading-initial-selection">
+                Get Started
               </h2>
               
               {/* Employee Selection Dropdown */}
@@ -1007,34 +1006,29 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                   />
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Week Selection Card - iOS style */}
-          <div className="ios-card">
-            <div className="p-6">
-              <h2 className="ios-headline mb-4" data-testid="heading-week-selection">
-                Week Selection
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                <div>
-                  <Label htmlFor="weekEnding" className="flex items-center mb-2">
-                    <Calendar className="text-primary mr-2 h-4 w-4" />
-                    Week Ending (Saturday)
-                  </Label>
-                  <Input
-                    id="weekEnding"
-                    type="date"
-                    className="ios-input"
-                    {...form.register("weekEnding", {
-                      onChange: (e) => handleWeekEndingChange(e.target.value)
-                    })}
-                    data-testid="input-week-ending"
-                  />
-                </div>
+              
+              {/* Week Selection within same card */}
+              <div className="mt-6">
+                <Label htmlFor="weekEnding" className="flex items-center mb-2">
+                  <Calendar className="text-primary mr-2 h-4 w-4" />
+                  Week Ending (Saturday)
+                </Label>
+                <Input
+                  id="weekEnding"
+                  type="date"
+                  className="ios-input"
+                  {...form.register("weekEnding", {
+                    onChange: (e) => handleWeekEndingChange(e.target.value)
+                  })}
+                  data-testid="input-week-ending"
+                />
               </div>
             </div>
           </div>
+
+          {/* Show rest of form only when both employee and week are selected */}
+          {selectedEmployeeNumber && watchedValues.weekEnding && (
+          <div className="space-y-4">
 
           {/* Time Entry Card - iOS style */}
           <div className="ios-card">
@@ -1310,17 +1304,17 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
               Print PDF
             </Button>
           </div>
+          </div>
+          )}
         </form>
         </Form>
       </main>
 
-      {/* iOS-style Footer */}
-      <footer className="bg-secondary/20 py-6 mt-12 ios-mobile-spacing">
-        <div className="text-center">
-          <p className="ios-footnote text-muted-foreground">© 2024 Oakland Fire-Rescue Department</p>
-          <p className="ios-caption2 text-muted-foreground mt-1">Timesheet Application v1.0</p>
-        </div>
-      </footer>
+      {/* Copyright notice only - admin button moved to App.tsx footer */}
+      <div className="text-center py-6 mt-12">
+        <p className="ios-footnote text-muted-foreground">© 2024 Oakland Fire-Rescue Department</p>
+        <p className="ios-caption2 text-muted-foreground mt-1">Timesheet Application v1.0</p>
+      </div>
 
       {/* Employee ID Prompt Dialog */}
       <AlertDialog open={showEmployeeIdPrompt} onOpenChange={setShowEmployeeIdPrompt}>
