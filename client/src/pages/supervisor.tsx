@@ -31,6 +31,11 @@ export default function SupervisorDashboard() {
   const [showPasswordSettings, setShowPasswordSettings] = useState(false);
   const [appPassword, setAppPassword] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
+  
+  // Email settings state
+  const [showEmailSettings, setShowEmailSettings] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [emailTemplate, setEmailTemplate] = useState("");
 
   // Fetch employee numbers
   const employeeNumbersQuery = useQuery<EmployeeNumber[]>({
@@ -41,6 +46,12 @@ export default function SupervisorDashboard() {
   const passwordsQuery = useQuery<{app_password: string; admin_password: string}>({
     queryKey: ["/api/settings/passwords"],
     enabled: showPasswordSettings,
+  });
+
+  // Fetch current email settings
+  const emailSettingsQuery = useQuery<{recipient_email: string; email_template: string}>({
+    queryKey: ["/api/settings/email"],
+    enabled: showEmailSettings,
   });
 
   // Sync employees from schedule mutation
@@ -215,6 +226,28 @@ export default function SupervisorDashboard() {
     },
   });
 
+  // Update email settings mutation
+  const updateEmailSettingsMutation = useMutation({
+    mutationFn: async (data: { recipient_email?: string; email_template?: string }) => {
+      return apiRequest("PUT", "/api/settings/email", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/email"] });
+      toast({
+        title: "Email settings updated",
+        description: "Email configuration has been updated successfully.",
+      });
+      setShowEmailSettings(false);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update email settings. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handlePasswordUpdate = () => {
     if (!appPassword.trim() || !adminPassword.trim()) {
       toast({
@@ -241,6 +274,33 @@ export default function SupervisorDashboard() {
     });
   };
 
+  const handleEmailSettingsUpdate = () => {
+    if (!recipientEmail.trim() || !emailTemplate.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in both the recipient email and email template.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(recipientEmail)) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateEmailSettingsMutation.mutate({
+      recipient_email: recipientEmail,
+      email_template: emailTemplate,
+    });
+  };
+
   // Load passwords when dialog opens
   React.useEffect(() => {
     if (showPasswordSettings && passwordsQuery.data) {
@@ -248,6 +308,14 @@ export default function SupervisorDashboard() {
       setAdminPassword(passwordsQuery.data.admin_password);
     }
   }, [showPasswordSettings, passwordsQuery.data]);
+
+  // Load email settings when dialog opens
+  React.useEffect(() => {
+    if (showEmailSettings && emailSettingsQuery.data) {
+      setRecipientEmail(emailSettingsQuery.data.recipient_email);
+      setEmailTemplate(emailSettingsQuery.data.email_template);
+    }
+  }, [showEmailSettings, emailSettingsQuery.data]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -261,14 +329,26 @@ export default function SupervisorDashboard() {
               </h1>
               <p className="text-gray-600 mt-2">Manage employee numbers and sync from WhenToWork schedule</p>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => setShowPasswordSettings(true)}
-              className="flex items-center"
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              Security Settings
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowEmailSettings(true)}
+                className="flex items-center"
+                data-testid="button-email-settings"
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                Email Settings
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowPasswordSettings(true)}
+                className="flex items-center"
+                data-testid="button-security-settings"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Security Settings
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -525,6 +605,97 @@ export default function SupervisorDashboard() {
                       disabled={updatePasswordsMutation.isPending}
                     >
                       {updatePasswordsMutation.isPending ? 'Updating...' : 'Update Passwords'}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Email Settings Dialog */}
+        <Dialog open={showEmailSettings} onOpenChange={setShowEmailSettings}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center">
+                <Mail className="w-5 h-5 mr-2" />
+                Email Settings
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              {emailSettingsQuery.isLoading ? (
+                <div className="text-center py-8">Loading current settings...</div>
+              ) : (
+                <>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="recipient-email" className="text-sm font-medium">
+                        Recipient Email Address
+                      </Label>
+                      <Input
+                        id="recipient-email"
+                        type="email"
+                        value={recipientEmail}
+                        onChange={(e) => setRecipientEmail(e.target.value)}
+                        placeholder="supervisor@oaklandfire.gov"
+                        className="mt-1"
+                        data-testid="input-recipient-email"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Email address where completed timesheets will be sent
+                      </p>
+                    </div>
+                    
+                    <Separator />
+                    
+                    <div>
+                      <Label htmlFor="email-template" className="text-sm font-medium">
+                        Email Template
+                      </Label>
+                      <textarea
+                        id="email-template"
+                        value={emailTemplate}
+                        onChange={(e) => setEmailTemplate(e.target.value)}
+                        placeholder="Enter email template..."
+                        rows={12}
+                        className="w-full mt-1 p-3 border border-gray-300 rounded-md resize-vertical font-mono text-sm"
+                        data-testid="textarea-email-template"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Use placeholders: {'{employeeName}'} and {'{weekEnding}'} will be replaced with actual values
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start">
+                      <Mail className="w-5 h-5 text-blue-600 mt-0.5 mr-2" />
+                      <div className="text-sm">
+                        <p className="font-medium text-blue-800">Template Information</p>
+                        <p className="text-blue-700 mt-1">
+                          The email template should include a Subject line at the top. Use placeholders {'{employeeName}'} and {'{weekEnding}'} to customize the content for each submission.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setShowEmailSettings(false);
+                        setRecipientEmail("");
+                        setEmailTemplate("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleEmailSettingsUpdate}
+                      disabled={updateEmailSettingsMutation.isPending}
+                      data-testid="button-update-email-settings"
+                    >
+                      {updateEmailSettingsMutation.isPending ? 'Updating...' : 'Update Email Settings'}
                     </Button>
                   </div>
                 </>

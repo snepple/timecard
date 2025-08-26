@@ -342,6 +342,32 @@ export class DatabaseStorage implements IStorage {
     if (!adminPassword) {
       await this.setSetting('admin_password', 'OFDAdmin1888');
     }
+
+    // Initialize default email settings
+    const timesheetEmail = await this.getSetting('timesheet_recipient_email');
+    if (!timesheetEmail) {
+      await this.setSetting('timesheet_recipient_email', 'supervisor@oaklandfire.gov');
+    }
+
+    const emailTemplate = await this.getSetting('timesheet_email_template');
+    if (!emailTemplate) {
+      const defaultTemplate = `Subject: Weekly Timesheet Submission - {employeeName}
+
+Dear Supervisor,
+
+A new weekly timesheet has been submitted for your review:
+
+Employee: {employeeName}
+Week Ending: {weekEnding}
+
+The completed timesheet is attached as a PDF for your review and approval.
+
+Please review the hours and approve or provide feedback as needed.
+
+Best regards,
+Oakland Fire-Rescue Timesheet System`;
+      await this.setSetting('timesheet_email_template', defaultTemplate);
+    }
   }
 }
 

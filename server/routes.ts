@@ -398,6 +398,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .set({ email: employeeEmail, updatedAt: new Date() })
         .where(eq(employeeNumbers.employeeNumber, employeeNumber));
 
+      // Get email configuration
+      const recipientEmail = await storage.getSetting('timesheet_recipient_email') || 'supervisor@oaklandfire.gov';
+      const emailTemplate = await storage.getSetting('timesheet_email_template') || `Subject: Weekly Timesheet Submission - {employeeName}
+
+Dear Supervisor,
+
+A new weekly timesheet has been submitted for your review:
+
+Employee: {employeeName}
+Week Ending: {weekEnding}
+
+The completed timesheet is attached as a PDF for your review and approval.
+
+Please review the hours and approve or provide feedback as needed.
+
+Best regards,
+Oakland Fire-Rescue Timesheet System`;
+
+      // Parse email template to extract subject and body
+      const subjectMatch = emailTemplate.match(/^Subject:\s*(.*)$/m);
+      const subject = subjectMatch ? subjectMatch[1] : `Weekly Timesheet Submission - ${timesheetData.employeeName}`;
+      const emailBody = emailTemplate.replace(/^Subject:.*$/m, '').trim();
+
+      // Replace placeholders in subject and body
+      const processedSubject = subject
+        .replace(/\{employeeName\}/g, timesheetData.employeeName)
+        .replace(/\{weekEnding\}/g, timesheetData.weekEnding);
+      
+      const processedBody = emailBody
+        .replace(/\{employeeName\}/g, timesheetData.employeeName)
+        .replace(/\{weekEnding\}/g, timesheetData.weekEnding);
+
       // Set up email transport
       const transporter = nodemailer.createTransport({
         host: "smtp.gmail.com",
@@ -410,21 +442,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Convert base64 PDF to buffer
-      const pdfBuffer = Buffer.from(timesheetData.pdfBuffer, 'base64');
+      const pdfBuffer = Buffer.from(timesheetData.pdfBuffer.replace('data:application/pdf;base64,', ''), 'base64');
 
       // Send email
       const mailOptions = {
         from: employeeEmail,
-        to: "sam@singingbrook.com",
+        to: recipientEmail,
         cc: employeeEmail,
-        subject: `Timesheet Submission - ${timesheetData.employeeName} - Week Ending ${timesheetData.weekEnding}`,
-        text: `Please find attached the timesheet for ${timesheetData.employeeName} for the week ending ${timesheetData.weekEnding}.`,
-        html: `
-          <h3>Timesheet Submission</h3>
-          <p><strong>Employee:</strong> ${timesheetData.employeeName}</p>
-          <p><strong>Week Ending:</strong> ${timesheetData.weekEnding}</p>
-          <p>Please find the completed timesheet attached as a PDF.</p>
-        `,
+        subject: processedSubject,
+        text: processedBody,
         attachments: [
           {
             filename: `Timesheet_${timesheetData.employeeName.replace(/\s+/g, '_')}_${timesheetData.weekEnding}.pdf`,
@@ -549,6 +575,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating passwords:", error);
       res.status(500).json({ message: "Failed to update passwords" });
+    }
+  });
+
+  // Email settings routes (admin only)
+  app.get("/api/settings/email", async (req, res) => {
+    try {
+      const recipientEmail = await storage.getSetting('timesheet_recipient_email');
+      const emailTemplate = await storage.getSetting('timesheet_email_template');
+      
+      res.json({
+        recipient_email: recipientEmail || 'supervisor@oaklandfire.gov',
+        email_template: emailTemplate || `Subject: Weekly Timesheet Submission - {employeeName}
+
+Dear Supervisor,
+
+A new weekly timesheet has been submitted for your review:
+
+Employee: {employeeName}
+Week Ending: {weekEnding}
+
+The completed timesheet is attached as a PDF for your review and approval.
+
+Please review the hours and approve or provide feedback as needed.
+
+Best regards,
+Oakland Fire-Rescue Timesheet System`
+      });
+    } catch (error) {
+      console.error("Error fetching email settings:", error);
+      res.status(500).json({ message: "Failed to fetch email settings" });
+    }
+  });
+
+  app.put("/api/settings/email", async (req, res) => {
+    try {
+      const { recipient_email, email_template } = req.body;
+      
+      if (recipient_email) {
+        await storage.setSetting('timesheet_recipient_email', recipient_email);
+      }
+      
+      if (email_template) {
+        await storage.setSetting('timesheet_email_template', email_template);
+      }
+      
+      res.json({ message: "Email settings updated successfully" });
+    } catch (error) {
+      console.error("Error updating email settings:", error);
+      res.status(500).json({ message: "Failed to update email settings" });
     }
   });
 
