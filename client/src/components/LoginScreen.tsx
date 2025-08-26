@@ -39,19 +39,19 @@ export default function LoginScreen({ type, onSuccess }: LoginScreenProps) {
     const isAppLogin = type === 'app';
     
     if (isAppLogin) {
-      // For app login: auto-login when 4 digits are entered
+      // For app login: auto-login when exactly 4 digits are entered and valid
       if (password.length === 4 && /^\d{4}$/.test(password)) {
         setAutoLoginAttempted(true);
         handleSubmit();
       }
     } else {
-      // For admin login: auto-login after 500ms of no typing
+      // For admin login: auto-login after 800ms of no typing (increased delay)
       const timer = setTimeout(() => {
         if (password.length >= 3) {
           setAutoLoginAttempted(true);
           handleSubmit();
         }
-      }, 500);
+      }, 800);
 
       return () => clearTimeout(timer);
     }
@@ -64,30 +64,49 @@ export default function LoginScreen({ type, onSuccess }: LoginScreenProps) {
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!password.trim()) return;
+    if (!password.trim() || isLoading) return;
+
+    // For app login, ensure we have exactly 4 digits
+    if (type === 'app' && (password.length !== 4 || !/^\d{4}$/.test(password))) {
+      return; // Don't attempt login if not 4 digits
+    }
 
     setIsLoading(true);
-    const success = await login(password, type);
     
-    if (success) {
+    try {
+      const success = await login(password, type);
+      
+      if (success) {
+        toast({
+          title: 'Login successful',
+          description: `Welcome to ${type === 'admin' ? 'Admin Area' : 'Timesheet App'}`,
+        });
+        onSuccess();
+      } else {
+        toast({
+          title: 'Invalid password',
+          description: 'Please check your password and try again.',
+          variant: 'destructive',
+        });
+        setPassword('');
+        setAutoLoginAttempted(false); // Reset for retry
+      }
+    } catch (error) {
       toast({
-        title: 'Login successful',
-        description: `Welcome to ${type === 'admin' ? 'Admin Area' : 'Timesheet App'}`,
-      });
-      onSuccess();
-    } else {
-      toast({
-        title: 'Invalid password',
-        description: 'Please check your password and try again.',
+        title: 'Login error',
+        description: 'An error occurred during login. Please try again.',
         variant: 'destructive',
       });
       setPassword('');
+      setAutoLoginAttempted(false); // Reset for retry
     }
     
     setIsLoading(false);
   };
 
   const handleNumberPress = (number: string) => {
+    if (isLoading) return; // Prevent input during loading
+    
     if (type === 'admin' || password.length < 20) {
       const newPassword = password + number;
       setPassword(newPassword);
