@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -238,8 +238,12 @@ export default function SupervisorDashboard() {
         description: "Email configuration has been updated successfully.",
       });
       setShowEmailSettings(false);
+      // Reset form fields
+      setRecipientEmail("");
+      setEmailTemplate("");
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Email settings update error:", error);
       toast({
         title: "Error",
         description: "Failed to update email settings. Please try again.",
@@ -302,7 +306,7 @@ export default function SupervisorDashboard() {
   };
 
   // Load passwords when dialog opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (showPasswordSettings && passwordsQuery.data) {
       setAppPassword(passwordsQuery.data.app_password);
       setAdminPassword(passwordsQuery.data.admin_password);
@@ -310,7 +314,7 @@ export default function SupervisorDashboard() {
   }, [showPasswordSettings, passwordsQuery.data]);
 
   // Load email settings when dialog opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (showEmailSettings && emailSettingsQuery.data) {
       setRecipientEmail(emailSettingsQuery.data.recipient_email);
       setEmailTemplate(emailSettingsQuery.data.email_template);
