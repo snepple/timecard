@@ -1197,34 +1197,8 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          {/* Status Indicator - iOS style */}
-          {currentTimesheet && (
-            <div className="ios-card mb-6">
-              <div className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="ios-callout mb-1">Timesheet Status</h3>
-                  <div className="flex items-center gap-3">
-                    {getStatusBadge(currentTimesheet.status)}
-                    {currentTimesheet.supervisorComments && (
-                      <span className="text-sm text-gray-600">
-                        Comments: {currentTimesheet.supervisorComments}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {currentTimesheet.status === "rejected" && (
-                  <div className="text-right text-sm text-gray-600">
-                    <p>Rejected by: {currentTimesheet.approvedBy}</p>
-                    <p>{new Date(currentTimesheet.approvedAt).toLocaleDateString()}</p>
-                  </div>
-                )}
-                </div>
-              </div>
-            </div>
-          )}
 
+          {/* Action Buttons */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <Button
               type="button"
@@ -1272,7 +1246,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
               Print PDF
             </Button>
           </div>
-          </div>
+            </div>
             </>
           )}
         </form>
