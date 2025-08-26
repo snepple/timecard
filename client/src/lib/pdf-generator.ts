@@ -83,12 +83,24 @@ function formatDateForPDF(dateStr?: string): string {
 
 export async function generateTimeSheetPDF(data: TimesheetData): Promise<string> {
   try {
+    console.log("Starting PDF generation with data:", {
+      employeeName: data.employeeName,
+      employeeNumber: data.employeeNumber,
+      weekEnding: data.weekEnding,
+      hasSignature: !!data.signatureData
+    });
+    
     // Load the fillable PDF template
+    console.log("Fetching PDF template...");
     const templateResponse = await fetch('/timesheet-template.pdf');
     if (!templateResponse.ok) {
-      throw new Error('Could not load PDF template');
+      console.error("PDF template fetch failed:", templateResponse.status, templateResponse.statusText);
+      throw new Error(`Could not load PDF template: ${templateResponse.status} ${templateResponse.statusText}`);
     }
+    console.log("PDF template loaded successfully");
+    
     const templateBytes = await templateResponse.arrayBuffer();
+    console.log("Template size:", templateBytes.byteLength, "bytes");
     
     // Load the PDF document
     const pdfDoc = await PDFDocument.load(templateBytes);
@@ -301,6 +313,20 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
     
   } catch (error) {
     console.error("Error generating PDF:", error);
-    throw new Error("Failed to generate PDF");
+    
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      if (error.message.includes('Could not load PDF template')) {
+        throw new Error("PDF template file not found. Please contact administrator to upload the template.");
+      } else if (error.message.includes('Failed to parse')) {
+        throw new Error("PDF template file is corrupted. Please contact administrator.");
+      } else if (error.message.includes('signature')) {
+        throw new Error("Error processing signature. Please try redrawing your signature.");
+      } else {
+        throw new Error(`PDF generation failed: ${error.message}`);
+      }
+    } else {
+      throw new Error("Unknown error occurred during PDF generation");
+    }
   }
 }
