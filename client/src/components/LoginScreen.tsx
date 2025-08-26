@@ -45,13 +45,13 @@ export default function LoginScreen({ type, onSuccess }: LoginScreenProps) {
         handleSubmit();
       }
     } else {
-      // For admin login: auto-login after 800ms of no typing (increased delay)
+      // For admin login: auto-login after longer delay and only for longer passwords
       const timer = setTimeout(() => {
-        if (password.length >= 3) {
+        if (password.length >= 8 && !autoLoginAttempted) {
           setAutoLoginAttempted(true);
           handleSubmit();
         }
-      }, 800);
+      }, 1500);
 
       return () => clearTimeout(timer);
     }
