@@ -403,7 +403,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
   };
 
   // Handle employee selection
-  const handleEmployeeSelect = (employeeNumber: string) => {
+  const handleEmployeeSelect = async (employeeNumber: string) => {
     setSelectedEmployeeNumber(employeeNumber);
     setValue("selectedEmployee", employeeNumber);
     
@@ -417,6 +417,19 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       if (dbEmployee && dbEmployee.employeeNumber && dbEmployee.employeeNumber.trim() !== "") {
         // Employee has an ID in database, use it
         setValue("employeeNumber", dbEmployee.employeeNumber);
+        
+        // Check if email exists for this employee
+        try {
+          const emailResponse = await fetch(`/api/employee-numbers/${dbEmployee.employeeNumber}/email`);
+          if (emailResponse.ok) {
+            const emailData = await emailResponse.json();
+            if (emailData.email) {
+              setCurrentEmployeeEmail(emailData.email);
+            }
+          }
+        } catch (error) {
+          console.log("Could not fetch email for employee");
+        }
       } else if (dbEmployee && (!dbEmployee.employeeNumber || dbEmployee.employeeNumber.trim() === "")) {
         // Employee exists in database but no employee number - prompt for it
         setTempEmployeeData({ id: dbEmployee.id, name: employee.fullName });
@@ -438,6 +451,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       // Clear fields if no employee selected
       setValue("employeeName", "");
       setValue("employeeNumber", "");
+      setCurrentEmployeeEmail("");
     }
   };
 
@@ -849,20 +863,21 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         
         <Form {...form}>
           <form className="space-y-4">
-          {/* Initial Selection Card - Employee and Week */}
-          <div className="ios-card">
-            <div className="p-6">
-              <h2 className="ios-headline mb-4" data-testid="heading-initial-selection">
-                Get Started
-              </h2>
-              
-              {/* Employee Selection Dropdown */}
-              <div className="mb-6">
-                <Label htmlFor="employeeSelect" className="flex items-center mb-2">
-                  <Users className="text-primary mr-2 h-4 w-4" />
-                  Select Your Name
-                  {scheduleQuery.isLoading && <RefreshCw className="ml-2 h-4 w-4 animate-spin" />}
-                </Label>
+          {/* Employee Selection or Selected Employee Display */}
+          {!selectedEmployeeNumber ? (
+            <div className="ios-card">
+              <div className="p-6">
+                <h2 className="ios-headline mb-4" data-testid="heading-employee-selection">
+                  Select Employee
+                </h2>
+                
+                {/* Employee Selection Dropdown */}
+                <div className="mb-6">
+                  <Label htmlFor="employeeSelect" className="flex items-center mb-2">
+                    <Users className="text-primary mr-2 h-4 w-4" />
+                    Select Your Name
+                    {scheduleQuery.isLoading && <RefreshCw className="ml-2 h-4 w-4 animate-spin" />}
+                  </Label>
                 <Popover open={employeeSearchOpen} onOpenChange={setEmployeeSearchOpen}>
                   <PopoverTrigger asChild>
                     <Button
@@ -917,98 +932,50 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                 </Popover>
                 {scheduleQuery.error && (
                   <p className="text-sm text-destructive mt-1">
-                    Failed to load employee schedule. Manual entry available below.
+                    Failed to load employee schedule.
                   </p>
                 )}
               </div>
-              
-              {/* Selected Employee Display */}
-              {selectedEmployeeNumber && (
-                <div className="ios-card bg-primary/5 border-l-4 border-primary">
-                  <div className="p-4">
-                    <div className="flex items-center mb-2">
-                      <User className="text-primary mr-2 h-5 w-5" />
-                      <span className="ios-callout text-foreground">Selected Employee</span>
-                    </div>
-                    <div>
-                      <p className="ios-body font-medium text-foreground">
-                        {scheduleQuery.data?.employees?.find((emp) => emp.employeeNumber === selectedEmployeeNumber)?.fullName}
-                      </p>
-                      <p className="ios-footnote text-muted-foreground">Employee #: {watchedValues.employeeNumber || selectedEmployeeNumber}</p>
-                    </div>
+            </div>
+          ) : (
+            /* Selected Employee Display - Clickable to change */
+            <div 
+              className="ios-card bg-primary/5 border-l-4 border-primary cursor-pointer hover:bg-primary/10 transition-colors"
+              onClick={() => {
+                setSelectedEmployeeNumber('');
+                setCurrentEmployeeEmail('');
+                form.setValue('employeeNumber', '');
+              }}
+              data-testid="selected-employee-card"
+            >
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center">
+                    <User className="text-primary mr-2 h-5 w-5" />
+                    <span className="ios-callout text-foreground">Selected Employee</span>
                   </div>
+                  <span className="ios-caption text-muted-foreground">Click to change</span>
                 </div>
-              )}
-
-              {/* Email Address Field */}
-              {selectedEmployeeNumber && (
-                <div className="mt-4">
-                  <Label htmlFor="employeeEmail" className="flex items-center mb-2">
-                    <Mail className="text-primary mr-2 h-4 w-4" />
-                    Email Address
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="employeeEmail"
-                      type="email"
-                      value={currentEmployeeEmail}
-                      onChange={(e) => setCurrentEmployeeEmail(e.target.value)}
-                      placeholder="Enter your email address"
-                      className="flex-1 ios-input"
-                      data-testid="input-employee-email"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="ios-button ios-button-primary"
-                      onClick={async () => {
-                        try {
-                          await apiRequest("PUT", `/api/employee-numbers/${selectedEmployeeNumber}/email`, { 
-                            email: currentEmployeeEmail 
-                          });
-                          toast({
-                            title: "Email updated",
-                            description: "Your email address has been saved.",
-                          });
-                        } catch (error) {
-                          toast({
-                            title: "Error",
-                            description: "Failed to update email address.",
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                      disabled={!currentEmployeeEmail || !/\S+@\S+\.\S+/.test(currentEmployeeEmail)}
-                      data-testid="button-save-email"
-                    >
-                      Save
-                    </Button>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    This email will be used for timesheet notifications and submissions.
-                  </p>
-                </div>
-              )}
-              
-              {/* Manual Employee Number Entry (when no employee selected) */}
-              {!selectedEmployeeNumber && (
                 <div>
-                  <Label htmlFor="employeeNumber" className="flex items-center mb-2">
-                    <IdCard className="text-primary mr-2 h-4 w-4" />
-                    Employee Number
-                  </Label>
-                  <Input
-                    id="employeeNumber"
-                    {...form.register("employeeNumber")}
-                    placeholder="Enter employee number if not in dropdown"
-                    data-testid="input-employee-number"
-                  />
+                  <p className="ios-body font-medium text-foreground">
+                    {scheduleQuery.data?.employees?.find((emp) => emp.employeeNumber === selectedEmployeeNumber)?.fullName}
+                  </p>
+                  <p className="ios-footnote text-muted-foreground">Employee #: {watchedValues.employeeNumber || selectedEmployeeNumber}</p>
+                  {currentEmployeeEmail && (
+                    <p className="ios-footnote text-muted-foreground">Email: {currentEmployeeEmail}</p>
+                  )}
                 </div>
-              )}
-              
-              {/* Week Selection within same card */}
-              <div className="mt-6">
+              </div>
+            </div>
+          )}
+
+          {/* Week Selection Card - Only show when employee is selected */}
+          {selectedEmployeeNumber && (
+            <div className="ios-card">
+              <div className="p-6">
+                <h2 className="ios-headline mb-4" data-testid="heading-week-selection">
+                  Week Selection
+                </h2>
                 <Label htmlFor="weekEnding" className="flex items-center mb-2">
                   <Calendar className="text-primary mr-2 h-4 w-4" />
                   Week Ending (Saturday)
@@ -1024,11 +991,12 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                 />
               </div>
             </div>
-          </div>
+          )}
 
           {/* Show rest of form only when both employee and week are selected */}
           {selectedEmployeeNumber && watchedValues.weekEnding && (
-          <div className="space-y-4">
+            <>
+            <div className="space-y-4">
 
           {/* Time Entry Card - iOS style */}
           <div className="ios-card">
@@ -1305,6 +1273,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             </Button>
           </div>
           </div>
+            </>
           )}
         </form>
         </Form>
