@@ -878,7 +878,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             {/* Employee Selection or Selected Employee Display */}
             {!selectedEmployeeNumber ? (
               <div className="ios-card">
-              <div className="p-6">
+                <div className="p-6">
                 <h2 className="ios-headline mb-4" data-testid="heading-employee-selection">
                   Select Employee
                 </h2>
@@ -985,22 +985,22 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             {selectedEmployeeNumber && (
               <div className="ios-card">
                 <div className="p-6">
-                <h2 className="ios-headline mb-4" data-testid="heading-week-selection">
+                  <h2 className="ios-headline mb-4" data-testid="heading-week-selection">
                   Week Selection
-                </h2>
-                <Label htmlFor="weekEnding" className="flex items-center mb-2">
-                  <Calendar className="text-primary mr-2 h-4 w-4" />
-                  Week Ending (Saturday)
-                </Label>
-                <Input
+                  </h2>
+                  <Label htmlFor="weekEnding" className="flex items-center mb-2">
+                    <Calendar className="text-primary mr-2 h-4 w-4" />
+                    Week Ending (Saturday)
+                  </Label>
+                  <Input
                   id="weekEnding"
                   type="date"
                   className="ios-input"
                   {...form.register("weekEnding", {
                     onChange: (e) => handleWeekEndingChange(e.target.value)
                   })}
-                  data-testid="input-week-ending"
-                />
+                    data-testid="input-week-ending"
+                  />
                 </div>
               </div>
             )}
