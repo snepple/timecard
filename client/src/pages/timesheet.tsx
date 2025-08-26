@@ -949,6 +949,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                 )}
               </div>
             </div>
+          </div>
           ) : (
             /* Selected Employee Display - Clickable to change */
             <div 
