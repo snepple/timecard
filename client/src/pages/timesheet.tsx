@@ -517,6 +517,16 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
     retry: false,
   });
 
+  // Update currentEmployeeEmail when email query data changes
+  useEffect(() => {
+    const fetchedEmail = (employeeEmailQuery.data as { email?: string })?.email;
+    if (fetchedEmail) {
+      setCurrentEmployeeEmail(fetchedEmail);
+    } else {
+      setCurrentEmployeeEmail("");
+    }
+  }, [employeeEmailQuery.data]);
+
   const emailTimesheetMutation = useMutation({
     mutationFn: async (data: { employeeNumber: string; employeeEmail: string; timesheetData: { employeeName: string; weekEnding: string; pdfBuffer: string } }) => {
       const response = await apiRequest("POST", "/api/timesheet/submit-email", data);
