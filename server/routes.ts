@@ -341,6 +341,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const scheduleData = await scheduleResponse.json();
       
       // Check if we have the shifts array (from the processed schedule data)
+      console.log('🔍 DEBUG: Schedule data keys:', Object.keys(scheduleData));
+      console.log('🔍 DEBUG: Has shifts?', !!scheduleData.shifts);
+      console.log('🔍 DEBUG: Has employees?', !!scheduleData.employees);
+      
       if (scheduleData.shifts) {
         // Use the shifts data that already has employee numbers extracted
         const employeeMap = new Map<string, { name: string, number: string }>();
@@ -398,67 +402,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
           syncedCount 
         });
       } else if (scheduleData.employees) {
-        // Fallback: use basic employee list and try to extract numbers from timesheet data
+        // Only update existing employees, never create new ones to avoid duplicates
         const employees = await storage.getEmployeeNumbers();
-        const existingNames = new Set(employees.map(emp => emp.employeeName));
         
         let syncedCount = 0;
-        for (const emp of scheduleData.employees) {
-          const fullName = `${emp.firstName} ${emp.lastName}`;
-          if (!existingNames.has(fullName)) {
-            try {
-              await db.insert(employeeNumbers).values({
-                employeeName: fullName,
-                employeeNumber: "", // Will be updated when shifts are processed
-                email: '',
-              });
-              syncedCount++;
-              console.log(`✅ Added employee: ${fullName} (no number yet)`);
-            } catch (error) {
-              console.log(`⚠️ Employee ${fullName} already exists, skipping`);
-            }
-          }
-        }
         
-        // Try to extract employee numbers from timesheet shift data for each employee
+        // Try to update employee numbers for existing employees
         for (const emp of scheduleData.employees) {
           const fullName = `${emp.firstName} ${emp.lastName}`;
           const nameBasedId = (emp.firstName + emp.lastName).toLowerCase().replace(/[^a-z]/g, '');
           
-          try {
-            // Get shifts for this employee to try extracting actual employee number
-            const shiftResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${nameBasedId}/week/2025-09-20`);
-            if (shiftResponse.ok) {
-              const shifts = await shiftResponse.json();
-              if (shifts.length > 0) {
-                const shift = shifts[0];
-                const description = shift.description || '';
-                const actualEmployeeNumber = extractFromDescriptionServer(description, 'EmployeeNumber');
-                
-                if (actualEmployeeNumber && actualEmployeeNumber !== nameBasedId) {
-                  // Update employee with actual number if found
-                  const existingEmployee = employees.find(e => e.employeeName === fullName);
-                  if (existingEmployee && !existingEmployee.employeeNumber) {
+          // Find existing employee in database
+          const existingEmployee = employees.find(e => e.employeeName === fullName);
+          
+          if (existingEmployee && !existingEmployee.employeeNumber) {
+            try {
+              // Get shifts for this employee to try extracting actual employee number
+              const shiftResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${nameBasedId}/week/2025-09-20`);
+              if (shiftResponse.ok) {
+                const shifts = await shiftResponse.json();
+                if (shifts.length > 0) {
+                  const shift = shifts[0];
+                  const description = shift.description || '';
+                  const actualEmployeeNumber = extractFromDescriptionServer(description, 'EmployeeNumber');
+                  
+                  // Use actual employee number if found, otherwise use name-based as fallback
+                  const employeeNumberToUse = actualEmployeeNumber || nameBasedId;
+                  
+                  if (employeeNumberToUse) {
                     await db
                       .update(employeeNumbers)
                       .set({ 
-                        employeeNumber: actualEmployeeNumber,
+                        employeeNumber: employeeNumberToUse,
                         updatedAt: new Date()
                       })
                       .where(eq(employeeNumbers.id, existingEmployee.id));
-                    console.log(`✅ Updated ${fullName} with actual employee number: ${actualEmployeeNumber}`);
+                    console.log(`✅ Updated ${fullName} with employee number: ${employeeNumberToUse}`);
                     syncedCount++;
                   }
                 }
               }
+            } catch (error) {
+              console.log(`⚠️ Could not extract employee number for ${fullName}:`, error);
             }
-          } catch (error) {
-            console.log(`⚠️ Could not extract employee number for ${fullName}:`, error);
           }
         }
         
         res.json({ 
-          message: `Employee sync completed. ${syncedCount} employees processed.`,
+          message: `Employee sync completed. ${syncedCount} employees updated with IDs.`,
           totalEmployees: scheduleData.employees.length,
           syncedCount 
         });
