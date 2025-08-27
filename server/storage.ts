@@ -12,6 +12,7 @@ export interface IStorage {
   createTimesheet(timesheet: InsertTimesheet): Promise<Timesheet>;
   getTimesheet(id: string): Promise<Timesheet | undefined>;
   getTimesheetsByEmployee(employeeNumber: string): Promise<Timesheet[]>;
+  getTimesheetsByWeek(weekEnding: string): Promise<Timesheet[]>;
   updateTimesheet(id: string, timesheet: Partial<InsertTimesheet>): Promise<Timesheet | undefined>;
   
   // Employee number operations
@@ -28,6 +29,9 @@ export interface IStorage {
   approveTimesheet(id: string, supervisorName: string, comments?: string): Promise<Timesheet | undefined>;
   rejectTimesheet(id: string, supervisorName: string, comments: string): Promise<Timesheet | undefined>;
   getTimesheetsByStatus(status: string): Promise<Timesheet[]>;
+  
+  // Delete operations
+  deleteEmployeeNumber(id: string): Promise<void>;
   
   // Settings operations
   getSetting(key: string): Promise<string | undefined>;
@@ -151,6 +155,12 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getTimesheetsByWeek(weekEnding: string): Promise<Timesheet[]> {
+    return Array.from(this.timesheets.values()).filter(
+      (timesheet) => timesheet.weekEnding === weekEnding
+    );
+  }
+
   async getEmployeeNumbers(): Promise<EmployeeNumber[]> {
     return [];
   }
@@ -183,6 +193,11 @@ export class MemStorage implements IStorage {
 
   async updateEmployeeEmail(employeeNumber: string, email: string): Promise<void> {
     // For MemStorage, we don't persist employee data
+    return;
+  }
+
+  async deleteEmployeeNumber(id: string): Promise<void> {
+    // For MemStorage, no persistent data to delete
     return;
   }
 
@@ -312,6 +327,14 @@ export class DatabaseStorage implements IStorage {
 
   async getTimesheetsByStatus(status: string): Promise<Timesheet[]> {
     return await db.select().from(timesheets).where(eq(timesheets.status, status));
+  }
+
+  async getTimesheetsByWeek(weekEnding: string): Promise<Timesheet[]> {
+    return await db.select().from(timesheets).where(eq(timesheets.weekEnding, weekEnding));
+  }
+
+  async deleteEmployeeNumber(id: string): Promise<void> {
+    await db.delete(employeeNumbers).where(eq(employeeNumbers.id, id));
   }
 
   // Settings operations

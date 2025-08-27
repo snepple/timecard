@@ -452,6 +452,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin timecard summary endpoint
+  app.get("/api/admin/timecard-summary/:weekEnding", async (req, res) => {
+    try {
+      const { weekEnding } = req.params;
+      
+      // Get all employees from schedule
+      const scheduleResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule`);
+      const scheduleData = await scheduleResponse.json();
+      
+      // Get all submitted timesheets for this week
+      const timesheets = await storage.getTimesheetsByWeek(weekEnding);
+      
+      // Get scheduled shifts for this week
+      const weekStart = new Date(weekEnding);
+      weekStart.setDate(weekStart.getDate() - 6); // Get Sunday
+      
+      const summary = [];
+      
+      for (const employee of scheduleData.employees) {
+        // Check if employee has submitted timesheet
+        const submittedTimesheet = timesheets.find(ts => 
+          ts.employeeNumber === employee.employeeNumber || 
+          ts.employeeName === employee.fullName
+        );
+        
+        if (submittedTimesheet) {
+          // Employee submitted timesheet - use their data
+          summary.push({
+            employeeName: employee.fullName,
+            employeeNumber: employee.employeeNumber,
+            hasTimesheet: true,
+            timesheetId: submittedTimesheet.id,
+            sunday: submittedTimesheet.sundayTotalHours || 0,
+            monday: submittedTimesheet.mondayTotalHours || 0,
+            tuesday: submittedTimesheet.tuesdayTotalHours || 0,
+            wednesday: submittedTimesheet.wednesdayTotalHours || 0,
+            thursday: submittedTimesheet.thursdayTotalHours || 0,
+            friday: submittedTimesheet.fridayTotalHours || 0,
+            saturday: submittedTimesheet.saturdayTotalHours || 0,
+            totalHours: submittedTimesheet.totalWeeklyHours || 0
+          });
+        } else {
+          // Employee didn't submit - use scheduled hours
+          try {
+            const shiftsResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${employee.employeeNumber}/week/${weekEnding}`);
+            const shifts = shiftsResponse.ok ? await shiftsResponse.json() : [];
+            
+            // Calculate daily totals from schedule
+            const dailyHours = {
+              sunday: 0, monday: 0, tuesday: 0, wednesday: 0, 
+              thursday: 0, friday: 0, saturday: 0
+            };
+            
+            shifts.forEach((shift: any) => {
+              const shiftDate = new Date(shift.startTime);
+              const dayName = shiftDate.toLocaleDateString('en-US', { weekday: 'lowercase' });
+              if (dailyHours.hasOwnProperty(dayName)) {
+                dailyHours[dayName as keyof typeof dailyHours] += shift.duration || 0;
+              }
+            });
+            
+            const totalScheduled = Object.values(dailyHours).reduce((sum, hours) => sum + hours, 0);
+            
+            if (totalScheduled > 0) {
+              summary.push({
+                employeeName: employee.fullName,
+                employeeNumber: employee.employeeNumber,
+                hasTimesheet: false,
+                timesheetId: null,
+                ...dailyHours,
+                totalHours: totalScheduled
+              });
+            }
+          } catch (error) {
+            console.error(`Error fetching shifts for ${employee.fullName}:`, error);
+          }
+        }
+      }
+      
+      res.json({ summary, weekEnding });
+    } catch (error) {
+      console.error("Error generating timecard summary:", error);
+      res.status(500).json({ message: "Failed to generate timecard summary" });
+    }
+  });
+
   // Email submission endpoint
   app.post("/api/timesheet/submit-email", async (req, res) => {
     try {
