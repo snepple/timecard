@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TimePicker } from "@/components/ui/time-picker";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -1250,39 +1251,21 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                                 <div key={index} className="grid grid-cols-12 gap-2 items-center py-2 bg-gray-50 rounded mb-2 p-3">
                                   <div className="col-span-4">
                                     <Label className="text-xs text-gray-600">Start Time</Label>
-                                    <Select 
-                                      value={shift.startTime || ""} 
-                                      onValueChange={(value) => updateShiftTime(index, 'startTime', value)}
-                                    >
-                                      <SelectTrigger className="text-sm h-8" data-testid={`select-${key}-shift-${index}-start-time`}>
-                                        <SelectValue placeholder="Select time" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {TIME_OPTIONS.map((time) => (
-                                          <SelectItem key={time} value={time}>
-                                            {time}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                                    <TimePicker
+                                      value={shift.startTime || ""}
+                                      onChange={(value) => updateShiftTime(index, 'startTime', value)}
+                                      placeholder="Select start time"
+                                      className="w-full"
+                                    />
                                   </div>
                                   <div className="col-span-4">
                                     <Label className="text-xs text-gray-600">End Time</Label>
-                                    <Select 
-                                      value={shift.endTime || ""} 
-                                      onValueChange={(value) => updateShiftTime(index, 'endTime', value)}
-                                    >
-                                      <SelectTrigger className="text-sm h-8" data-testid={`select-${key}-shift-${index}-end-time`}>
-                                        <SelectValue placeholder="Select time" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {TIME_OPTIONS.map((time) => (
-                                          <SelectItem key={time} value={time}>
-                                            {time}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
+                                    <TimePicker
+                                      value={shift.endTime || ""}
+                                      onChange={(value) => updateShiftTime(index, 'endTime', value)}
+                                      placeholder="Select end time"
+                                      className="w-full"
+                                    />
                                   </div>
                                   <div className="col-span-3 text-center">
                                     <Label className="text-xs text-gray-600">Hours</Label>
