@@ -340,64 +340,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const scheduleResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule`);
       const scheduleData = await scheduleResponse.json();
       
-      // Check if we have the shifts array (from the processed schedule data)
-      console.log('🔍 DEBUG: Schedule data keys:', Object.keys(scheduleData));
-      console.log('🔍 DEBUG: Has shifts?', !!scheduleData.shifts);
-      console.log('🔍 DEBUG: Has employees?', !!scheduleData.employees);
-      
-      if (scheduleData.shifts) {
-        // Use the shifts data that already has employee numbers extracted
+      // Use employee-based approach to update existing employees
+      if (scheduleData.employees) {
+        // Use the shifts data to update existing employees only
+        const employees = await storage.getEmployeeNumbers();
         const employeeMap = new Map<string, { name: string, number: string }>();
         
         scheduleData.shifts.forEach((shift: any) => {
           // Extract employee number from description if available
           const description = shift.description || '';
-          const employeeNumber = extractFromDescriptionServer(description, 'EmployeeNumber') || shift.employeeNumber;
+          const actualEmployeeNumber = extractFromDescriptionServer(description, 'EmployeeNumber');
+          
+          // Use actual employee number if found, otherwise use shift's employee number
+          const employeeNumber = actualEmployeeNumber || shift.employeeNumber;
           
           if (employeeNumber && shift.employeeName) {
-            employeeMap.set(employeeNumber, {
+            employeeMap.set(shift.employeeName, {
               name: shift.employeeName,
               number: employeeNumber
             });
           }
         });
 
-        // Update employee database
+        // Update existing employees only, never create new ones
         let syncedCount = 0;
-        for (const [empNumber, empData] of employeeMap) {
+        for (const [employeeName, empData] of employeeMap) {
           try {
-            // Check if employee exists
-            const employees = await storage.getEmployeeNumbers();
-            const existing = employees.find(emp => emp.employeeNumber === empNumber);
+            // Find existing employee by name
+            const existing = employees.find(emp => emp.employeeName === employeeName);
             
-            if (!existing) {
-              // Create new employee record
-              await db.insert(employeeNumbers).values({
-                employeeName: empData.name,
-                employeeNumber: empNumber,
-                email: '',
-              });
-              syncedCount++;
-              console.log(`✅ Added employee: ${empData.name} (${empNumber})`);
-            } else if (existing.employeeName !== empData.name) {
-              // Update employee name if it has changed
+            if (existing && !existing.employeeNumber) {
+              // Update employee with extracted number
               await db
                 .update(employeeNumbers)
                 .set({ 
-                  employeeName: empData.name,
+                  employeeNumber: empData.number,
                   updatedAt: new Date()
                 })
                 .where(eq(employeeNumbers.id, existing.id));
               syncedCount++;
-              console.log(`✅ Updated employee: ${empData.name} (${empNumber})`);
+              console.log(`✅ Updated ${employeeName} with employee number: ${empData.number}`);
             }
           } catch (error) {
-            console.error(`Error syncing employee ${empNumber}:`, error);
+            console.error(`Error syncing employee ${employeeName}:`, error);
           }
         }
 
         res.json({ 
-          message: `Employee sync completed. ${syncedCount} employees updated.`,
+          message: `Employee sync completed. ${syncedCount} employees updated with IDs.`,
           totalEmployees: employeeMap.size,
           syncedCount 
         });
