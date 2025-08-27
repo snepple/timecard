@@ -170,7 +170,7 @@ export function TimePicker({ value, onChange, placeholder = "Select time", disab
                         size="sm"
                         className="w-full h-8 text-sm"
                         onClick={() => setSelectedHour(hour)}
-                        disabled={isHourDisabled}
+                        disabled={isHourDisabled || false}
                       >
                         {hour}
                       </Button>
@@ -203,7 +203,7 @@ export function TimePicker({ value, onChange, placeholder = "Select time", disab
                         size="sm"
                         className="w-full h-8 text-sm"
                         onClick={() => setSelectedMinute(minute)}
-                        disabled={isMinuteDisabled}
+                        disabled={isMinuteDisabled || false}
                       >
                         {minute.toString().padStart(2, '0')}
                       </Button>
