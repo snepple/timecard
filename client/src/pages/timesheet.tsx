@@ -339,17 +339,11 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         // Separate night duty from regular shifts
         let nightDutyShifts: Shift[] = [];
         dayShifts.forEach((shift) => {
-          // Check for night duty/rescue coverage - look for "PositionName:Night Duty" in description
-          const description = (shift.description || '').toLowerCase();
-          const position = (shift.position || '').toLowerCase();
+          // Check for night duty using PositionName field from ICS description
+          const description = (shift.description || '');
           
-          const isNightDuty = description.includes('positionname:night duty') ||
-                             description.includes('position name: night duty') ||
-                             description.includes('positionname: night duty') ||
-                             position.includes('night duty') || 
-                             position.includes('nightduty') || 
-                             position === 'night duty' ||
-                             position.startsWith('night duty');
+          // Look for the exact ICS format: PositionName:Night Duty (case insensitive)
+          const isNightDuty = /PositionName:\s*Night\s*Duty/i.test(description);
           
           if (isNightDuty) {
             hasNightDuty = true;
