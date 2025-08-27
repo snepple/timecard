@@ -801,38 +801,6 @@ function extractFieldServer(eventData: string, fieldName: string): string | null
     }
   }
   
-  // Debug logging for DESCRIPTION field when processing Anthony
-  if (fieldName === 'DESCRIPTION' && result.includes('Anthony')) {
-    console.log(`🔍 DEBUG: Anthony description with EmployeeNumber extraction attempt`);
-    
-    // Test the extraction function directly
-    const extractedNumber = extractFromDescriptionServer(result, 'EmployeeNumber');
-    if (extractedNumber) {
-      console.log(`✅ FOUND EmployeeNumber: ${extractedNumber}`);
-    } else {
-      console.log(`❌ extractFromDescriptionServer couldn't find EmployeeNumber`);
-      
-      // Show what the single-line version looks like
-      const singleLine = result.replace(/\n/g, '').replace(/\s+/g, ' ');
-      const empPattern = singleLine.match(/\(EmployeeNumber:([^)]+)\)/);
-      console.log(`Single-line contains pattern?`, !!empPattern);
-      if (empPattern) {
-        console.log(`Found pattern: ${empPattern[0]}, value: ${empPattern[1]}`);
-      } else {
-        // Show a sample of the single-line version to debug the pattern
-        const empIndex = singleLine.indexOf('EmployeeNumber');
-        if (empIndex !== -1) {
-          const sample = singleLine.substring(empIndex - 10, empIndex + 30);
-          console.log(`Found 'EmployeeNumber' at position ${empIndex}, sample: "${sample}"`);
-        } else {
-          console.log(`'EmployeeNumber' not found in single-line version`);
-          // Look for partial matches
-          const empPartial = singleLine.match(/[Ee]mployee.*?(\d+)/);
-          console.log(`Partial employee match:`, empPartial);
-        }
-      }
-    }
-  }
   
   return result ? result.trim() : null;
 }
@@ -843,18 +811,40 @@ function extractFromDescriptionServer(description: string, fieldName: string): s
   
   // Special handling for EmployeeNumber since it's being split across lines
   if (fieldName === 'EmployeeNumber') {
-    // Look for the pattern where EmployeeNumber might be split across lines
-    // Pattern: (Emplo<newline>yeeNumber:908) or similar
-    const combinedPattern = cleanDescription.replace(/\n/g, '');
-    const empMatch = combinedPattern.match(/\(.*?EmployeeNumber:(\d+)\)/);
+    // First, try to reconstruct the split pattern
+    // Remove newlines but preserve other structure
+    let reconstructed = cleanDescription;
+    
+    // Handle specific case where "Employee" is split as "Emplo\nyeeNumber"
+    reconstructed = reconstructed.replace(/Emplo\s*\n\s*yeeNumber/g, 'EmployeeNumber');
+    
+    // Handle other potential splits
+    reconstructed = reconstructed.replace(/Employee\s*\n\s*Number/g, 'EmployeeNumber');
+    
+    // Now look for the standard pattern
+    const empMatch = reconstructed.match(/\(EmployeeNumber:(\d+)\)/);
     if (empMatch) {
       return empMatch[1];
     }
     
-    // Also try looking for just the numeric value after any "Employee" related text
-    const numericMatch = cleanDescription.match(/[Ee]mploy.*?(\d{3,4})/);
-    if (numericMatch) {
-      return numericMatch[1];
+    // Alternative approach: look for 3-4 digit numbers after any "emplo" text (case insensitive)
+    const patterns = [
+      /\([^)]*[Ee]mplo[^)]*:(\d{3,4})\)/,  // (anything with "emplo":908)
+      /[Ee]mplo[^:]{0,20}:(\d{3,4})/,      // emplo....:908
+      /\(ShiftEmpID:\d+\)[^(]*\([^)]*:(\d{3,4})\)/, // Look after ShiftEmpID
+    ];
+    
+    for (const pattern of patterns) {
+      const match = cleanDescription.match(pattern);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+    
+    // Final fallback: look for any 3-4 digit number in parentheses after position data
+    const fallbackMatch = cleanDescription.match(/\(PositionName:[^)]+\)[^(]*\([^)]*:(\d{3,4})\)/);
+    if (fallbackMatch) {
+      return fallbackMatch[1];
     }
   }
   
