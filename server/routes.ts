@@ -333,6 +333,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Sync employee database with schedule data
+  app.post("/api/employee-numbers/sync", async (req, res) => {
+    try {
+      // Get current schedule data
+      const scheduleResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule`);
+      const scheduleData = await scheduleResponse.json();
+      
+      // Check if we have the shifts array (from the processed schedule data)
+      if (scheduleData.shifts) {
+        // Use the shifts data that already has employee numbers extracted
+        const employeeMap = new Map<string, { name: string, number: string }>();
+        
+        scheduleData.shifts.forEach((shift: any) => {
+          // Extract employee number from description if available
+          const description = shift.description || '';
+          const employeeNumber = extractFromDescriptionServer(description, 'EmployeeNumber') || shift.employeeNumber;
+          
+          if (employeeNumber && shift.employeeName) {
+            employeeMap.set(employeeNumber, {
+              name: shift.employeeName,
+              number: employeeNumber
+            });
+          }
+        });
+
+        // Update employee database
+        let syncedCount = 0;
+        for (const [empNumber, empData] of employeeMap) {
+          try {
+            // Check if employee exists
+            const employees = await storage.getEmployeeNumbers();
+            const existing = employees.find(emp => emp.employeeNumber === empNumber);
+            
+            if (!existing) {
+              // Create new employee record
+              await db.insert(employeeNumbers).values({
+                employeeName: empData.name,
+                employeeNumber: empNumber,
+                email: '',
+              });
+              syncedCount++;
+              console.log(`✅ Added employee: ${empData.name} (${empNumber})`);
+            } else if (existing.employeeName !== empData.name) {
+              // Update employee name if it has changed
+              await db
+                .update(employeeNumbers)
+                .set({ 
+                  employeeName: empData.name,
+                  updatedAt: new Date()
+                })
+                .where(eq(employeeNumbers.id, existing.id));
+              syncedCount++;
+              console.log(`✅ Updated employee: ${empData.name} (${empNumber})`);
+            }
+          } catch (error) {
+            console.error(`Error syncing employee ${empNumber}:`, error);
+          }
+        }
+
+        res.json({ 
+          message: `Employee sync completed. ${syncedCount} employees updated.`,
+          totalEmployees: employeeMap.size,
+          syncedCount 
+        });
+      } else if (scheduleData.employees) {
+        // Fallback: use basic employee list (without actual employee numbers)
+        const employees = await storage.getEmployeeNumbers();
+        const existingNames = new Set(employees.map(emp => emp.employeeName));
+        
+        let syncedCount = 0;
+        for (const emp of scheduleData.employees) {
+          const fullName = `${emp.firstName} ${emp.lastName}`;
+          if (!existingNames.has(fullName)) {
+            try {
+              await db.insert(employeeNumbers).values({
+                employeeName: fullName,
+                employeeNumber: "", // Will be updated when shifts are processed
+                email: '',
+              });
+              syncedCount++;
+              console.log(`✅ Added employee: ${fullName} (no number yet)`);
+            } catch (error) {
+              console.log(`⚠️ Employee ${fullName} already exists, skipping`);
+            }
+          }
+        }
+        
+        res.json({ 
+          message: `Basic employee sync completed. ${syncedCount} employees added without numbers.`,
+          totalEmployees: scheduleData.employees.length,
+          syncedCount 
+        });
+      } else {
+        res.status(404).json({ message: "No schedule data available" });
+      }
+    } catch (error) {
+      console.error("Error syncing employee data:", error);
+      res.status(500).json({ message: "Failed to sync employee data" });
+    }
+  });
+
   // Email submission endpoint
   app.post("/api/timesheet/submit-email", async (req, res) => {
     try {
@@ -441,52 +542,6 @@ Oakland Fire-Rescue Timesheet System`;
     }
   });
 
-  // Sync employees from schedule
-  app.post("/api/employee-numbers/sync", async (req, res) => {
-    try {
-      // Get current employees from schedule
-      const scheduleResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule`);
-      const scheduleData = await scheduleResponse.json();
-      
-      if (!scheduleData.employees) {
-        res.status(400).json({ message: "No employee data in schedule" });
-        return;
-      }
-      
-      // Get existing employee names
-      const existingEmployees = await db.select().from(employeeNumbers);
-      const existingNames = new Set(existingEmployees.map(emp => emp.employeeName));
-      
-      // Add employees from schedule who don't exist
-      const newEmployees = [];
-      for (const emp of scheduleData.employees) {
-        const fullName = `${emp.firstName} ${emp.lastName}`;
-        if (!existingNames.has(fullName)) {
-          try {
-            const [newEmployee] = await db
-              .insert(employeeNumbers)
-              .values({ 
-                employeeName: fullName, 
-                employeeNumber: "" // Will be filled when they create timesheet
-              })
-              .returning();
-            newEmployees.push(newEmployee);
-          } catch (insertError) {
-            // Skip if employee already exists (race condition)
-            console.log(`Employee ${fullName} already exists, skipping`);
-          }
-        }
-      }
-      
-      res.json({ 
-        message: `Synced ${newEmployees.length} new employees from schedule`,
-        newEmployees 
-      });
-    } catch (error) {
-      console.error("Error syncing employees:", error);
-      res.status(500).json({ message: "Failed to sync employees from schedule" });
-    }
-  });
 
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {
@@ -679,8 +734,12 @@ function parseEventServer(eventData: string): any | null {
     
     const employeeFirst = nameParts[0];
     const employeeLast = nameParts[1];
-    // Generate a simple employee number from name
-    const employeeNumber = (employeeFirst + employeeLast).toLowerCase().replace(/[^a-z]/g, '');
+    
+    // Extract actual employee number from description (e.g., "(EmployeeNumber:936)")
+    const actualEmployeeNumber = extractFromDescriptionServer(description || '', 'EmployeeNumber');
+    
+    // Use actual employee number if available, otherwise fallback to name-based
+    const employeeNumber = actualEmployeeNumber || (employeeFirst + employeeLast).toLowerCase().replace(/[^a-z]/g, '');
     
     // Extract position from description if available, otherwise default
     const positionName = extractFromDescriptionServer(description || '', 'PositionName') || 'Firefighter';
