@@ -199,6 +199,7 @@ interface Shift {
   position: string;
   duration: number;
   date: string;
+  description?: string;
 }
 
 interface ScheduleData {
