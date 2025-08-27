@@ -89,49 +89,8 @@ export function TimePicker({ value, onChange, placeholder = "Select time", disab
     }
   }, [value]);
 
-  // Generate available hours based on constraints
-  const generateHours = () => {
-    const hours = Array.from({ length: 12 }, (_, i) => i + 1);
-    
-    if (type === 'end' && startTime) {
-      // Filter hours based on start time constraints
-      return hours.filter(hour => {
-        const periods = selectedPeriod === 'AM' ? ['AM'] : ['PM'];
-        return periods.some(period => {
-          let actualHour = hour;
-          if (period === 'PM' && hour !== 12) {
-            actualHour = hour + 12;
-          } else if (period === 'AM' && hour === 12) {
-            actualHour = 0;
-          }
-          const timeStr = `${actualHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`;
-          return isValidEndTime(timeStr, startTime);
-        });
-      });
-    }
-    
-    return hours;
-  };
-  
-  const generateMinutes = () => {
-    const minutes = [0, 15, 30, 45];
-    
-    if (type === 'end' && startTime) {
-      // Filter minutes based on start time constraints
-      return minutes.filter(minute => {
-        let actualHour = selectedHour;
-        if (selectedPeriod === 'PM' && selectedHour !== 12) {
-          actualHour = selectedHour + 12;
-        } else if (selectedPeriod === 'AM' && selectedHour === 12) {
-          actualHour = 0;
-        }
-        const timeStr = `${actualHour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        return isValidEndTime(timeStr, startTime);
-      });
-    }
-    
-    return minutes;
-  };
+  const generateHours = () => Array.from({ length: 12 }, (_, i) => i + 1);
+  const generateMinutes = () => [0, 15, 30, 45];
 
   const handleConfirm = () => {
     let actualHour = selectedHour;
@@ -191,17 +150,32 @@ export function TimePicker({ value, onChange, placeholder = "Select time", disab
               <div>
                 <div className="text-xs text-muted-foreground mb-2">Hour</div>
                 <div className="space-y-1 max-h-32 overflow-y-auto">
-                  {generateHours().map((hour) => (
-                    <Button
-                      key={hour}
-                      variant={selectedHour === hour ? "default" : "ghost"}
-                      size="sm"
-                      className="w-full h-8 text-sm"
-                      onClick={() => setSelectedHour(hour)}
-                    >
-                      {hour}
-                    </Button>
-                  ))}
+                  {generateHours().map((hour) => {
+                    // Check if this hour would be valid for end time selection
+                    const isHourDisabled = type === 'end' && startTime && (() => {
+                      let actualHour = hour;
+                      if (selectedPeriod === 'PM' && hour !== 12) {
+                        actualHour = hour + 12;
+                      } else if (selectedPeriod === 'AM' && hour === 12) {
+                        actualHour = 0;
+                      }
+                      const testTime = `${actualHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`;
+                      return !isValidEndTime(testTime, startTime);
+                    })();
+                    
+                    return (
+                      <Button
+                        key={hour}
+                        variant={selectedHour === hour ? "default" : "ghost"}
+                        size="sm"
+                        className="w-full h-8 text-sm"
+                        onClick={() => setSelectedHour(hour)}
+                        disabled={isHourDisabled}
+                      >
+                        {hour}
+                      </Button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -209,17 +183,32 @@ export function TimePicker({ value, onChange, placeholder = "Select time", disab
               <div>
                 <div className="text-xs text-muted-foreground mb-2">Minute</div>
                 <div className="space-y-1">
-                  {generateMinutes().map((minute) => (
-                    <Button
-                      key={minute}
-                      variant={selectedMinute === minute ? "default" : "ghost"}
-                      size="sm"
-                      className="w-full h-8 text-sm"
-                      onClick={() => setSelectedMinute(minute)}
-                    >
-                      {minute.toString().padStart(2, '0')}
-                    </Button>
-                  ))}
+                  {generateMinutes().map((minute) => {
+                    // Check if this minute would be valid for end time selection
+                    const isMinuteDisabled = type === 'end' && startTime && (() => {
+                      let actualHour = selectedHour;
+                      if (selectedPeriod === 'PM' && selectedHour !== 12) {
+                        actualHour = selectedHour + 12;
+                      } else if (selectedPeriod === 'AM' && selectedHour === 12) {
+                        actualHour = 0;
+                      }
+                      const testTime = `${actualHour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                      return !isValidEndTime(testTime, startTime);
+                    })();
+                    
+                    return (
+                      <Button
+                        key={minute}
+                        variant={selectedMinute === minute ? "default" : "ghost"}
+                        size="sm"
+                        className="w-full h-8 text-sm"
+                        onClick={() => setSelectedMinute(minute)}
+                        disabled={isMinuteDisabled}
+                      >
+                        {minute.toString().padStart(2, '0')}
+                      </Button>
+                    );
+                  })}
                 </div>
               </div>
 
