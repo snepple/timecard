@@ -696,7 +696,27 @@ function parseICSDataOnServer(icsContent: string) {
         employeeNumber: shift.employeeNumber,
       };
       
-      employeeMap.set(employee.employeeNumber, employee);
+      // Use full name as key to prevent duplicates of the same person
+      // If this employee already exists, keep the one with a proper numeric employee number
+      const existingEmployee = employeeMap.get(employee.fullName);
+      if (existingEmployee) {
+        // Keep the employee with a numeric employee number if possible
+        const currentIsNumeric = /^\d+$/.test(employee.employeeNumber);
+        const existingIsNumeric = /^\d+$/.test(existingEmployee.employeeNumber);
+        
+        if (currentIsNumeric && !existingIsNumeric) {
+          // Replace with the numeric employee number
+          employeeMap.set(employee.fullName, employee);
+        } else if (!currentIsNumeric && existingIsNumeric) {
+          // Keep existing numeric employee number
+          // Don't update
+        } else {
+          // Both are numeric or both are non-numeric, keep the first one
+          // Don't update to avoid duplicates
+        }
+      } else {
+        employeeMap.set(employee.fullName, employee);
+      }
     }
   }
 
