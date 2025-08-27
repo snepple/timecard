@@ -357,11 +357,11 @@ export function TimecardSummaryReport() {
                         <TableCell className="text-center">
                           {renderHoursWithTooltip(employee.saturday, employee.shiftTimes?.saturday, 'saturday')}
                         </TableCell>
-                        <TableCell className="text-center font-medium">
+                        <TableCell className="text-center font-medium min-w-[120px]">
                           <div>
                             {formatHours(employee.totalHours)}
                             {employee.totalHours > 0 && (
-                              <div className="text-xs text-gray-500 mt-1">
+                              <div className="text-xs text-gray-500 mt-1 whitespace-nowrap">
                                 Reg: {employee.regularHours} / OT: {employee.overtimeHours}
                               </div>
                             )}
