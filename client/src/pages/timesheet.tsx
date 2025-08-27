@@ -1367,7 +1367,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                               <Checkbox
                                 checked={field.value === true}
                                 onCheckedChange={field.onChange}
-                                className="w-5 h-5"
+                                className="w-6 h-6"
                                 data-testid={`checkbox-${key}`}
                               />
                             </FormControl>
@@ -1393,6 +1393,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                       <Checkbox
                         checked={field.value === true}
                         onCheckedChange={field.onChange}
+                        className="w-6 h-6"
                         data-testid="checkbox-acknowledgment"
                       />
                     </FormControl>
