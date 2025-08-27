@@ -15,7 +15,7 @@ interface WeekPickerProps {
 // Helper function to get the Saturday of the week containing the given date
 function getWeekEndingDate(date: Date): string {
   const day = date.getDay(); // 0 = Sunday, 6 = Saturday
-  const daysToSaturday = (6 - day) % 7;
+  const daysToSaturday = day === 6 ? 0 : (6 - day); // If already Saturday, stay on same day
   const saturday = new Date(date);
   saturday.setDate(date.getDate() + daysToSaturday);
   return saturday.toISOString().split('T')[0];
@@ -93,8 +93,8 @@ export function WeekPicker({ value, onChange, placeholder = "Select week ending 
     if (!selectedDate) return placeholder;
     
     const weekDates = getWeekDates(value!);
-    const startDate = weekDates[0];
-    const endDate = weekDates[6];
+    const startDate = weekDates[0];  // Sunday
+    const endDate = weekDates[6];    // Saturday
     
     const formatDate = (date: Date) => {
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
