@@ -786,17 +786,51 @@ function extractFieldServer(eventData: string, fieldName: string): string | null
   let inField = false;
   
   for (let i = 0; i < lines.length; i++) {
+    const originalLine = lines[i]; // Keep original line to check for leading space/tab
     const line = lines[i].trim();
     
     if (line.startsWith(`${fieldName}:`)) {
       inField = true;
       result = line.substring(fieldName.length + 1);
-    } else if (inField && line.startsWith(' ')) {
-      // Continuation line
-      result += line.substring(1);
-    } else if (inField) {
-      // End of field
+    } else if (inField && (originalLine.startsWith(' ') || originalLine.startsWith('\t'))) {
+      // Continuation line (starts with space or tab)
+      result += originalLine.substring(1); // Remove the leading space/tab
+    } else if (inField && originalLine.trim() !== '') {
+      // End of field (non-empty line that doesn't start with space/tab)
       break;
+    }
+  }
+  
+  // Debug logging for DESCRIPTION field when processing Anthony
+  if (fieldName === 'DESCRIPTION' && result.includes('Anthony')) {
+    console.log(`🔍 DEBUG: Anthony description with EmployeeNumber extraction attempt`);
+    
+    // Test the extraction function directly
+    const extractedNumber = extractFromDescriptionServer(result, 'EmployeeNumber');
+    if (extractedNumber) {
+      console.log(`✅ FOUND EmployeeNumber: ${extractedNumber}`);
+    } else {
+      console.log(`❌ extractFromDescriptionServer couldn't find EmployeeNumber`);
+      
+      // Show what the single-line version looks like
+      const singleLine = result.replace(/\n/g, '').replace(/\s+/g, ' ');
+      const empPattern = singleLine.match(/\(EmployeeNumber:([^)]+)\)/);
+      console.log(`Single-line contains pattern?`, !!empPattern);
+      if (empPattern) {
+        console.log(`Found pattern: ${empPattern[0]}, value: ${empPattern[1]}`);
+      } else {
+        // Show a sample of the single-line version to debug the pattern
+        const empIndex = singleLine.indexOf('EmployeeNumber');
+        if (empIndex !== -1) {
+          const sample = singleLine.substring(empIndex - 10, empIndex + 30);
+          console.log(`Found 'EmployeeNumber' at position ${empIndex}, sample: "${sample}"`);
+        } else {
+          console.log(`'EmployeeNumber' not found in single-line version`);
+          // Look for partial matches
+          const empPartial = singleLine.match(/[Ee]mployee.*?(\d+)/);
+          console.log(`Partial employee match:`, empPartial);
+        }
+      }
     }
   }
   
@@ -807,6 +841,26 @@ function extractFromDescriptionServer(description: string, fieldName: string): s
   // Handle escaped newlines and other escape sequences
   const cleanDescription = description.replace(/\\n/g, '\n').replace(/\\,/g, ',');
   
+  // Special handling for EmployeeNumber since it's being split across lines
+  if (fieldName === 'EmployeeNumber') {
+    // Look for the pattern where EmployeeNumber might be split across lines
+    // Pattern: (Emplo<newline>yeeNumber:908) or similar
+    const combinedPattern = cleanDescription.replace(/\n/g, '');
+    const empMatch = combinedPattern.match(/\(.*?EmployeeNumber:(\d+)\)/);
+    if (empMatch) {
+      return empMatch[1];
+    }
+    
+    // Also try looking for just the numeric value after any "Employee" related text
+    const numericMatch = cleanDescription.match(/[Ee]mploy.*?(\d{3,4})/);
+    if (numericMatch) {
+      return numericMatch[1];
+    }
+  }
+  
+  // Remove all newlines and extra whitespace to handle fields split across lines
+  const singleLineDescription = cleanDescription.replace(/\n/g, '').replace(/\s+/g, ' ');
+  
   // Try multiple regex patterns for the field format
   const patterns = [
     new RegExp(`\\(${fieldName}:([^)]+)\\)`), // (FieldName:Value)
@@ -815,7 +869,7 @@ function extractFromDescriptionServer(description: string, fieldName: string): s
   ];
   
   for (const pattern of patterns) {
-    const match = cleanDescription.match(pattern);
+    const match = singleLineDescription.match(pattern);
     if (match && match[1].trim()) {
       return match[1].trim();
     }

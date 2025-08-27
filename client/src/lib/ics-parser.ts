@@ -109,9 +109,36 @@ function parseEvent(eventData: string): Shift | null {
 }
 
 function extractField(eventData: string, fieldName: string): string | null {
-  const regex = new RegExp(`^${fieldName}:(.*)$`, 'm');
-  const match = eventData.match(regex);
-  return match ? match[1].trim() : null;
+  // ICS format can have line continuations - lines starting with space or tab are continuations
+  const lines = eventData.split('\n');
+  let result = '';
+  let foundField = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    if (line.startsWith(`${fieldName}:`)) {
+      // Found the field, extract initial value
+      result = line.substring(fieldName.length + 1);
+      foundField = true;
+    } else if (foundField && (lines[i].startsWith(' ') || lines[i].startsWith('\t'))) {
+      // This is a continuation line
+      result += lines[i].substring(1); // Remove the leading space/tab
+    } else if (foundField && !lines[i].startsWith(' ') && !lines[i].startsWith('\t')) {
+      // Found a new field, stop collecting continuation lines
+      break;
+    }
+  }
+  
+  if (foundField) {
+    // Debug log for DESCRIPTION field to see what we're getting
+    if (fieldName === 'DESCRIPTION' && result.includes('Anthony')) {
+      console.log(`🔍 DEBUG: Extracted ${fieldName} for Anthony:`, result.substring(0, 200) + '...');
+    }
+    return result.trim();
+  }
+  
+  return null;
 }
 
 function extractFromDescription(description: string, fieldName: string): string {
