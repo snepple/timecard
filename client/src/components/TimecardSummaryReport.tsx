@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,8 +28,25 @@ interface TimecardSummaryResponse {
   weekEnding: string;
 }
 
+// Helper function to get current week ending (Saturday)
+function getCurrentWeekEnding(): string {
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
+  const daysUntilSaturday = (6 - dayOfWeek) % 7;
+  const saturday = new Date(today);
+  saturday.setDate(today.getDate() + daysUntilSaturday);
+  return saturday.toISOString().split('T')[0];
+}
+
 export function TimecardSummaryReport() {
   const [selectedWeekEnding, setSelectedWeekEnding] = useState<string>("");
+  
+  // Set default week ending to current week on component mount
+  useEffect(() => {
+    if (!selectedWeekEnding) {
+      setSelectedWeekEnding(getCurrentWeekEnding());
+    }
+  }, []);
 
   // Fetch timecard summary data
   const summaryQuery = useQuery<TimecardSummaryResponse>({

@@ -508,6 +508,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             };
             
             shifts.forEach((shift: any) => {
+              // Skip Night Duty shifts
+              if (shift.position === 'Night Duty') {
+                return;
+              }
+              
               const shiftDate = new Date(shift.startTime);
               const dayName = shiftDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
               if (dailyHours.hasOwnProperty(dayName)) {
