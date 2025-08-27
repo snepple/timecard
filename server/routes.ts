@@ -398,7 +398,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           syncedCount 
         });
       } else if (scheduleData.employees) {
-        // Fallback: use basic employee list (without actual employee numbers)
+        // Fallback: use basic employee list and try to extract numbers from timesheet data
         const employees = await storage.getEmployeeNumbers();
         const existingNames = new Set(employees.map(emp => emp.employeeName));
         
@@ -420,8 +420,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
+        // Try to extract employee numbers from timesheet shift data for each employee
+        for (const emp of scheduleData.employees) {
+          const fullName = `${emp.firstName} ${emp.lastName}`;
+          const nameBasedId = (emp.firstName + emp.lastName).toLowerCase().replace(/[^a-z]/g, '');
+          
+          try {
+            // Get shifts for this employee to try extracting actual employee number
+            const shiftResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${nameBasedId}/week/2025-09-20`);
+            if (shiftResponse.ok) {
+              const shifts = await shiftResponse.json();
+              if (shifts.length > 0) {
+                const shift = shifts[0];
+                const description = shift.description || '';
+                const actualEmployeeNumber = extractFromDescriptionServer(description, 'EmployeeNumber');
+                
+                if (actualEmployeeNumber && actualEmployeeNumber !== nameBasedId) {
+                  // Update employee with actual number if found
+                  const existingEmployee = employees.find(e => e.employeeName === fullName);
+                  if (existingEmployee && !existingEmployee.employeeNumber) {
+                    await db
+                      .update(employeeNumbers)
+                      .set({ 
+                        employeeNumber: actualEmployeeNumber,
+                        updatedAt: new Date()
+                      })
+                      .where(eq(employeeNumbers.id, existingEmployee.id));
+                    console.log(`✅ Updated ${fullName} with actual employee number: ${actualEmployeeNumber}`);
+                    syncedCount++;
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            console.log(`⚠️ Could not extract employee number for ${fullName}:`, error);
+          }
+        }
+        
         res.json({ 
-          message: `Basic employee sync completed. ${syncedCount} employees added without numbers.`,
+          message: `Employee sync completed. ${syncedCount} employees processed.`,
           totalEmployees: scheduleData.employees.length,
           syncedCount 
         });
