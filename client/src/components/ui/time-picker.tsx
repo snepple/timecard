@@ -65,29 +65,75 @@ function isValidEndTime(time: string, startTime?: string): boolean {
 
 export function TimePicker({ value, onChange, placeholder = "Select time", disabled = false, className, type = 'start', startTime }: TimePickerProps) {
   const [open, setOpen] = useState(false);
-  const [selectedHour, setSelectedHour] = useState(8);
-  const [selectedMinute, setSelectedMinute] = useState(15);
-  const [selectedPeriod, setSelectedPeriod] = useState<'AM' | 'PM'>('AM');
-
-  React.useEffect(() => {
+  
+  // Initialize with smart defaults based on context
+  const getInitialValues = () => {
     if (value) {
       const [h, m] = value.split(':').map(Number);
       let displayHour = h;
+      let period: 'AM' | 'PM' = 'AM';
+      
       if (h === 0) {
         displayHour = 12;
-        setSelectedPeriod('AM');
+        period = 'AM';
       } else if (h > 12) {
         displayHour = h - 12;
-        setSelectedPeriod('PM');
+        period = 'PM';
       } else if (h === 12) {
-        setSelectedPeriod('PM');
-      } else {
-        setSelectedPeriod('AM');
+        period = 'PM';
       }
-      setSelectedHour(displayHour);
-      setSelectedMinute(m);
+      
+      return { hour: displayHour, minute: m, period };
     }
-  }, [value]);
+    
+    // For end time picker, initialize to 15 minutes after start time if available
+    if (type === 'end' && startTime) {
+      const [startH, startM] = startTime.split(':').map(Number);
+      let newHour = startH;
+      let newMinute = startM + 15;
+      
+      // Handle minute overflow
+      if (newMinute >= 60) {
+        newHour += 1;
+        newMinute -= 60;
+      }
+      
+      // Handle hour overflow
+      if (newHour >= 24) {
+        newHour -= 24;
+      }
+      
+      let displayHour = newHour;
+      let period: 'AM' | 'PM' = 'AM';
+      
+      if (newHour === 0) {
+        displayHour = 12;
+        period = 'AM';
+      } else if (newHour > 12) {
+        displayHour = newHour - 12;
+        period = 'PM';
+      } else if (newHour === 12) {
+        period = 'PM';
+      }
+      
+      return { hour: displayHour, minute: newMinute, period };
+    }
+    
+    // Default fallback
+    return { hour: 8, minute: 0, period: 'AM' as 'AM' | 'PM' };
+  };
+  
+  const initialValues = getInitialValues();
+  const [selectedHour, setSelectedHour] = useState(initialValues.hour);
+  const [selectedMinute, setSelectedMinute] = useState(initialValues.minute);
+  const [selectedPeriod, setSelectedPeriod] = useState(initialValues.period);
+
+  React.useEffect(() => {
+    const newValues = getInitialValues();
+    setSelectedHour(newValues.hour);
+    setSelectedMinute(newValues.minute);
+    setSelectedPeriod(newValues.period);
+  }, [value, startTime]);
 
   const generateHours = () => Array.from({ length: 12 }, (_, i) => i + 1);
   const generateMinutes = () => [0, 15, 30, 45];
@@ -186,6 +232,7 @@ export function TimePicker({ value, onChange, placeholder = "Select time", disab
                   {generateMinutes().map((minute) => {
                     // Check if this minute would be valid for end time selection
                     const isMinuteDisabled = type === 'end' && startTime && (() => {
+                      // Use the actual hour value based on current state
                       let actualHour = selectedHour;
                       if (selectedPeriod === 'PM' && selectedHour !== 12) {
                         actualHour = selectedHour + 12;
