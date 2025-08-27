@@ -294,6 +294,8 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
 
   // Auto-populate timecard when employee is selected
   const autoPopulateFromSchedule = async (employeeNumber: string, weekEnding: string) => {
+    console.log('🚀 AUTO-POPULATE STARTING for employee', employeeNumber, 'week ending', weekEnding);
+    
     if (!employeeNumber || !weekEnding) return;
     
     try {
@@ -301,6 +303,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       if (!response.ok) return;
       
       const shifts: Shift[] = await response.json();
+      console.log('📅 Found shifts for week:', shifts.length, shifts);
       
       // Clear existing shifts
       DAYS_OF_WEEK.forEach(({ key }) => {
