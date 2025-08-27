@@ -493,7 +493,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             thursday: submittedTimesheet.thursdayTotalHours || 0,
             friday: submittedTimesheet.fridayTotalHours || 0,
             saturday: submittedTimesheet.saturdayTotalHours || 0,
-            totalHours: submittedTimesheet.totalWeeklyHours || 0
+            totalHours: submittedTimesheet.totalWeeklyHours || 0,
+            shiftTimes: {
+              sunday: [`${submittedTimesheet.sundayStartTime || ''} - ${submittedTimesheet.sundayEndTime || ''}`].filter(t => t.trim() !== ' - '),
+              monday: [`${submittedTimesheet.mondayStartTime || ''} - ${submittedTimesheet.mondayEndTime || ''}`].filter(t => t.trim() !== ' - '),
+              tuesday: [`${submittedTimesheet.tuesdayStartTime || ''} - ${submittedTimesheet.tuesdayEndTime || ''}`].filter(t => t.trim() !== ' - '),
+              wednesday: [`${submittedTimesheet.wednesdayStartTime || ''} - ${submittedTimesheet.wednesdayEndTime || ''}`].filter(t => t.trim() !== ' - '),
+              thursday: [`${submittedTimesheet.thursdayStartTime || ''} - ${submittedTimesheet.thursdayEndTime || ''}`].filter(t => t.trim() !== ' - '),
+              friday: [`${submittedTimesheet.fridayStartTime || ''} - ${submittedTimesheet.fridayEndTime || ''}`].filter(t => t.trim() !== ' - '),
+              saturday: [`${submittedTimesheet.saturdayStartTime || ''} - ${submittedTimesheet.saturdayEndTime || ''}`].filter(t => t.trim() !== ' - ')
+            }
           });
         } else {
           // Employee didn't submit - use scheduled hours
@@ -501,10 +510,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const shiftsResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${employee.employeeNumber}/week/${weekEnding}`);
             const shifts = shiftsResponse.ok ? await shiftsResponse.json() : [];
             
-            // Calculate daily totals from schedule
+            // Calculate daily totals and times from schedule
             const dailyHours = {
               sunday: 0, monday: 0, tuesday: 0, wednesday: 0, 
               thursday: 0, friday: 0, saturday: 0
+            };
+            
+            const shiftTimes = {
+              sunday: [] as string[], monday: [] as string[], tuesday: [] as string[], 
+              wednesday: [] as string[], thursday: [] as string[], friday: [] as string[], 
+              saturday: [] as string[]
             };
             
             shifts.forEach((shift: any) => {
@@ -517,6 +532,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const dayName = shiftDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
               if (dailyHours.hasOwnProperty(dayName)) {
                 dailyHours[dayName as keyof typeof dailyHours] += shift.duration || 0;
+                
+                // Format shift times
+                const startTime = new Date(shift.startTime).toLocaleTimeString('en-US', { 
+                  hour: 'numeric', minute: '2-digit', hour12: true 
+                });
+                const endTime = new Date(shift.endTime).toLocaleTimeString('en-US', { 
+                  hour: 'numeric', minute: '2-digit', hour12: true 
+                });
+                shiftTimes[dayName as keyof typeof shiftTimes].push(`${startTime} - ${endTime}`);
               }
             });
             
@@ -529,7 +553,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 hasTimesheet: false,
                 timesheetId: null,
                 ...dailyHours,
-                totalHours: totalScheduled
+                totalHours: totalScheduled,
+                shiftTimes
               });
             }
           } catch (error) {

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { WeekPicker } from "@/components/ui/week-picker";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { FileText, Calendar, AlertCircle, CheckCircle2, Eye } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -21,6 +22,15 @@ interface TimecardSummaryData {
   friday: number;
   saturday: number;
   totalHours: number;
+  shiftTimes: {
+    sunday: string[];
+    monday: string[];
+    tuesday: string[];
+    wednesday: string[];
+    thursday: string[];
+    friday: string[];
+    saturday: string[];
+  };
 }
 
 interface TimecardSummaryResponse {
@@ -63,6 +73,40 @@ export function TimecardSummaryReport() {
 
   const formatHours = (hours: number) => {
     return hours === 0 ? "-" : hours.toString();
+  };
+
+  const renderHoursWithTooltip = (hours: number, shiftTimes: string[], day: string) => {
+    if (hours === 0) {
+      return <span className="text-gray-400">-</span>;
+    }
+
+    if (!shiftTimes || shiftTimes.length === 0) {
+      return <span>{hours}</span>;
+    }
+
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="cursor-help underline decoration-dotted underline-offset-2">
+              {hours}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="max-w-xs">
+            <div className="text-sm">
+              <div className="font-medium mb-1">
+                {day.charAt(0).toUpperCase() + day.slice(1)} Shifts:
+              </div>
+              {shiftTimes.map((time, index) => (
+                <div key={index} className="text-xs">
+                  {time}
+                </div>
+              ))}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
   };
 
   const getRowClassName = (hasTimesheet: boolean) => {
@@ -250,25 +294,25 @@ export function TimecardSummaryReport() {
                           {getStatusBadge(employee.hasTimesheet)}
                         </TableCell>
                         <TableCell className="text-center">
-                          {formatHours(employee.sunday)}
+                          {renderHoursWithTooltip(employee.sunday, employee.shiftTimes?.sunday, 'sunday')}
                         </TableCell>
                         <TableCell className="text-center">
-                          {formatHours(employee.monday)}
+                          {renderHoursWithTooltip(employee.monday, employee.shiftTimes?.monday, 'monday')}
                         </TableCell>
                         <TableCell className="text-center">
-                          {formatHours(employee.tuesday)}
+                          {renderHoursWithTooltip(employee.tuesday, employee.shiftTimes?.tuesday, 'tuesday')}
                         </TableCell>
                         <TableCell className="text-center">
-                          {formatHours(employee.wednesday)}
+                          {renderHoursWithTooltip(employee.wednesday, employee.shiftTimes?.wednesday, 'wednesday')}
                         </TableCell>
                         <TableCell className="text-center">
-                          {formatHours(employee.thursday)}
+                          {renderHoursWithTooltip(employee.thursday, employee.shiftTimes?.thursday, 'thursday')}
                         </TableCell>
                         <TableCell className="text-center">
-                          {formatHours(employee.friday)}
+                          {renderHoursWithTooltip(employee.friday, employee.shiftTimes?.friday, 'friday')}
                         </TableCell>
                         <TableCell className="text-center">
-                          {formatHours(employee.saturday)}
+                          {renderHoursWithTooltip(employee.saturday, employee.shiftTimes?.saturday, 'saturday')}
                         </TableCell>
                         <TableCell className="text-center font-medium">
                           {formatHours(employee.totalHours)}
