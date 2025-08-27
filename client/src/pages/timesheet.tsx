@@ -102,16 +102,15 @@ function generateTimeOptions(): string[] {
     }
   }
   
-  // Second part: 00:00 to 07:00 (next day)
-  for (let hour = 0; hour <= 7; hour++) {
-    const maxMinute = hour === 7 ? 0 : 60; // Only include 07:00, not 07:15, 07:30, etc.
-    for (let minute = 0; minute < maxMinute; minute += 15) {
+  // Second part: 00:00 to 06:45, then 07:00 (next day)
+  for (let hour = 0; hour < 7; hour++) {
+    for (let minute = 0; minute < 60; minute += 15) {
       const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
       times.push(timeStr);
     }
   }
   
-  // Add 07:00 as the final option (end of the 24-hour cycle)
+  // Add 07:00 as the final option (end of the 24-hour cycle) - no duplicate
   times.push('07:00');
   
   return times;
