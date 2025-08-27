@@ -6,7 +6,7 @@ import { WeekPicker } from "@/components/ui/week-picker";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { FileText, Calendar, AlertCircle, CheckCircle2, Eye } from "lucide-react";
+import { FileText, Calendar, AlertCircle, CheckCircle2, Eye, Download } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface TimecardSummaryData {
@@ -71,6 +71,15 @@ export function TimecardSummaryReport() {
     // Generate PDF for the specific timesheet
     const pdfUrl = `/api/timesheet/${timesheetId}/pdf`;
     window.open(pdfUrl, '_blank');
+  };
+
+  const handleExportExcel = () => {
+    if (!selectedWeekEnding) {
+      return;
+    }
+    // Download Excel file
+    const exportUrl = `/api/admin/timecard-summary/${selectedWeekEnding}/export`;
+    window.open(exportUrl, '_blank');
   };
 
   const formatHours = (hours: number) => {
@@ -258,10 +267,23 @@ export function TimecardSummaryReport() {
       {summaryQuery.data && summaryQuery.data.summary.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Week Ending {new Date(summaryQuery.data.weekEnding).toLocaleDateString()}</CardTitle>
-            <CardDescription>
-              Timecard summary for all employees scheduled during this week
-            </CardDescription>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle>Week Ending {new Date(summaryQuery.data.weekEnding).toLocaleDateString()}</CardTitle>
+                <CardDescription>
+                  Timecard summary for all employees scheduled during this week
+                </CardDescription>
+              </div>
+              <Button
+                onClick={handleExportExcel}
+                variant="outline"
+                className="flex items-center space-x-2"
+                data-testid="button-export-excel"
+              >
+                <Download className="w-4 h-4" />
+                <span>Export to Excel</span>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">

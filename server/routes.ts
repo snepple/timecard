@@ -6,6 +6,7 @@ import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import nodemailer from "nodemailer";
+import * as XLSX from "xlsx";
 
 interface ScheduleCache {
   data: any;
@@ -581,6 +582,142 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating timecard summary:", error);
       res.status(500).json({ message: "Failed to generate timecard summary" });
+    }
+  });
+
+  // Excel export endpoint for timecard summary
+  app.get("/api/admin/timecard-summary/:weekEnding/export", async (req, res) => {
+    try {
+      const { weekEnding } = req.params;
+      
+      // Get overtime threshold setting
+      const overtimeThreshold = parseFloat(await storage.getSetting('overtime_threshold') || '42');
+      
+      // Get all employees from schedule
+      const scheduleResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule`);
+      const scheduleData = await scheduleResponse.json();
+      
+      // Get all submitted timesheets for this week
+      const timesheets = await storage.getTimesheetsByWeek(weekEnding);
+      
+      const summary = [];
+      
+      for (const employee of scheduleData.employees) {
+        const fullName = `${employee.firstName} ${employee.lastName}`;
+        
+        // Check if employee has submitted timesheet
+        const submittedTimesheet = timesheets.find(ts => 
+          ts.employeeNumber === employee.employeeNumber || 
+          ts.employeeName === fullName
+        );
+        
+        if (submittedTimesheet) {
+          // Employee submitted timesheet - use their data
+          const totalHours = parseFloat(submittedTimesheet.totalWeeklyHours || '0');
+          const regularHours = Math.min(totalHours, overtimeThreshold);
+          const overtimeHours = Math.max(0, totalHours - overtimeThreshold);
+          
+          summary.push({
+            "Employee Name": fullName,
+            "Employee Number": employee.employeeNumber,
+            "Status": "Submitted",
+            "Sunday": submittedTimesheet.sundayTotalHours || 0,
+            "Monday": submittedTimesheet.mondayTotalHours || 0,
+            "Tuesday": submittedTimesheet.tuesdayTotalHours || 0,
+            "Wednesday": submittedTimesheet.wednesdayTotalHours || 0,
+            "Thursday": submittedTimesheet.thursdayTotalHours || 0,
+            "Friday": submittedTimesheet.fridayTotalHours || 0,
+            "Saturday": submittedTimesheet.saturdayTotalHours || 0,
+            "Total Hours": totalHours,
+            "Regular Hours": regularHours,
+            "Overtime Hours": overtimeHours
+          });
+        } else {
+          // Employee didn't submit - use scheduled hours
+          try {
+            const shiftsResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${employee.employeeNumber}/week/${weekEnding}`);
+            const shifts = shiftsResponse.ok ? await shiftsResponse.json() : [];
+            
+            // Calculate daily totals from schedule
+            const dailyHours = {
+              Sunday: 0, Monday: 0, Tuesday: 0, Wednesday: 0, 
+              Thursday: 0, Friday: 0, Saturday: 0
+            };
+            
+            shifts.forEach((shift: any) => {
+              // Skip Night Duty shifts
+              if (shift.position === 'Night Duty') {
+                return;
+              }
+              
+              const shiftDate = new Date(shift.startTime);
+              const dayName = shiftDate.toLocaleDateString('en-US', { weekday: 'long' });
+              if (dailyHours.hasOwnProperty(dayName)) {
+                dailyHours[dayName as keyof typeof dailyHours] += shift.duration || 0;
+              }
+            });
+            
+            const totalScheduled = Object.values(dailyHours).reduce((sum, hours) => sum + hours, 0);
+            
+            if (totalScheduled > 0) {
+              const regularHours = Math.min(totalScheduled, overtimeThreshold);
+              const overtimeHours = Math.max(0, totalScheduled - overtimeThreshold);
+              
+              summary.push({
+                "Employee Name": fullName,
+                "Employee Number": employee.employeeNumber,
+                "Status": "Scheduled",
+                ...dailyHours,
+                "Total Hours": totalScheduled,
+                "Regular Hours": regularHours,
+                "Overtime Hours": overtimeHours
+              });
+            }
+          } catch (error) {
+            console.error(`Error fetching shifts for ${fullName}:`, error);
+          }
+        }
+      }
+      
+      // Create Excel workbook
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(summary);
+      
+      // Set column widths
+      const colWidths = [
+        { wch: 20 }, // Employee Name
+        { wch: 15 }, // Employee Number
+        { wch: 12 }, // Status
+        { wch: 10 }, // Sunday
+        { wch: 10 }, // Monday
+        { wch: 10 }, // Tuesday
+        { wch: 12 }, // Wednesday
+        { wch: 10 }, // Thursday
+        { wch: 10 }, // Friday
+        { wch: 10 }, // Saturday
+        { wch: 12 }, // Total Hours
+        { wch: 12 }, // Regular Hours
+        { wch: 13 }  // Overtime Hours
+      ];
+      ws['!cols'] = colWidths;
+      
+      // Add worksheet to workbook
+      const sheetName = `Timecard Summary ${weekEnding}`;
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      
+      // Generate Excel file buffer
+      const excelBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      
+      // Set headers for file download
+      const fileName = `timecard-summary-${weekEnding}.xlsx`;
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      
+      // Send the Excel file
+      res.send(excelBuffer);
+    } catch (error) {
+      console.error("Error generating Excel export:", error);
+      res.status(500).json({ message: "Failed to generate Excel export" });
     }
   });
 
