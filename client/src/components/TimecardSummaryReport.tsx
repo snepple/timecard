@@ -362,7 +362,7 @@ export function TimecardSummaryReport() {
                             {formatHours(employee.totalHours)}
                             {employee.totalHours > 0 && (
                               <div className="text-xs text-gray-500 mt-1">
-                                ({employee.regularHours}r, {employee.overtimeHours}ot)
+                                Reg: {employee.regularHours} / OT: {employee.overtimeHours}
                               </div>
                             )}
                           </div>
