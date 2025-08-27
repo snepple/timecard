@@ -336,9 +336,14 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         // Separate night duty from regular shifts
         let nightDutyShifts: Shift[] = [];
         dayShifts.forEach((shift) => {
-          // Check for night duty/rescue coverage - check multiple variations
+          // Check for night duty/rescue coverage - look for "PositionName:Night Duty" in description
+          const description = (shift.description || '').toLowerCase();
           const position = (shift.position || '').toLowerCase();
-          const isNightDuty = position.includes('night duty') || 
+          
+          const isNightDuty = description.includes('positionname:night duty') ||
+                             description.includes('position name: night duty') ||
+                             description.includes('positionname: night duty') ||
+                             position.includes('night duty') || 
                              position.includes('nightduty') || 
                              position === 'night duty' ||
                              position.startsWith('night duty');
@@ -346,6 +351,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
           console.log('Checking shift:', { 
             date: dateStr, 
             position: shift.position, 
+            description: shift.description?.substring(0, 200) + '...', // First 200 chars
             startTime: shift.startTime,
             endTime: shift.endTime,
             isNightDuty: isNightDuty 
