@@ -10,6 +10,8 @@ interface TimePickerProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  type?: 'start' | 'end';
+  startTime?: string;
 }
 
 // Helper function to determine if a time is AM or PM and what day it represents
@@ -38,7 +40,30 @@ function formatTimeWithDay(time: string): { display: string; period: string; day
   };
 }
 
-export function TimePicker({ value, onChange, placeholder = "Select time", disabled = false, className }: TimePickerProps) {
+// Helper function to convert time to minutes from 7AM base
+function timeToMinutes(time: string): number {
+  const [hours, minutes] = time.split(':').map(Number);
+  // If hour is 0-6, it's next day (after midnight within our 7:00-7:00 range)
+  const adjustedHours = hours < 7 ? hours + 24 : hours;
+  return (adjustedHours - 7) * 60 + minutes;
+}
+
+// Helper function to check if a time is valid for end time selection
+function isValidEndTime(time: string, startTime?: string): boolean {
+  const endMinutes = timeToMinutes(time);
+  
+  // End time cannot exceed 7:00 AM next day (24 hours from 7AM = 1440 minutes)
+  if (endMinutes > 24 * 60) return false;
+  
+  if (!startTime) return true;
+  
+  const startMinutes = timeToMinutes(startTime);
+  
+  // End time must be after start time
+  return endMinutes > startMinutes;
+}
+
+export function TimePicker({ value, onChange, placeholder = "Select time", disabled = false, className, type = 'start', startTime }: TimePickerProps) {
   const [open, setOpen] = useState(false);
   const [selectedHour, setSelectedHour] = useState(8);
   const [selectedMinute, setSelectedMinute] = useState(15);
@@ -64,8 +89,49 @@ export function TimePicker({ value, onChange, placeholder = "Select time", disab
     }
   }, [value]);
 
-  const generateHours = () => Array.from({ length: 12 }, (_, i) => i + 1);
-  const generateMinutes = () => [0, 15, 30, 45];
+  // Generate available hours based on constraints
+  const generateHours = () => {
+    const hours = Array.from({ length: 12 }, (_, i) => i + 1);
+    
+    if (type === 'end' && startTime) {
+      // Filter hours based on start time constraints
+      return hours.filter(hour => {
+        const periods = selectedPeriod === 'AM' ? ['AM'] : ['PM'];
+        return periods.some(period => {
+          let actualHour = hour;
+          if (period === 'PM' && hour !== 12) {
+            actualHour = hour + 12;
+          } else if (period === 'AM' && hour === 12) {
+            actualHour = 0;
+          }
+          const timeStr = `${actualHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`;
+          return isValidEndTime(timeStr, startTime);
+        });
+      });
+    }
+    
+    return hours;
+  };
+  
+  const generateMinutes = () => {
+    const minutes = [0, 15, 30, 45];
+    
+    if (type === 'end' && startTime) {
+      // Filter minutes based on start time constraints
+      return minutes.filter(minute => {
+        let actualHour = selectedHour;
+        if (selectedPeriod === 'PM' && selectedHour !== 12) {
+          actualHour = selectedHour + 12;
+        } else if (selectedPeriod === 'AM' && selectedHour === 12) {
+          actualHour = 0;
+        }
+        const timeStr = `${actualHour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        return isValidEndTime(timeStr, startTime);
+      });
+    }
+    
+    return minutes;
+  };
 
   const handleConfirm = () => {
     let actualHour = selectedHour;
@@ -77,6 +143,12 @@ export function TimePicker({ value, onChange, placeholder = "Select time", disab
     }
     
     const timeString = `${actualHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`;
+    
+    // Validate the time before confirming
+    if (type === 'end' && startTime && !isValidEndTime(timeString, startTime)) {
+      return; // Don't confirm invalid end times
+    }
+    
     onChange(timeString);
     setOpen(false);
   };
@@ -155,19 +227,31 @@ export function TimePicker({ value, onChange, placeholder = "Select time", disab
               <div>
                 <div className="text-xs text-muted-foreground mb-2">Period</div>
                 <div className="space-y-1">
+                  {/* AM Button - check if AM times would be valid for end times */}
                   <Button
                     variant={selectedPeriod === 'AM' ? "default" : "ghost"}
                     size="sm"
                     className="w-full h-8 text-sm"
                     onClick={() => setSelectedPeriod('AM')}
+                    disabled={type === 'end' && startTime && (() => {
+                      let testHour = selectedHour === 12 ? 0 : selectedHour;
+                      const testTime = `${testHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`;
+                      return !isValidEndTime(testTime, startTime);
+                    })()}
                   >
                     AM
                   </Button>
+                  {/* PM Button - check if PM times would be valid for end times */}
                   <Button
                     variant={selectedPeriod === 'PM' ? "default" : "ghost"}
                     size="sm"
                     className="w-full h-8 text-sm"
                     onClick={() => setSelectedPeriod('PM')}
+                    disabled={type === 'end' && startTime && (() => {
+                      let testHour = selectedHour === 12 ? 12 : selectedHour + 12;
+                      const testTime = `${testHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`;
+                      return !isValidEndTime(testTime, startTime);
+                    })()}
                   >
                     PM
                   </Button>

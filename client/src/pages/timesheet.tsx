@@ -1256,6 +1256,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                                       onChange={(value) => updateShiftTime(index, 'startTime', value)}
                                       placeholder="Select start time"
                                       className="w-full"
+                                      type="start"
                                     />
                                   </div>
                                   <div className="col-span-4">
@@ -1265,6 +1266,8 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                                       onChange={(value) => updateShiftTime(index, 'endTime', value)}
                                       placeholder="Select end time"
                                       className="w-full"
+                                      type="end"
+                                      startTime={shift.startTime}
                                     />
                                   </div>
                                   <div className="col-span-3 text-center">
