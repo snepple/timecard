@@ -471,16 +471,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const summary = [];
       
       for (const employee of scheduleData.employees) {
+        const fullName = `${employee.firstName} ${employee.lastName}`;
+        
         // Check if employee has submitted timesheet
         const submittedTimesheet = timesheets.find(ts => 
           ts.employeeNumber === employee.employeeNumber || 
-          ts.employeeName === employee.fullName
+          ts.employeeName === fullName
         );
         
         if (submittedTimesheet) {
           // Employee submitted timesheet - use their data
           summary.push({
-            employeeName: employee.fullName,
+            employeeName: fullName,
             employeeNumber: employee.employeeNumber,
             hasTimesheet: true,
             timesheetId: submittedTimesheet.id,
@@ -507,7 +509,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             shifts.forEach((shift: any) => {
               const shiftDate = new Date(shift.startTime);
-              const dayName = shiftDate.toLocaleDateString('en-US', { weekday: 'lowercase' });
+              const dayName = shiftDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
               if (dailyHours.hasOwnProperty(dayName)) {
                 dailyHours[dayName as keyof typeof dailyHours] += shift.duration || 0;
               }
@@ -517,7 +519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             if (totalScheduled > 0) {
               summary.push({
-                employeeName: employee.fullName,
+                employeeName: fullName,
                 employeeNumber: employee.employeeNumber,
                 hasTimesheet: false,
                 timesheetId: null,
@@ -526,7 +528,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
             }
           } catch (error) {
-            console.error(`Error fetching shifts for ${employee.fullName}:`, error);
+            console.error(`Error fetching shifts for ${fullName}:`, error);
           }
         }
       }
