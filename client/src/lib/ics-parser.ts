@@ -11,6 +11,7 @@ export interface Shift {
   startTime: Date;
   endTime: Date;
   position: string;
+  description?: string; // Added for Night Duty detection
   duration: number;
   date: string; // YYYY-MM-DD format
 }
@@ -97,6 +98,7 @@ function parseEvent(eventData: string): Shift | null {
       startTime,
       endTime,
       position: positionName || 'Unknown',
+      description, // Include full description for Night Duty detection
       duration,
       date: startTime.toISOString().split('T')[0],
     };

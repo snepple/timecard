@@ -348,24 +348,25 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                              position === 'night duty' ||
                              position.startsWith('night duty');
           
-          console.log('Checking shift:', { 
-            date: dateStr, 
-            position: shift.position, 
-            description: shift.description?.substring(0, 200) + '...', // First 200 chars
-            startTime: shift.startTime,
-            endTime: shift.endTime,
-            isNightDuty: isNightDuty 
-          });
+          // Temporary debug for Night Duty detection
+          if (dateStr === '2025-09-17' || dateStr === '2025-09-18') {
+            console.log('🔍 Night Duty Check:', { 
+              date: dateStr, 
+              position: shift.position, 
+              description: shift.description ? 'Has description' : 'No description',
+              descriptionSnippet: shift.description?.substring(0, 100),
+              isNightDuty: isNightDuty 
+            });
+          }
           
           if (isNightDuty) {
             hasNightDuty = true;
             nightDutyShifts.push(shift);
-            console.log('Added to Night Duty shifts, skipping regular processing');
+            console.log('✅ NIGHT DUTY DETECTED - Skipping regular processing for', dateStr);
             // Skip night duty shifts for time calculations - they only affect rescue coverage
             return;
           }
           
-          console.log('Added to regular shifts');
           regularShifts.push(shift);
         });
         
