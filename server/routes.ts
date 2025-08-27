@@ -457,6 +457,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { weekEnding } = req.params;
       
+      // Get overtime threshold setting
+      const overtimeThreshold = parseFloat(await storage.getSetting('overtime_threshold') || '42');
+      
       // Get all employees from schedule
       const scheduleResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule`);
       const scheduleData = await scheduleResponse.json();
@@ -481,6 +484,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (submittedTimesheet) {
           // Employee submitted timesheet - use their data
+          const totalHours = parseFloat(submittedTimesheet.totalWeeklyHours || '0');
+          const regularHours = Math.min(totalHours, overtimeThreshold);
+          const overtimeHours = Math.max(0, totalHours - overtimeThreshold);
+          
           summary.push({
             employeeName: fullName,
             employeeNumber: employee.employeeNumber,
@@ -493,7 +500,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             thursday: submittedTimesheet.thursdayTotalHours || 0,
             friday: submittedTimesheet.fridayTotalHours || 0,
             saturday: submittedTimesheet.saturdayTotalHours || 0,
-            totalHours: submittedTimesheet.totalWeeklyHours || 0,
+            totalHours: totalHours,
+            regularHours: regularHours,
+            overtimeHours: overtimeHours,
             shiftTimes: {
               sunday: [`${submittedTimesheet.sundayStartTime || ''} - ${submittedTimesheet.sundayEndTime || ''}`].filter(t => t.trim() !== ' - '),
               monday: [`${submittedTimesheet.mondayStartTime || ''} - ${submittedTimesheet.mondayEndTime || ''}`].filter(t => t.trim() !== ' - '),
@@ -547,6 +556,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const totalScheduled = Object.values(dailyHours).reduce((sum, hours) => sum + hours, 0);
             
             if (totalScheduled > 0) {
+              const regularHours = Math.min(totalScheduled, overtimeThreshold);
+              const overtimeHours = Math.max(0, totalScheduled - overtimeThreshold);
+              
               summary.push({
                 employeeName: fullName,
                 employeeNumber: employee.employeeNumber,
@@ -554,6 +566,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 timesheetId: null,
                 ...dailyHours,
                 totalHours: totalScheduled,
+                regularHours: regularHours,
+                overtimeHours: overtimeHours,
                 shiftTimes
               });
             }
@@ -784,6 +798,35 @@ Oakland Fire-Rescue Timesheet System`
     } catch (error) {
       console.error("Error updating email settings:", error);
       res.status(500).json({ message: "Failed to update email settings" });
+    }
+  });
+
+  // Overtime threshold settings
+  app.get("/api/settings/overtime", async (req, res) => {
+    try {
+      const overtimeThreshold = await storage.getSetting('overtime_threshold');
+      
+      res.json({
+        overtime_threshold: parseFloat(overtimeThreshold || '42')
+      });
+    } catch (error) {
+      console.error("Error fetching overtime settings:", error);
+      res.status(500).json({ message: "Failed to fetch overtime settings" });
+    }
+  });
+
+  app.put("/api/settings/overtime", async (req, res) => {
+    try {
+      const { overtime_threshold } = req.body;
+      
+      if (overtime_threshold !== undefined) {
+        await storage.setSetting('overtime_threshold', overtime_threshold.toString());
+      }
+      
+      res.json({ message: "Overtime settings updated successfully" });
+    } catch (error) {
+      console.error("Error updating overtime settings:", error);
+      res.status(500).json({ message: "Failed to update overtime settings" });
     }
   });
 

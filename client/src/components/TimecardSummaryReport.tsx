@@ -22,6 +22,8 @@ interface TimecardSummaryData {
   friday: number;
   saturday: number;
   totalHours: number;
+  regularHours: number;
+  overtimeHours: number;
   shiftTimes: {
     sunday: string[];
     monday: string[];
@@ -315,7 +317,14 @@ export function TimecardSummaryReport() {
                           {renderHoursWithTooltip(employee.saturday, employee.shiftTimes?.saturday, 'saturday')}
                         </TableCell>
                         <TableCell className="text-center font-medium">
-                          {formatHours(employee.totalHours)}
+                          <div>
+                            {formatHours(employee.totalHours)}
+                            {employee.totalHours > 0 && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                ({employee.regularHours}r, {employee.overtimeHours}ot)
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-center">
                           {employee.hasTimesheet && employee.timesheetId ? (

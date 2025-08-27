@@ -39,6 +39,10 @@ export default function SupervisorDashboard() {
   const [showEmailSettings, setShowEmailSettings] = useState(false);
   const [recipientEmail, setRecipientEmail] = useState("");
   const [emailTemplate, setEmailTemplate] = useState("");
+  
+  // Overtime settings state
+  const [showOvertimeSettings, setShowOvertimeSettings] = useState(false);
+  const [overtimeThreshold, setOvertimeThreshold] = useState(42);
 
   // Fetch employee numbers
   const employeeNumbersQuery = useQuery<EmployeeNumber[]>({
@@ -55,6 +59,12 @@ export default function SupervisorDashboard() {
   const emailSettingsQuery = useQuery<{recipient_email: string; email_template: string}>({
     queryKey: ["/api/settings/email"],
     enabled: showEmailSettings,
+  });
+  
+  // Fetch current overtime settings
+  const overtimeSettingsQuery = useQuery<{overtime_threshold: number}>({
+    queryKey: ["/api/settings/overtime"],
+    enabled: showOvertimeSettings,
   });
 
   // Sync employees from schedule mutation
@@ -255,6 +265,30 @@ export default function SupervisorDashboard() {
     },
   });
 
+  // Update overtime settings mutation
+  const updateOvertimeSettingsMutation = useMutation({
+    mutationFn: async (data: { overtime_threshold?: number }) => {
+      return apiRequest("PUT", "/api/settings/overtime", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings/overtime"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/timecard-summary"] });
+      toast({
+        title: "Overtime settings updated",
+        description: "Overtime threshold has been updated successfully.",
+      });
+      setShowOvertimeSettings(false);
+    },
+    onError: (error) => {
+      console.error("Overtime settings update error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update overtime settings. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handlePasswordUpdate = () => {
     if (!appPassword.trim() || !adminPassword.trim()) {
       toast({
@@ -324,6 +358,28 @@ export default function SupervisorDashboard() {
     }
   }, [showEmailSettings, emailSettingsQuery.data]);
 
+  // Load overtime settings when dialog opens
+  useEffect(() => {
+    if (showOvertimeSettings && overtimeSettingsQuery.data) {
+      setOvertimeThreshold(overtimeSettingsQuery.data.overtime_threshold);
+    }
+  }, [showOvertimeSettings, overtimeSettingsQuery.data]);
+
+  const handleOvertimeUpdate = () => {
+    if (overtimeThreshold < 1 || overtimeThreshold > 80) {
+      toast({
+        title: "Validation Error",
+        description: "Overtime threshold must be between 1 and 80 hours.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateOvertimeSettingsMutation.mutate({
+      overtime_threshold: overtimeThreshold,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-7xl mx-auto">
@@ -361,7 +417,7 @@ export default function SupervisorDashboard() {
 
         {/* Tabs for different admin sections */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="timecard-summary" className="flex items-center space-x-2">
               <FileText className="w-4 h-4" />
               <span>Timecard Summary</span>
@@ -369,6 +425,10 @@ export default function SupervisorDashboard() {
             <TabsTrigger value="employee-management" className="flex items-center space-x-2">
               <Users className="w-4 h-4" />
               <span>Employee Management</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center space-x-2">
+              <Settings className="w-4 h-4" />
+              <span>Settings</span>
             </TabsTrigger>
           </TabsList>
 
@@ -392,6 +452,52 @@ export default function SupervisorDashboard() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings" className="mt-6">
+            <div className="space-y-6">
+              {/* Overtime Settings */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Settings className="text-primary mr-2 h-5 w-5" />
+                    Overtime Settings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="overtime-threshold">Weekly Overtime Threshold (hours)</Label>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <Input
+                          id="overtime-threshold"
+                          type="number"
+                          min="1"
+                          max="80"
+                          value={overtimeThreshold}
+                          onChange={(e) => setOvertimeThreshold(parseInt(e.target.value) || 42)}
+                          className="w-32"
+                          onFocus={() => setShowOvertimeSettings(true)}
+                        />
+                        <Button
+                          onClick={handleOvertimeUpdate}
+                          disabled={updateOvertimeSettingsMutation.isPending}
+                        >
+                          {updateOvertimeSettingsMutation.isPending ? "Updating..." : "Update"}
+                        </Button>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Hours worked beyond this threshold in a week are considered overtime.
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Current setting: {overtimeSettingsQuery.data?.overtime_threshold || 42} hours
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
 
