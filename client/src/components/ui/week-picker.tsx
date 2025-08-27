@@ -18,12 +18,19 @@ function getWeekEndingDate(date: Date): string {
   const daysToSaturday = day === 6 ? 0 : (6 - day); // If already Saturday, stay on same day
   const saturday = new Date(date);
   saturday.setDate(date.getDate() + daysToSaturday);
-  return saturday.toISOString().split('T')[0];
+  
+  // Use local date string to avoid timezone issues
+  const year = saturday.getFullYear();
+  const month = String(saturday.getMonth() + 1).padStart(2, '0');
+  const day_str = String(saturday.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day_str}`;
 }
 
 // Helper function to get all dates in a week
 function getWeekDates(weekEndingDate: string): Date[] {
-  const saturday = new Date(weekEndingDate);
+  // Parse the date more reliably to avoid timezone issues
+  const [year, month, day] = weekEndingDate.split('-').map(Number);
+  const saturday = new Date(year, month - 1, day); // month is 0-indexed in JS
   const dates = [];
   
   // Start from Sunday (6 days before Saturday)
