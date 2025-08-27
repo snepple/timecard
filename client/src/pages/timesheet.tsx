@@ -336,16 +336,28 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         // Separate night duty from regular shifts
         let nightDutyShifts: Shift[] = [];
         dayShifts.forEach((shift) => {
-          // Check for night duty/rescue coverage - ONLY by explicit "Night Duty" label
-          const isNightDuty = shift.position && shift.position.toLowerCase().includes('night duty');
+          // Check for night duty/rescue coverage - check multiple variations
+          const position = (shift.position || '').toLowerCase();
+          const isNightDuty = position.includes('night duty') || 
+                             position.includes('nightduty') || 
+                             position === 'night duty' ||
+                             position.startsWith('night duty');
+          
+          console.log('Checking shift:', { 
+            date: dateStr, 
+            position: shift.position, 
+            isNightDuty: isNightDuty 
+          });
           
           if (isNightDuty) {
             hasNightDuty = true;
             nightDutyShifts.push(shift);
+            console.log('Added to Night Duty shifts, skipping regular processing');
             // Skip night duty shifts for time calculations - they only affect rescue coverage
             return;
           }
           
+          console.log('Added to regular shifts');
           regularShifts.push(shift);
         });
         
