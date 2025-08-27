@@ -692,6 +692,7 @@ function parseEventServer(eventData: string): any | null {
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),
       position: positionName || 'Unknown',
+      description, // Include full description for Night Duty detection
       duration,
       date: startTime.toISOString().split('T')[0],
     };

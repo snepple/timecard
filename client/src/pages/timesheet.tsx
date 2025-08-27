@@ -339,27 +339,22 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         // Separate night duty from regular shifts
         let nightDutyShifts: Shift[] = [];
         dayShifts.forEach((shift) => {
-          // Check for night duty/rescue coverage by time pattern and position
-          const startTime = new Date(shift.startTime);
-          const endTime = new Date(shift.endTime);
+          // Check for night duty/rescue coverage - look for "PositionName:Night Duty" in description
+          const description = (shift.description || '').toLowerCase();
           const position = (shift.position || '').toLowerCase();
           
-          // Night Duty detection: 
-          // 1. Position contains 'night duty' OR
-          // 2. Overnight shift pattern (starts after 6 PM and ends before 2 PM next day)
-          const isOvernightShift = startTime.getHours() >= 18 && endTime.getHours() <= 14 && 
-                                  endTime.getDate() !== startTime.getDate();
-          
-          const isNightDuty = position.includes('night duty') || 
+          const isNightDuty = description.includes('positionname:night duty') ||
+                             description.includes('position name: night duty') ||
+                             description.includes('positionname: night duty') ||
+                             position.includes('night duty') || 
                              position.includes('nightduty') || 
                              position === 'night duty' ||
-                             position.startsWith('night duty') ||
-                             isOvernightShift;
+                             position.startsWith('night duty');
           
           if (isNightDuty) {
             hasNightDuty = true;
             nightDutyShifts.push(shift);
-            console.log('✅ NIGHT DUTY DETECTED for', dateStr, '- Start:', startTime.getHours() + ':' + startTime.getMinutes().toString().padStart(2, '0'), 'End:', endTime.getHours() + ':' + endTime.getMinutes().toString().padStart(2, '0'));
+            console.log('✅ NIGHT DUTY DETECTED for', dateStr, '- Found in description');
             // Skip night duty shifts for time calculations - they only affect rescue coverage
             return;
           }
