@@ -600,6 +600,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get all submitted timesheets for this week
       const timesheets = await storage.getTimesheetsByWeek(weekEnding);
       
+      // Calculate week dates for column headers
+      const weekEndDate = new Date(weekEnding);
+      const weekDates = [];
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(weekEndDate);
+        date.setDate(weekEndDate.getDate() - i);
+        weekDates.push(date);
+      }
+      
       const summary = [];
       
       for (const employee of scheduleData.employees) {
@@ -621,13 +630,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             "Employee Name": fullName,
             "Employee Number": employee.employeeNumber,
             "Status": "Submitted",
-            "Sunday": submittedTimesheet.sundayTotalHours || 0,
-            "Monday": submittedTimesheet.mondayTotalHours || 0,
-            "Tuesday": submittedTimesheet.tuesdayTotalHours || 0,
-            "Wednesday": submittedTimesheet.wednesdayTotalHours || 0,
-            "Thursday": submittedTimesheet.thursdayTotalHours || 0,
-            "Friday": submittedTimesheet.fridayTotalHours || 0,
-            "Saturday": submittedTimesheet.saturdayTotalHours || 0,
+            [`Sun ${weekDates[0].getMonth() + 1}/${weekDates[0].getDate()}`]: submittedTimesheet.sundayTotalHours || 0,
+            [`Mon ${weekDates[1].getMonth() + 1}/${weekDates[1].getDate()}`]: submittedTimesheet.mondayTotalHours || 0,
+            [`Tue ${weekDates[2].getMonth() + 1}/${weekDates[2].getDate()}`]: submittedTimesheet.tuesdayTotalHours || 0,
+            [`Wed ${weekDates[3].getMonth() + 1}/${weekDates[3].getDate()}`]: submittedTimesheet.wednesdayTotalHours || 0,
+            [`Thu ${weekDates[4].getMonth() + 1}/${weekDates[4].getDate()}`]: submittedTimesheet.thursdayTotalHours || 0,
+            [`Fri ${weekDates[5].getMonth() + 1}/${weekDates[5].getDate()}`]: submittedTimesheet.fridayTotalHours || 0,
+            [`Sat ${weekDates[6].getMonth() + 1}/${weekDates[6].getDate()}`]: submittedTimesheet.saturdayTotalHours || 0,
             "Total Hours": totalHours,
             "Regular Hours": regularHours,
             "Overtime Hours": overtimeHours
@@ -667,7 +676,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 "Employee Name": fullName,
                 "Employee Number": employee.employeeNumber,
                 "Status": "Scheduled",
-                ...dailyHours,
+                [`Sun ${weekDates[0].getMonth() + 1}/${weekDates[0].getDate()}`]: dailyHours.Sunday,
+                [`Mon ${weekDates[1].getMonth() + 1}/${weekDates[1].getDate()}`]: dailyHours.Monday,
+                [`Tue ${weekDates[2].getMonth() + 1}/${weekDates[2].getDate()}`]: dailyHours.Tuesday,
+                [`Wed ${weekDates[3].getMonth() + 1}/${weekDates[3].getDate()}`]: dailyHours.Wednesday,
+                [`Thu ${weekDates[4].getMonth() + 1}/${weekDates[4].getDate()}`]: dailyHours.Thursday,
+                [`Fri ${weekDates[5].getMonth() + 1}/${weekDates[5].getDate()}`]: dailyHours.Friday,
+                [`Sat ${weekDates[6].getMonth() + 1}/${weekDates[6].getDate()}`]: dailyHours.Saturday,
                 "Total Hours": totalScheduled,
                 "Regular Hours": regularHours,
                 "Overtime Hours": overtimeHours
@@ -1079,7 +1094,20 @@ function parseEventServer(eventData: string): any | null {
     
     // Extract position from description if available, otherwise default
     const positionName = extractFromDescriptionServer(description || '', 'PositionName') || 'Firefighter';
-    const duration = 8; // Default 8 hour shift
+    
+    // Extract duration from description (e.g., "(ShiftDuration:14)")
+    let duration = parseFloat(extractFromDescriptionServer(description || '', 'ShiftDuration') || '0');
+    
+    // If ShiftDuration is missing or 0, calculate from start/end times
+    if (duration === 0) {
+      const diffInMs = endTime.getTime() - startTime.getTime();
+      duration = diffInMs / (1000 * 60 * 60); // Convert to hours
+    }
+    
+    // Fallback to 8 hours if calculation failed
+    if (duration <= 0 || isNaN(duration)) {
+      duration = 8;
+    }
 
     return {
       employeeNumber,

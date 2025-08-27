@@ -88,7 +88,13 @@ function parseEvent(eventData: string): Shift | null {
     const employeeFirst = extractFromDescription(description, 'EmployeeFirst');
     const employeeLast = extractFromDescription(description, 'EmployeeLast');
     const positionName = extractFromDescription(description, 'PositionName');
-    const duration = parseFloat(extractFromDescription(description, 'ShiftDuration') || '0');
+    let duration = parseFloat(extractFromDescription(description, 'ShiftDuration') || '0');
+    
+    // If ShiftDuration is missing or 0, calculate from start/end times
+    if (duration === 0) {
+      const diffInMs = endTime.getTime() - startTime.getTime();
+      duration = diffInMs / (1000 * 60 * 60); // Convert to hours
+    }
 
     if (!employeeNumber || !employeeFirst || !employeeLast) return null;
 
@@ -144,7 +150,14 @@ function extractField(eventData: string, fieldName: string): string | null {
 function extractFromDescription(description: string, fieldName: string): string {
   const regex = new RegExp(`\\(${fieldName}:([^)]+)\\)`);
   const match = description.match(regex);
-  return match ? match[1].trim() : '';
+  const result = match ? match[1].trim() : '';
+  
+  // Debug log for duration extraction
+  if (fieldName === 'ShiftDuration' && result) {
+    console.log(`🔍 Extracted ${fieldName}: ${result}`);
+  }
+  
+  return result;
 }
 
 function extractEmployeeName(eventData: string): string {

@@ -82,6 +82,25 @@ export function TimecardSummaryReport() {
     window.open(exportUrl, '_blank');
   };
 
+  // Function to generate day headers with dates
+  const getDayHeader = (weekEnding: string, dayOffset: number) => {
+    const endDate = new Date(weekEnding);
+    const targetDate = new Date(endDate);
+    targetDate.setDate(endDate.getDate() - (6 - dayOffset)); // Sunday is 0, Saturday is 6
+    
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayName = dayNames[dayOffset];
+    const month = targetDate.getMonth() + 1;
+    const day = targetDate.getDate();
+    
+    return (
+      <div className="text-center">
+        <div className="font-medium">{dayName}</div>
+        <div className="text-xs text-muted-foreground">{month}/{day}</div>
+      </div>
+    );
+  };
+
   const formatHours = (hours: number) => {
     return hours === 0 ? "-" : hours.toString();
   };
@@ -292,13 +311,13 @@ export function TimecardSummaryReport() {
                   <TableRow>
                     <TableHead className="w-[200px]">Employee Name</TableHead>
                     <TableHead className="text-center">Status</TableHead>
-                    <TableHead className="text-center">Sunday</TableHead>
-                    <TableHead className="text-center">Monday</TableHead>
-                    <TableHead className="text-center">Tuesday</TableHead>
-                    <TableHead className="text-center">Wednesday</TableHead>
-                    <TableHead className="text-center">Thursday</TableHead>
-                    <TableHead className="text-center">Friday</TableHead>
-                    <TableHead className="text-center">Saturday</TableHead>
+                    <TableHead className="text-center">{getDayHeader(summaryQuery.data.weekEnding, 0)}</TableHead>
+                    <TableHead className="text-center">{getDayHeader(summaryQuery.data.weekEnding, 1)}</TableHead>
+                    <TableHead className="text-center">{getDayHeader(summaryQuery.data.weekEnding, 2)}</TableHead>
+                    <TableHead className="text-center">{getDayHeader(summaryQuery.data.weekEnding, 3)}</TableHead>
+                    <TableHead className="text-center">{getDayHeader(summaryQuery.data.weekEnding, 4)}</TableHead>
+                    <TableHead className="text-center">{getDayHeader(summaryQuery.data.weekEnding, 5)}</TableHead>
+                    <TableHead className="text-center">{getDayHeader(summaryQuery.data.weekEnding, 6)}</TableHead>
                     <TableHead className="text-center">Total Hours</TableHead>
                     <TableHead className="text-center">PDF Timesheet</TableHead>
                   </TableRow>
