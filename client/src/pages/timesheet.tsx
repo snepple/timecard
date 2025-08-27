@@ -92,16 +92,62 @@ const DAYS_OF_WEEK = [
 // Generate time options in 15-minute intervals
 function generateTimeOptions(): string[] {
   const times: string[] = [];
-  for (let hour = 0; hour < 24; hour++) {
+  
+  // Start from 07:00 and go to 06:45 next day (07:00-07:00 range)
+  // First part: 07:00 to 23:45
+  for (let hour = 7; hour < 24; hour++) {
     for (let minute = 0; minute < 60; minute += 15) {
       const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
       times.push(timeStr);
     }
   }
+  
+  // Second part: 00:00 to 06:45
+  for (let hour = 0; hour < 7; hour++) {
+    for (let minute = 0; minute < 60; minute += 15) {
+      const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      times.push(timeStr);
+    }
+  }
+  
   return times;
 }
 
 const TIME_OPTIONS = generateTimeOptions();
+
+// Helper function to check for overlapping shifts within the 07:00-07:00 range
+function checkForOverlappingShifts(shifts: DayShift[], currentIndex: number): boolean {
+  const currentShift = shifts[currentIndex];
+  if (!currentShift.startTime || !currentShift.endTime) return false;
+
+  // Convert times to minutes since 07:00 for easy comparison
+  const timeToMinutes = (time: string): number => {
+    const [hours, minutes] = time.split(':').map(Number);
+    // If hour is 0-6, it's next day (after midnight within our 07:00-07:00 range)
+    const adjustedHours = hours < 7 ? hours + 24 : hours;
+    return (adjustedHours - 7) * 60 + minutes;
+  };
+
+  const currentStart = timeToMinutes(currentShift.startTime);
+  const currentEnd = timeToMinutes(currentShift.endTime);
+
+  // Check against all other complete shifts
+  for (let i = 0; i < shifts.length; i++) {
+    if (i === currentIndex) continue;
+    
+    const otherShift = shifts[i];
+    if (!otherShift.startTime || !otherShift.endTime) continue;
+
+    const otherStart = timeToMinutes(otherShift.startTime);
+    const otherEnd = timeToMinutes(otherShift.endTime);
+
+    // Check for overlap: shifts overlap if one starts before the other ends
+    const hasOverlap = (currentStart < otherEnd && currentEnd > otherStart);
+    if (hasOverlap) return true;
+  }
+
+  return false;
+}
 
 // Helper function to combine back-to-back shifts
 function combineBackToBackShifts(shifts: Shift[]): Shift[] {
@@ -1141,6 +1187,17 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                               updatedShifts[index].startTime, 
                               updatedShifts[index].endTime
                             );
+                          }
+                          
+                          // Validate no overlapping shifts
+                          const hasOverlap = checkForOverlappingShifts(updatedShifts, index);
+                          if (hasOverlap && updatedShifts[index].startTime && updatedShifts[index].endTime) {
+                            toast({
+                              title: "Overlapping Shifts",
+                              description: "This shift overlaps with another shift on the same day. Please adjust the times.",
+                              variant: "destructive",
+                            });
+                            return;
                           }
                           
                           setValue(`${key}Shifts` as keyof TimesheetFormData, updatedShifts);
