@@ -1,17 +1,30 @@
 export function calculateHours(startTime: string, endTime: string): number {
   if (!startTime || !endTime) return 0;
   
-  const start = new Date(`2000-01-01T${startTime}`);
-  const end = new Date(`2000-01-01T${endTime}`);
+  // Convert times to minutes from 7AM base
+  const timeToMinutes = (time: string): number => {
+    const [hours, minutes] = time.split(':').map(Number);
+    // If hour is 0-6, it's next day (after midnight within our 7:00-7:00 range)
+    const adjustedHours = hours < 7 ? hours + 24 : hours;
+    return (adjustedHours - 7) * 60 + minutes;
+  };
   
-  // Handle overnight shifts OR when start and end times are identical (24-hour shift)
-  if (end <= start) {
-    end.setDate(end.getDate() + 1);
+  const startMinutes = timeToMinutes(startTime);
+  const endMinutes = timeToMinutes(endTime);
+  
+  // Handle invalid combinations (same time = 0 hours, not 24 hours)
+  if (startMinutes === endMinutes) {
+    return 0;
   }
   
-  const diffMs = end.getTime() - start.getTime();
-  const hours = diffMs / (1000 * 60 * 60);
-  return parseFloat(hours.toFixed(2));
+  // End time must be after start time within the 7AM-7AM range
+  if (endMinutes <= startMinutes) {
+    return 0; // Invalid shift
+  }
+  
+  // Calculate duration in hours
+  const durationMinutes = endMinutes - startMinutes;
+  return parseFloat((durationMinutes / 60).toFixed(2));
 }
 
 export function populateWeekDates(weekEndingDate: string): string[] {

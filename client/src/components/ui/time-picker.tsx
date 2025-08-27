@@ -233,11 +233,11 @@ export function TimePicker({ value, onChange, placeholder = "Select time", disab
                     size="sm"
                     className="w-full h-8 text-sm"
                     onClick={() => setSelectedPeriod('AM')}
-                    disabled={type === 'end' && startTime && (() => {
+                    disabled={type === 'end' && startTime ? (() => {
                       let testHour = selectedHour === 12 ? 0 : selectedHour;
                       const testTime = `${testHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`;
                       return !isValidEndTime(testTime, startTime);
-                    })()}
+                    })() : false}
                   >
                     AM
                   </Button>
@@ -247,11 +247,11 @@ export function TimePicker({ value, onChange, placeholder = "Select time", disab
                     size="sm"
                     className="w-full h-8 text-sm"
                     onClick={() => setSelectedPeriod('PM')}
-                    disabled={type === 'end' && startTime && (() => {
+                    disabled={type === 'end' && startTime ? (() => {
                       let testHour = selectedHour === 12 ? 12 : selectedHour + 12;
                       const testTime = `${testHour.toString().padStart(2, '0')}:${selectedMinute.toString().padStart(2, '0')}`;
                       return !isValidEndTime(testTime, startTime);
-                    })()}
+                    })() : false}
                   >
                     PM
                   </Button>

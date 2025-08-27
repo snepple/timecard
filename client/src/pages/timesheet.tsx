@@ -1186,6 +1186,32 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                           const updatedShifts = [...currentShifts];
                           updatedShifts[index] = { ...updatedShifts[index], [field]: value };
                           
+                          // If updating start time, check if current end time would be invalid
+                          if (field === 'startTime' && updatedShifts[index].endTime) {
+                            const isValidEnd = (endTime: string, startTime: string): boolean => {
+                              const timeToMinutes = (time: string): number => {
+                                const [hours, minutes] = time.split(':').map(Number);
+                                const adjustedHours = hours < 7 ? hours + 24 : hours;
+                                return (adjustedHours - 7) * 60 + minutes;
+                              };
+                              
+                              const startMinutes = timeToMinutes(startTime);
+                              const endMinutes = timeToMinutes(endTime);
+                              
+                              return endMinutes > startMinutes && endMinutes <= 24 * 60;
+                            };
+                            
+                            if (!isValidEnd(updatedShifts[index].endTime, value)) {
+                              // Clear invalid end time
+                              updatedShifts[index].endTime = "";
+                              updatedShifts[index].hours = 0;
+                              toast({
+                                title: "End time cleared",
+                                description: "The end time was cleared because it would be invalid with the new start time.",
+                              });
+                            }
+                          }
+                          
                           // Calculate hours if both times are set
                           if (updatedShifts[index].startTime && updatedShifts[index].endTime) {
                             updatedShifts[index].hours = calculateHours(
