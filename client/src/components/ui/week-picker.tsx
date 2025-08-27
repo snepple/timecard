@@ -107,7 +107,17 @@ export function WeekPicker({ value, onChange, placeholder = "Select week ending 
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     };
     
-    return `Week of ${formatDate(startDate)} - ${formatDate(endDate)}`;
+    const formatDateWithYear = (date: Date) => {
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    };
+    
+    // Show year if dates span different years, or always show year on end date
+    const startFormatted = formatDate(startDate);
+    const endFormatted = startDate.getFullYear() !== endDate.getFullYear() 
+      ? formatDateWithYear(endDate) 
+      : formatDateWithYear(endDate);
+    
+    return `Week of ${startFormatted} - ${endFormatted}`;
   };
 
   return (
