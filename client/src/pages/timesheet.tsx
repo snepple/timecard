@@ -739,11 +739,30 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
     DAYS_OF_WEEK.forEach(({ key }) => {
       const shifts = formData[`${key}Shifts`] as DayShift[] || [];
       
-      // For PDF, we take the first shift's start/end times if available
-      // Multiple shifts per day will be combined in the total hours
-      if (shifts.length > 0 && shifts[0].startTime && shifts[0].endTime) {
-        pdfData[`${key}StartTime`] = shifts[0].startTime;
-        pdfData[`${key}EndTime`] = shifts[shifts.length - 1].endTime; // Use last shift's end time
+      if (shifts.length > 0) {
+        if (shifts.length === 1) {
+          // Single shift - use simple format
+          const shift = shifts[0];
+          if (shift.startTime && shift.endTime) {
+            pdfData[`${key}StartTime`] = shift.startTime;
+            pdfData[`${key}EndTime`] = shift.endTime;
+          }
+        } else {
+          // Multiple shifts - format with shift labels
+          const validShifts = shifts.filter(shift => shift.startTime && shift.endTime);
+          if (validShifts.length > 0) {
+            const startTimeText = validShifts.map((shift, index) => 
+              `Shift ${index + 1}: ${shift.startTime}`
+            ).join('\n');
+            
+            const endTimeText = validShifts.map((shift, index) => 
+              `Shift ${index + 1}: ${shift.endTime}`
+            ).join('\n');
+            
+            pdfData[`${key}StartTime`] = startTimeText;
+            pdfData[`${key}EndTime`] = endTimeText;
+          }
+        }
       }
     });
     
