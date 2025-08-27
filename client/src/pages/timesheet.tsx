@@ -732,6 +732,24 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
   };
 
 
+  // Convert shifts arrays to individual start/end time fields for PDF
+  const convertFormDataForPDF = (formData: any) => {
+    const pdfData: any = { ...formData };
+    
+    DAYS_OF_WEEK.forEach(({ key }) => {
+      const shifts = formData[`${key}Shifts`] as DayShift[] || [];
+      
+      // For PDF, we take the first shift's start/end times if available
+      // Multiple shifts per day will be combined in the total hours
+      if (shifts.length > 0 && shifts[0].startTime && shifts[0].endTime) {
+        pdfData[`${key}StartTime`] = shifts[0].startTime;
+        pdfData[`${key}EndTime`] = shifts[shifts.length - 1].endTime; // Use last shift's end time
+      }
+    });
+    
+    return pdfData;
+  };
+
   const handleEmail = async () => {
     const formData = getValues();
     if (!formData.employeeName || !formData.employeeNumber || !formData.weekEnding) {
@@ -746,9 +764,10 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
     try {
       setIsLoading(true);
       
-      // Generate PDF first for preview
+      // Convert form data to PDF format and generate PDF for preview
+      const pdfFormData = convertFormDataForPDF(formData);
       const pdfDataUrl = await generateTimeSheetPDF({
-        ...formData,
+        ...pdfFormData,
         signatureData,
       });
       
@@ -859,8 +878,10 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
 
     setIsLoading(true);
     try {
+      // Convert form data to PDF format and generate PDF
+      const pdfFormData = convertFormDataForPDF(formData);
       const pdfBuffer = await generateTimeSheetPDF({
-        ...formData,
+        ...pdfFormData,
         signatureData,
       });
       
