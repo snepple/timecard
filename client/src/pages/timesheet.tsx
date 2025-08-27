@@ -346,6 +346,8 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
           console.log('Checking shift:', { 
             date: dateStr, 
             position: shift.position, 
+            startTime: shift.startTime,
+            endTime: shift.endTime,
             isNightDuty: isNightDuty 
           });
           
