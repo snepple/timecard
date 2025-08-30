@@ -485,14 +485,27 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         setValue("signatureData", timesheet.signature);
       }
       
-      // Populate shifts if available - convert shift times back to shift objects
+      // Populate shifts if available - parse from JSON strings
       DAYS_OF_WEEK.forEach(({ key }) => {
-        const shiftTimesField = `${key}ShiftTimes`;
-        const shiftTimes = timesheet[shiftTimesField];
-        if (shiftTimes) {
-          // Parse shift times back into shift objects
-          const shifts = parseShiftTimesToObjects(shiftTimes);
-          setValue(`${key}Shifts` as keyof TimesheetFormData, shifts);
+        const shiftsField = `${key}Shifts`;
+        const shiftsData = timesheet[shiftsField];
+        if (shiftsData) {
+          try {
+            // Parse the JSON string to get shift objects
+            const shifts = JSON.parse(shiftsData);
+            if (Array.isArray(shifts) && shifts.length > 0) {
+              setValue(`${key}Shifts` as keyof TimesheetFormData, shifts);
+              
+              // Also set individual start/end times for the first shift
+              const firstShift = shifts[0];
+              if (firstShift) {
+                setValue(`${key}StartTime`, firstShift.startTime || "");
+                setValue(`${key}EndTime`, firstShift.endTime || "");
+              }
+            }
+          } catch (e) {
+            console.warn(`Failed to parse shifts for ${key}:`, e);
+          }
         }
       });
       
