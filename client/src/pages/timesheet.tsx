@@ -20,7 +20,7 @@ import { generateTimeSheetPDF } from "@/lib/pdf-generator";
 import { apiRequest } from "@/lib/queryClient";
 import SignaturePad from "@/components/ui/signature-pad";
 import { getCurrentWeekEndingDate, isSaturday, getNextSaturday, getPreviousSaturday } from "@/lib/date-utils";
-import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle, Check, ChevronsUpDown, RotateCcw, LogOut, Plus, Trash2 } from "lucide-react";
+import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle, Check, ChevronsUpDown, RotateCcw, LogOut, Plus, Trash2, Download } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const dayShiftSchema = z.object({
@@ -230,7 +230,36 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [previewPdfData, setPreviewPdfData] = useState<string | null>(null);
   const [showSubmissionPreview, setShowSubmissionPreview] = useState(false);
+  const [autoSubmitCountdown, setAutoSubmitCountdown] = useState<number | null>(null);
 
+  // Auto-submit countdown timer for submission preview
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    
+    if (showSubmissionPreview && autoSubmitCountdown === null) {
+      // Start countdown when preview opens
+      setAutoSubmitCountdown(30);
+    }
+    
+    if (autoSubmitCountdown !== null && autoSubmitCountdown > 0) {
+      timer = setTimeout(() => {
+        setAutoSubmitCountdown(autoSubmitCountdown - 1);
+      }, 1000);
+    } else if (autoSubmitCountdown === 0) {
+      // Time's up, auto-submit
+      handleSaveAndSubmit();
+      setAutoSubmitCountdown(null);
+    }
+    
+    // Reset countdown when dialog closes
+    if (!showSubmissionPreview && autoSubmitCountdown !== null) {
+      setAutoSubmitCountdown(null);
+    }
+    
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [showSubmissionPreview, autoSubmitCountdown]);
 
   // Fetch schedule data (employees and shifts)
   const scheduleQuery = useQuery<ScheduleData>({
@@ -986,7 +1015,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         signatureData,
       });
       
-      // Create blob and trigger download (strip data URL prefix first)
+      // Open print dialog instead of downloading
       const base64Data = pdfBuffer.replace(/^data:application\/pdf;base64,/, '');
       const binaryData = atob(base64Data);
       const bytes = new Uint8Array(binaryData.length);
@@ -995,17 +1024,22 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       }
       const blob = new Blob([bytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${formData.employeeName}_TimeSheet_${formData.weekEnding.replace(/\//g, '')}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      
+      // Open in new window and trigger print
+      const printWindow = window.open(url, '_blank');
+      if (printWindow) {
+        printWindow.onload = () => {
+          printWindow.print();
+        };
+        // Clean up URL after a delay
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+        }, 1000);
+      }
       
       toast({
         title: "Success",
-        description: "PDF generated and ready to print!",
+        description: "Print dialog opened!",
       });
     } catch (error) {
       toast({
@@ -1088,6 +1122,45 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
     if (!previewPdfData) return;
     
     try {
+      // Create blob and open print dialog
+      const binaryData = atob(previewPdfData);
+      const bytes = new Uint8Array(binaryData.length);
+      for (let i = 0; i < binaryData.length; i++) {
+        bytes[i] = binaryData.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      
+      // Open in new window and trigger print
+      const printWindow = window.open(url, '_blank');
+      if (printWindow) {
+        printWindow.onload = () => {
+          printWindow.print();
+        };
+        // Clean up URL after a delay
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+        }, 1000);
+      }
+      
+      toast({
+        title: "Success",
+        description: "Print dialog opened!",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to open print dialog.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle download from submission preview
+  const handleDownloadFromPreview = async () => {
+    if (!previewPdfData) return;
+    
+    try {
       // Create blob and trigger download
       const binaryData = atob(previewPdfData);
       const bytes = new Uint8Array(binaryData.length);
@@ -1098,7 +1171,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${getValues().employeeName}_TimeSheet_${getValues().weekEnding.replace(/\//g, '')}.pdf`;
+      link.download = `${getValues().memberName || getValues().employeeName}_TimeSheet_${getValues().weekEnding.replace(/\//g, '')}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1117,8 +1190,15 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
     }
   };
 
+  // Stop auto-submit countdown (when user interacts)
+  const stopAutoSubmitCountdown = () => {
+    setAutoSubmitCountdown(null);
+  };
+
   // Handle save and submit from preview
   const handleSaveAndSubmit = async () => {
+    // Stop countdown when manually triggered
+    stopAutoSubmitCountdown();
     // Check if we have email, if not show email dialog
     const existingEmail = (employeeEmailQuery.data as { email?: string })?.email;
     
@@ -1830,7 +1910,17 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
           <AlertDialogHeader>
             <AlertDialogTitle>Timesheet Preview - Ready to Submit</AlertDialogTitle>
             <AlertDialogDescription>
-              Review your completed timesheet below. You can print the PDF, go back to edit, or save and submit via email.
+              Review your completed timesheet below. You can print the PDF, download it, go back to edit, or save and submit via email.
+              {autoSubmitCountdown !== null && (
+                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-yellow-600" />
+                    <span className="text-yellow-800">
+                      Auto-submitting in <strong>{autoSubmitCountdown}</strong> seconds. Click any button to cancel auto-submit.
+                    </span>
+                  </div>
+                </div>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex-1 overflow-hidden">
@@ -1851,15 +1941,32 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             <Button
               type="button"
               variant="outline"
-              onClick={handlePrintFromPreview}
+              onClick={() => {
+                stopAutoSubmitCountdown();
+                handlePrintFromPreview();
+              }}
               className="ios-button ios-button-secondary"
               data-testid="button-preview-print"
             >
               <Printer className="mr-2 h-4 w-4" />
-              Print PDF
+              Print
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                stopAutoSubmitCountdown();
+                handleDownloadFromPreview();
+              }}
+              className="ios-button ios-button-secondary"
+              data-testid="button-preview-download"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download PDF
             </Button>
             <AlertDialogCancel 
               onClick={() => {
+                stopAutoSubmitCountdown();
                 setShowSubmissionPreview(false);
                 setPreviewPdfData(null);
               }}
