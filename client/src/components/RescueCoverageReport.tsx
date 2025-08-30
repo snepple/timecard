@@ -543,33 +543,6 @@ export function RescueCoverageReport() {
             )}
           </CardTitle>
           
-          {/* Legend */}
-          <div className="mt-4 p-3 bg-gray-50 rounded-md">
-            <h4 className="text-sm font-medium mb-2">Legend:</h4>
-            <div className="flex flex-wrap gap-4 text-xs">
-              <div className="flex items-center space-x-1">
-                <FileText className="h-3 w-3 text-green-600" />
-                <span>From timecard</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Calendar className="h-3 w-3 text-blue-500" />
-                <span>From schedule</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <AlertTriangle className="h-3 w-3 text-orange-500" />
-                <span>Differs from schedule</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <div className="relative">
-                  <Shield className="h-3 w-3 text-purple-600" />
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-600 rounded-full text-[6px] text-white flex items-center justify-center">
-                    2
-                  </div>
-                </div>
-                <span>Multiple employees assigned</span>
-              </div>
-            </div>
-          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -630,6 +603,35 @@ export function RescueCoverageReport() {
               {/* Weekly Breakdown */}
               <div>
                 <h3 className="text-lg font-semibold mb-3">Weekly Breakdown</h3>
+                
+                {/* Legend */}
+                <div className="mb-4 p-3 bg-gray-50 rounded-md">
+                  <h4 className="text-sm font-medium mb-2">Legend:</h4>
+                  <div className="flex flex-wrap gap-4 text-xs">
+                    <div className="flex items-center space-x-1">
+                      <FileText className="h-3 w-3 text-green-600" />
+                      <span>From timecard</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Calendar className="h-3 w-3 text-blue-500" />
+                      <span>From schedule</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <AlertTriangle className="h-3 w-3 text-orange-500" />
+                      <span>Differs from schedule</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <div className="relative">
+                        <Shield className="h-3 w-3 text-purple-600" />
+                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-600 rounded-full text-[6px] text-white flex items-center justify-center">
+                          2
+                        </div>
+                      </div>
+                      <span>Multiple employees assigned</span>
+                    </div>
+                  </div>
+                </div>
+                
                 <Alert className="mb-4">
                   <Shield className="h-4 w-4" />
                   <AlertDescription>

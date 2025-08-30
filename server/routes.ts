@@ -1484,18 +1484,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       });
 
-      // Calculate corrected grand totals (avoiding double counting)
-      const uniqueShiftDates = Object.keys(shiftDateTracker);
+      // Calculate grand totals (including overlapping shifts)
       const grandTotals = {
         sunday: 0, monday: 0, tuesday: 0, wednesday: 0,
         thursday: 0, friday: 0, saturday: 0, total: 0
       };
 
-      uniqueShiftDates.forEach(dateStr => {
-        const date = new Date(dateStr + 'T00:00:00');
-        const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][date.getDay()];
-        grandTotals[dayOfWeek as keyof typeof grandTotals]++;
-        grandTotals.total++;
+      // Sum all shifts from all employees (including overlaps)
+      employeeData.forEach(emp => {
+        grandTotals.sunday += emp.monthlyTotals.sunday || 0;
+        grandTotals.monday += emp.monthlyTotals.monday || 0;
+        grandTotals.tuesday += emp.monthlyTotals.tuesday || 0;
+        grandTotals.wednesday += emp.monthlyTotals.wednesday || 0;
+        grandTotals.thursday += emp.monthlyTotals.thursday || 0;
+        grandTotals.friday += emp.monthlyTotals.friday || 0;
+        grandTotals.saturday += emp.monthlyTotals.saturday || 0;
+        grandTotals.total += emp.monthlyTotals.total || 0;
       });
 
       
