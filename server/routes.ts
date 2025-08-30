@@ -1407,16 +1407,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }));
         
         // Calculate monthly totals for this employee (only counting days within the selected month)
-        const monthlyTotals = weeklyData.reduce((totals, week) => ({
-          sunday: totals.sunday + (week.sunday && week.daysInMonth?.sunday ? 1 : 0),
-          monday: totals.monday + (week.monday && week.daysInMonth?.monday ? 1 : 0),
-          tuesday: totals.tuesday + (week.tuesday && week.daysInMonth?.tuesday ? 1 : 0),
-          wednesday: totals.wednesday + (week.wednesday && week.daysInMonth?.wednesday ? 1 : 0),
-          thursday: totals.thursday + (week.thursday && week.daysInMonth?.thursday ? 1 : 0),
-          friday: totals.friday + (week.friday && week.daysInMonth?.friday ? 1 : 0),
-          saturday: totals.saturday + (week.saturday && week.daysInMonth?.saturday ? 1 : 0),
-          total: totals.total + week.totalShifts
-        }), {
+        const monthlyTotals = weeklyData.reduce((totals, week) => {
+          const sundayCount = week.sunday && week.daysInMonth?.sunday ? 1 : 0;
+          const mondayCount = week.monday && week.daysInMonth?.monday ? 1 : 0;
+          const tuesdayCount = week.tuesday && week.daysInMonth?.tuesday ? 1 : 0;
+          const wednesdayCount = week.wednesday && week.daysInMonth?.wednesday ? 1 : 0;
+          const thursdayCount = week.thursday && week.daysInMonth?.thursday ? 1 : 0;
+          const fridayCount = week.friday && week.daysInMonth?.friday ? 1 : 0;
+          const saturdayCount = week.saturday && week.daysInMonth?.saturday ? 1 : 0;
+          
+          return {
+            sunday: totals.sunday + sundayCount,
+            monday: totals.monday + mondayCount,
+            tuesday: totals.tuesday + tuesdayCount,
+            wednesday: totals.wednesday + wednesdayCount,
+            thursday: totals.thursday + thursdayCount,
+            friday: totals.friday + fridayCount,
+            saturday: totals.saturday + saturdayCount,
+            total: totals.total + sundayCount + mondayCount + tuesdayCount + wednesdayCount + thursdayCount + fridayCount + saturdayCount
+          };
+        }, {
           sunday: 0, monday: 0, tuesday: 0, wednesday: 0, 
           thursday: 0, friday: 0, saturday: 0, total: 0
         });
@@ -1443,6 +1453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sunday: 0, monday: 0, tuesday: 0, wednesday: 0,
         thursday: 0, friday: 0, saturday: 0, total: 0
       });
+
       
       // Filter and sort employees
       const filteredEmployees = employeeData
