@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SupervisorTimecardForm } from "./SupervisorTimecardForm";
 import { SupervisorEditTimecardForm } from "./SupervisorEditTimecardForm";
 import { ActivityLog } from "./ActivityLog";
+import { DailyShiftEditDialog } from "./DailyShiftEditDialog";
 
 interface TimecardSummaryData {
   employeeName: string;
@@ -61,10 +62,15 @@ export function TimecardSummaryReport() {
   const [selectedWeekEnding, setSelectedWeekEnding] = useState<string>("");
   const [supervisorFormOpen, setSupervisorFormOpen] = useState(false);
   const [editFormOpen, setEditFormOpen] = useState(false);
+  const [dailyEditOpen, setDailyEditOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<{
     employeeName: string;
     employeeNumber: string;
     timesheetId?: string;
+  } | null>(null);
+  const [selectedDayData, setSelectedDayData] = useState<{
+    dayName: string;
+    currentShifts: string[];
   } | null>(null);
   
   // Set default week ending to current week on component mount
@@ -188,6 +194,21 @@ export function TimecardSummaryReport() {
       timesheetId: employee.timesheetId,
     });
     setEditFormOpen(true);
+  };
+
+  const handleDailyEdit = (employee: TimecardSummaryData, dayName: string, shiftTimes: string[]) => {
+    if (!employee.timesheetId) return;
+    
+    setSelectedEmployee({
+      employeeName: employee.employeeName,
+      employeeNumber: employee.employeeNumber,
+      timesheetId: employee.timesheetId
+    });
+    setSelectedDayData({
+      dayName,
+      currentShifts: shiftTimes || []
+    });
+    setDailyEditOpen(true);
   };
 
   const handleViewOriginalPDF = async (timesheetId: string, employeeName: string) => {
@@ -369,12 +390,26 @@ export function TimecardSummaryReport() {
     return combined;
   };
 
-  const renderHoursWithTooltip = (hours: number, shiftTimes: string[], day: string) => {
+  const renderHoursWithTooltip = (hours: number, shiftTimes: string[], day: string, employee?: TimecardSummaryData) => {
     if (hours === 0) {
       return <span className="text-gray-400">-</span>;
     }
 
+    // Make hours clickable for timecards that exist
+    const isClickable = employee?.hasTimesheet && employee?.timesheetId;
+
     if (!shiftTimes || shiftTimes.length === 0) {
+      if (isClickable) {
+        return (
+          <span 
+            className="cursor-pointer hover:bg-blue-100 hover:text-blue-700 px-1 py-0.5 rounded transition-colors"
+            onClick={() => handleDailyEdit(employee!, day, [])}
+            data-testid={`hours-${day}-${employee?.employeeNumber}`}
+          >
+            {hours}
+          </span>
+        );
+      }
       return <span>{hours}</span>;
     }
 
@@ -384,9 +419,19 @@ export function TimecardSummaryReport() {
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="cursor-help underline decoration-dotted underline-offset-2">
-              {hours}
-            </span>
+            {isClickable ? (
+              <span 
+                className="cursor-pointer hover:bg-blue-100 hover:text-blue-700 px-1 py-0.5 rounded underline decoration-dotted underline-offset-2 transition-colors"
+                onClick={() => handleDailyEdit(employee!, day, shiftTimes)}
+                data-testid={`hours-${day}-${employee?.employeeNumber}`}
+              >
+                {hours}
+              </span>
+            ) : (
+              <span className="cursor-help underline decoration-dotted underline-offset-2">
+                {hours}
+              </span>
+            )}
           </TooltipTrigger>
           <TooltipContent side="top" className="max-w-xs">
             <div className="text-sm">
@@ -626,25 +671,25 @@ export function TimecardSummaryReport() {
                           {getStatusBadge(employee.hasTimesheet, employee.completedBy, employee.isEdited)}
                         </TableCell>
                         <TableCell className="text-center">
-                          {renderHoursWithTooltip(employee.sunday, employee.shiftTimes?.sunday, 'sunday')}
+                          {renderHoursWithTooltip(employee.sunday, employee.shiftTimes?.sunday, 'sunday', employee)}
                         </TableCell>
                         <TableCell className="text-center">
-                          {renderHoursWithTooltip(employee.monday, employee.shiftTimes?.monday, 'monday')}
+                          {renderHoursWithTooltip(employee.monday, employee.shiftTimes?.monday, 'monday', employee)}
                         </TableCell>
                         <TableCell className="text-center">
-                          {renderHoursWithTooltip(employee.tuesday, employee.shiftTimes?.tuesday, 'tuesday')}
+                          {renderHoursWithTooltip(employee.tuesday, employee.shiftTimes?.tuesday, 'tuesday', employee)}
                         </TableCell>
                         <TableCell className="text-center">
-                          {renderHoursWithTooltip(employee.wednesday, employee.shiftTimes?.wednesday, 'wednesday')}
+                          {renderHoursWithTooltip(employee.wednesday, employee.shiftTimes?.wednesday, 'wednesday', employee)}
                         </TableCell>
                         <TableCell className="text-center">
-                          {renderHoursWithTooltip(employee.thursday, employee.shiftTimes?.thursday, 'thursday')}
+                          {renderHoursWithTooltip(employee.thursday, employee.shiftTimes?.thursday, 'thursday', employee)}
                         </TableCell>
                         <TableCell className="text-center">
-                          {renderHoursWithTooltip(employee.friday, employee.shiftTimes?.friday, 'friday')}
+                          {renderHoursWithTooltip(employee.friday, employee.shiftTimes?.friday, 'friday', employee)}
                         </TableCell>
                         <TableCell className="text-center">
-                          {renderHoursWithTooltip(employee.saturday, employee.shiftTimes?.saturday, 'saturday')}
+                          {renderHoursWithTooltip(employee.saturday, employee.shiftTimes?.saturday, 'saturday', employee)}
                         </TableCell>
                         <TableCell className="text-center font-medium min-w-[120px]">
                           <div>
@@ -771,6 +816,20 @@ export function TimecardSummaryReport() {
             // Refresh the summary data
             summaryQuery.refetch();
           }}
+        />
+      )}
+
+      {/* Daily Shift Edit Dialog */}
+      {selectedEmployee && selectedEmployee.timesheetId && selectedDayData && (
+        <DailyShiftEditDialog
+          open={dailyEditOpen}
+          onOpenChange={setDailyEditOpen}
+          employeeName={selectedEmployee.employeeName}
+          employeeNumber={selectedEmployee.employeeNumber}
+          timesheetId={selectedEmployee.timesheetId}
+          dayName={selectedDayData.dayName}
+          weekEnding={selectedWeekEnding}
+          currentShifts={selectedDayData.currentShifts}
         />
       )}
     </div>

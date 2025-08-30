@@ -396,6 +396,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Edit single day shifts in timesheet
+  app.put("/api/timesheets/:id/edit-day", async (req, res) => {
+    try {
+      const timesheetId = req.params.id;
+      const { dayName, shifts, weekEnding, employeeName, employeeNumber } = req.body;
+      
+      if (!dayName || !shifts || !weekEnding || !employeeName || !employeeNumber) {
+        res.status(400).json({ message: "Day name, shifts, week ending, employee name, and employee number are required" });
+        return;
+      }
+
+      // Get the original timesheet first
+      const originalTimesheet = await storage.getTimesheet(timesheetId);
+      if (!originalTimesheet) {
+        res.status(404).json({ message: "Timesheet not found" });
+        return;
+      }
+
+      // Calculate total hours for the day
+      const totalHours = shifts.reduce((sum: number, shift: any) => sum + (shift.hours || 0), 0);
+
+      // Convert shifts to the format expected for shift times
+      const shiftTimes = shifts.map((shift: any) => {
+        if (!shift.startTime || !shift.endTime) return '';
+        
+        // Convert 24-hour to 12-hour format for display
+        const formatTime = (time24: string) => {
+          const [hours, minutes] = time24.split(':');
+          const hour12 = parseInt(hours) % 12 || 12;
+          const period = parseInt(hours) >= 12 ? 'PM' : 'AM';
+          return `${hour12}:${minutes} ${period}`;
+        };
+        
+        const startTime12 = formatTime(shift.startTime);
+        const endTime12 = formatTime(shift.endTime);
+        return `${startTime12} - ${endTime12} (${shift.hours} hours)`;
+      }).filter(Boolean);
+
+      // Build update data for the specific day
+      const updateData: any = {
+        [`${dayName}TotalHours`]: totalHours,
+        [`${dayName}ShiftTimes`]: shiftTimes.join(', '),
+        isEdited: true,
+        editedBy: 'Admin (Daily Edit)',
+        editedAt: new Date(),
+        originalTimesheetData: originalTimesheet.originalTimesheetData || JSON.stringify(originalTimesheet),
+      };
+
+      // Update the timesheet
+      const editedTimesheet = await storage.updateTimesheet(timesheetId, updateData);
+
+      if (!editedTimesheet) {
+        res.status(404).json({ message: "Failed to edit timesheet" });
+        return;
+      }
+
+      // Generate new PDF with updated data
+      try {
+        const { generateTimeSheetPDF } = await import('../lib/pdf-generator');
+        
+        // Convert timesheet data to PDF format
+        const pdfData = {
+          employeeName: editedTimesheet.employeeName,
+          employeeNumber: editedTimesheet.employeeNumber,
+          weekEnding: editedTimesheet.weekEnding,
+          
+          sundayDate: editedTimesheet.sundayDate,
+          sundayTotalHours: parseFloat(editedTimesheet.sundayTotalHours || '0'),
+          
+          mondayDate: editedTimesheet.mondayDate,
+          mondayTotalHours: parseFloat(editedTimesheet.mondayTotalHours || '0'),
+          
+          tuesdayDate: editedTimesheet.tuesdayDate,
+          tuesdayTotalHours: parseFloat(editedTimesheet.tuesdayTotalHours || '0'),
+          
+          wednesdayDate: editedTimesheet.wednesdayDate,
+          wednesdayTotalHours: parseFloat(editedTimesheet.wednesdayTotalHours || '0'),
+          
+          thursdayDate: editedTimesheet.thursdayDate,
+          thursdayTotalHours: parseFloat(editedTimesheet.thursdayTotalHours || '0'),
+          
+          fridayDate: editedTimesheet.fridayDate,
+          fridayTotalHours: parseFloat(editedTimesheet.fridayTotalHours || '0'),
+          
+          saturdayDate: editedTimesheet.saturdayDate,
+          saturdayTotalHours: parseFloat(editedTimesheet.saturdayTotalHours || '0'),
+          
+          totalWeeklyHours: parseFloat(editedTimesheet.totalWeeklyHours || '0'),
+          signature: editedTimesheet.signature,
+          signedBy: editedTimesheet.signedBy,
+          signedAt: editedTimesheet.signedAt,
+          
+          // Add shift details for each day
+          sundayShifts: editedTimesheet.sundayShiftTimes ? editedTimesheet.sundayShiftTimes.split(', ').filter(Boolean) : [],
+          mondayShifts: editedTimesheet.mondayShiftTimes ? editedTimesheet.mondayShiftTimes.split(', ').filter(Boolean) : [],
+          tuesdayShifts: editedTimesheet.tuesdayShiftTimes ? editedTimesheet.tuesdayShiftTimes.split(', ').filter(Boolean) : [],
+          wednesdayShifts: editedTimesheet.wednesdayShiftTimes ? editedTimesheet.wednesdayShiftTimes.split(', ').filter(Boolean) : [],
+          thursdayShifts: editedTimesheet.thursdayShiftTimes ? editedTimesheet.thursdayShiftTimes.split(', ').filter(Boolean) : [],
+          fridayShifts: editedTimesheet.fridayShiftTimes ? editedTimesheet.fridayShiftTimes.split(', ').filter(Boolean) : [],
+          saturdayShifts: editedTimesheet.saturdayShiftTimes ? editedTimesheet.saturdayShiftTimes.split(', ').filter(Boolean) : [],
+        };
+
+        const pdfBase64 = await generateTimeSheetPDF(pdfData);
+        
+        // Update timesheet with new PDF
+        await storage.updateTimesheet(timesheetId, {
+          pdfData: pdfBase64
+        });
+
+        console.log('Generated and stored new PDF for daily edit');
+      } catch (pdfError) {
+        console.error('Failed to generate PDF for daily edit:', pdfError);
+        // Continue even if PDF generation fails
+      }
+
+      // Log edit activity
+      try {
+        const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+        await storage.createActivityLog({
+          timesheetId: editedTimesheet.id,
+          activityType: "edited",
+          performedBy: 'Admin (Daily Edit)',
+          employeeName: editedTimesheet.employeeName,
+          weekEnding: editedTimesheet.weekEnding,
+          details: `Admin edited ${capitalizedDay} shifts: ${totalHours} hours total`
+        });
+      } catch (logError) {
+        console.error("Failed to log daily edit activity:", logError);
+      }
+
+      res.json(editedTimesheet);
+    } catch (error) {
+      console.error("Error editing daily shifts:", error);
+      res.status(500).json({ message: "Failed to edit daily shifts" });
+    }
+  });
+
   // Submit timesheet for approval
   app.post("/api/timesheets/:id/submit", async (req, res) => {
     try {
