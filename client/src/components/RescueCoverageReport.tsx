@@ -198,14 +198,13 @@ export function RescueCoverageReport() {
   const handleViewPDF = async (employeeNumber: string, weekEnding: string, employeeName: string) => {
     try {
       // Find the timesheet for this employee and week
-      const response = await fetch(`/api/timesheets`);
+      const response = await fetch(`/api/timesheets/employee/${employeeNumber}`);
       if (!response.ok) {
         throw new Error('Failed to fetch timesheets');
       }
       
       const timesheets = await response.json();
       const timesheet = timesheets.find((ts: any) => 
-        (ts.employeeNumber === employeeNumber || ts.employeeName === employeeName) && 
         ts.weekEnding === weekEnding
       );
       
@@ -282,14 +281,13 @@ export function RescueCoverageReport() {
   const handleViewOriginalPDF = async (employeeNumber: string, weekEnding: string, employeeName: string) => {
     try {
       // Find the timesheet for this employee and week
-      const response = await fetch(`/api/timesheets`);
+      const response = await fetch(`/api/timesheets/employee/${employeeNumber}`);
       if (!response.ok) {
         throw new Error('Failed to fetch timesheets');
       }
       
       const timesheets = await response.json();
       const timesheet = timesheets.find((ts: any) => 
-        (ts.employeeNumber === employeeNumber || ts.employeeName === employeeName) && 
         ts.weekEnding === weekEnding
       );
       
