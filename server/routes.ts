@@ -46,6 +46,75 @@ function parseShiftTimes(shiftsJson: string | null): string[] {
   }
 }
 
+// Helper function to send email notification when employee edits their timesheet
+async function sendEmployeeEditNotificationEmail(editedTimesheet: any, originalTimesheet: any, editComments: string) {
+  try {
+    // Get supervisor email from settings
+    const supervisorEmail = await storage.getSetting('timesheet_recipient_email') || 'supervisor@oaklandfire.gov';
+    
+    if (!supervisorEmail) {
+      console.log('No supervisor email configured for employee edit notifications');
+      return;
+    }
+
+    // Check if SMTP credentials are configured
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      console.error("SMTP credentials not configured");
+      return;
+    }
+
+    // Create email transporter
+    const transporter = nodemailer.createTransporter({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    // Create email content
+    const subject = `Employee Edit Alert - ${editedTimesheet.employeeName} - Week Ending ${editedTimesheet.weekEnding}`;
+    
+    const emailBody = `
+Dear Supervisor,
+
+An employee has edited their previously submitted timesheet and requires re-approval:
+
+Employee: ${editedTimesheet.employeeName}
+Employee Number: ${editedTimesheet.employeeNumber}
+Week Ending: ${editedTimesheet.weekEnding}
+Edit Date: ${new Date().toLocaleDateString()}
+
+Employee Comments:
+${editComments}
+
+Action Required:
+The employee's timesheet has been updated and resubmitted. Please review the changes and provide approval or feedback as needed. The timesheet is now pending your approval again.
+
+You can access the updated timesheet through the supervisor dashboard to review the changes and approve or reject as necessary.
+
+Best regards,
+Oakland Fire-Rescue Timesheet System
+    `;
+
+    // Send email
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: supervisorEmail,
+      subject: subject,
+      text: emailBody,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Employee edit notification email sent to ${supervisorEmail}`);
+  } catch (error) {
+    console.error('Error sending employee edit notification email:', error);
+    throw error;
+  }
+}
+
 // Helper function to send edit notification email to employee
 async function sendEditNotificationEmail(editedTimesheet: any, originalTimesheet: any, editReason: string) {
   try {
@@ -392,6 +461,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching activity log:", error);
       res.status(500).json({ error: "Failed to fetch activity log" });
+    }
+  });
+
+  // Get existing timesheet by employee and week
+  app.get("/api/timesheets/employee/:employeeNumber/:weekEnding", async (req, res) => {
+    try {
+      const { employeeNumber, weekEnding } = req.params;
+      const timesheets = await storage.getTimesheetsByEmployee(employeeNumber);
+      const existingTimesheet = timesheets.find(ts => ts.weekEnding === weekEnding);
+      
+      if (existingTimesheet) {
+        res.json(existingTimesheet);
+      } else {
+        res.status(404).json({ message: "No timesheet found for this week" });
+      }
+    } catch (error) {
+      console.error("Error fetching existing timesheet:", error);
+      res.status(500).json({ error: "Failed to fetch existing timesheet" });
+    }
+  });
+
+  // Employee edit endpoint for previously submitted timesheets
+  app.post("/api/timesheets/:id/employee-edit", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { editComments, ...updatedTimesheetData } = req.body;
+      
+      // Validate edit comments are provided
+      if (!editComments || editComments.trim().length === 0) {
+        return res.status(400).json({ error: "Edit comments are required" });
+      }
+      
+      // Get the existing timesheet
+      const existingTimesheet = await storage.getTimesheetById(id);
+      if (!existingTimesheet) {
+        return res.status(404).json({ error: "Timesheet not found" });
+      }
+      
+      if (existingTimesheet.status !== 'submitted') {
+        return res.status(400).json({ error: "Only submitted timesheets can be edited by employees" });
+      }
+      
+      // Update the timesheet with employee edits
+      const updatedTimesheet = await storage.updateTimesheet(id, {
+        ...updatedTimesheetData,
+        editComments,
+        isEditingPreviousSubmission: true,
+        employeeEditedAt: new Date().toISOString(),
+        originalSubmissionDate: existingTimesheet.submittedAt,
+        status: 'submitted', // Keep as submitted, but mark as edited
+        submittedAt: new Date().toISOString(), // Update submission time
+      });
+      
+      // Log the employee edit activity
+      await storage.createActivityLog({
+        timesheetId: id,
+        activityType: 'employee_edited',
+        performedBy: existingTimesheet.employeeName,
+        details: `Employee edited timesheet with comments: ${editComments}`,
+        employeeName: existingTimesheet.employeeName,
+        weekEnding: existingTimesheet.weekEnding,
+      });
+      
+      // Send email notification to supervisor
+      try {
+        await sendEmployeeEditNotificationEmail(updatedTimesheet, existingTimesheet, editComments);
+      } catch (emailError) {
+        console.error("Failed to send employee edit notification email:", emailError);
+        // Don't fail the request if email fails
+      }
+      
+      res.json(updatedTimesheet);
+    } catch (error) {
+      console.error("Error processing employee edit:", error);
+      res.status(500).json({ error: "Failed to process employee edit" });
     }
   });
 

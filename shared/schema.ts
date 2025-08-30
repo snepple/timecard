@@ -63,6 +63,12 @@ export const timesheets = pgTable("timesheets", {
   originalTimesheetData: text("original_timesheet_data"), // JSON backup of original data before edit
   isEdited: boolean("is_edited").default(false), // flag to indicate if timecard was edited
   
+  // Employee edit fields
+  isEditingPreviousSubmission: boolean("is_editing_previous_submission").default(false),
+  editComments: text("edit_comments"), // employee's explanation of changes
+  originalSubmissionDate: text("original_submission_date"), // when originally submitted
+  employeeEditedAt: timestamp("employee_edited_at"), // when employee made edits
+  
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 

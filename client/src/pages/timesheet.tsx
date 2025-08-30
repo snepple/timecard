@@ -20,6 +20,22 @@ import { generateTimeSheetPDF } from "@/lib/pdf-generator";
 import { apiRequest } from "@/lib/queryClient";
 import SignaturePad from "@/components/ui/signature-pad";
 import { getCurrentWeekEndingDate, isSaturday, getNextSaturday, getPreviousSaturday } from "@/lib/date-utils";
+
+// Check if timecard editing is allowed (before Saturday 11:59 PM ET of current week)
+const isTimecardEditingAllowed = (weekEnding: string): boolean => {
+  const weekEndDate = new Date(weekEnding);
+  const now = new Date();
+  
+  // Convert to Eastern Time
+  const easternNow = new Date(now.toLocaleString("en-US", {timeZone: "America/New_York"}));
+  const easternWeekEnd = new Date(weekEndDate.toLocaleString("en-US", {timeZone: "America/New_York"}));
+  
+  // Check if we're still in the same week and before Saturday 11:59 PM ET
+  const saturdayDeadline = new Date(easternWeekEnd);
+  saturdayDeadline.setHours(23, 59, 59, 999);
+  
+  return easternNow <= saturdayDeadline;
+};
 import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle, Check, ChevronsUpDown, RotateCcw, LogOut, Plus, Trash2, Download } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
@@ -74,6 +90,20 @@ const timesheetSchema = z.object({
   acknowledgmentChecked: z.boolean().refine(val => val === true, {
     message: "You must acknowledge that you have reviewed all times and totals for accuracy"
   }),
+  
+  // Employee edit fields
+  isEditingPreviousSubmission: z.boolean().default(false),
+  editComments: z.string().optional().refine((val, ctx) => {
+    const isEditing = ctx.parent.isEditingPreviousSubmission;
+    if (isEditing && (!val || val.trim().length === 0)) {
+      return false;
+    }
+    return true;
+  }, {
+    message: "Please explain what changes you made to your timesheet"
+  }),
+  originalSubmissionDate: z.string().optional(),
+  
   status: z.string().optional(),
   id: z.string().optional(),
 });
@@ -324,20 +354,37 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       thursdayShifts: [],
       fridayShifts: [],
       saturdayShifts: [],
-      employeeName: "",
-      employeeNumber: "",
+      memberName: "",
+      memberNumber: "",
       weekEnding: getCurrentWeekEndingDate(), // Default to current week
-      selectedEmployee: "",
+      selectedMember: "",
       rescueCoverageMonday: false,
       rescueCoverageTuesday: false,
       rescueCoverageWednesday: false,
       rescueCoverageThursday: false,
       acknowledgmentChecked: false,
+      isEditingPreviousSubmission: false,
+      editComments: "",
+      originalSubmissionDate: "",
     },
   });
 
   const { watch, setValue, getValues } = form;
   const watchedValues = watch();
+
+  // Check for existing timesheet for current week
+  const existingTimesheetQuery = useQuery({
+    queryKey: ['/api/timesheets/employee', watchedValues.memberNumber, watchedValues.weekEnding],
+    enabled: !!watchedValues.memberNumber && !!watchedValues.weekEnding,
+    retry: false,
+  });
+
+  // TODO: Implement form population when existing timesheet is found
+  // useEffect(() => {
+  //   if (existingTimesheetQuery.data && existingTimesheetQuery.data.status === 'submitted') {
+  //     // Populate form logic will go here
+  //   }
+  // }, [existingTimesheetQuery.data]);
 
   // Auto-calculate daily hours when shifts change
   useEffect(() => {
@@ -1215,28 +1262,53 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
     try {
       setIsLoading(true);
       
-      // Submit email with timesheet data
-      await emailTimesheetMutation.mutateAsync({
-        employeeNumber: formData.employeeNumber,
-        employeeEmail: finalEmail,
-        timesheetData: {
-          employeeName: formData.employeeName,
-          weekEnding: formData.weekEnding,
-          pdfBuffer: `data:application/pdf;base64,${previewPdfData}`,
-        },
-      });
+      // Check if this is an employee edit
+      if (formData.isEditingPreviousSubmission && existingTimesheetQuery.data?.id) {
+        // Use employee edit endpoint
+        await apiRequest("POST", `/api/timesheets/${existingTimesheetQuery.data.id}/employee-edit`, {
+          ...formData,
+          // Map field names for backend compatibility
+          employeeName: formData.memberName,
+          employeeNumber: formData.memberNumber,
+          // Convert arrays to JSON strings for storage
+          sundayShifts: JSON.stringify(formData.sundayShifts || []),
+          mondayShifts: JSON.stringify(formData.mondayShifts || []),
+          tuesdayShifts: JSON.stringify(formData.tuesdayShifts || []),
+          wednesdayShifts: JSON.stringify(formData.wednesdayShifts || []),
+          thursdayShifts: JSON.stringify(formData.thursdayShifts || []),
+          fridayShifts: JSON.stringify(formData.fridayShifts || []),
+          saturdayShifts: JSON.stringify(formData.saturdayShifts || []),
+        });
+        
+        toast({
+          title: "Timesheet Updated",
+          description: "Your edited timesheet has been resubmitted and requires supervisor re-approval.",
+        });
+      } else {
+        // Regular submission - Submit email with timesheet data
+        await emailTimesheetMutation.mutateAsync({
+          memberNumber: formData.memberNumber,
+          employeeEmail: finalEmail,
+          timesheetData: {
+            memberName: formData.memberName,
+            weekEnding: formData.weekEnding,
+            pdfBuffer: `data:application/pdf;base64,${previewPdfData}`,
+          },
+        });
+        
+        toast({
+          title: "Success",
+          description: "Timesheet submitted successfully!",
+        });
+      }
 
       // Close preview dialog
       setShowSubmissionPreview(false);
       
-      toast({
-        title: "Success",
-        description: "Timesheet submitted successfully!",
-      });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to submit timesheet. Please try again.",
+        description: formData.isEditingPreviousSubmission ? "Failed to submit edited timesheet. Please try again." : "Failed to submit timesheet. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -1260,6 +1332,22 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
 
       {/* iOS-style Main Content */}
       <main className="px-4 py-6 max-w-4xl mx-auto space-y-4">
+        {/* Editing Banner - Show when editing previous submission */}
+        {watchedValues.isEditingPreviousSubmission && (
+          <div className="mb-4 p-4 bg-orange-100 border border-orange-300 rounded-lg">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-orange-600" />
+              <div>
+                <h3 className="font-semibold text-orange-800">Editing Previous Submission</h3>
+                <p className="text-sm text-orange-700">
+                  You are editing a previously submitted timesheet. Changes must be submitted before Saturday at 11:59 PM ET 
+                  and will require supervisor re-approval.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="ios-mobile-spacing">
           <h1 className="ios-title-1 text-foreground mb-2">Weekly Timesheet</h1>
           
@@ -1672,6 +1760,37 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             </div>
           </div>
 
+          {/* Edit Comments Card - Show only when editing */}
+          {watchedValues.isEditingPreviousSubmission && (
+            <div className="ios-card border-orange-200 bg-orange-50">
+              <div className="p-6">
+                <FormField
+                  control={form.control}
+                  name="editComments"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="ios-headline text-orange-700">
+                        Edit Comments <span className="text-red-500">*</span>
+                      </FormLabel>
+                      <FormDescription className="text-sm text-orange-600 mb-4">
+                        Please explain what changes you made to your timesheet. This helps your supervisor understand the updates.
+                      </FormDescription>
+                      <FormControl>
+                        <textarea
+                          {...field}
+                          className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          placeholder="Describe the changes you made to your timesheet..."
+                          data-testid="textarea-edit-comments"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Acknowledgment Card - iOS style */}
           <div className="ios-card">
             <div className="p-6">
@@ -1690,12 +1809,22 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel className="text-sm font-medium text-secondary">
-                        Acknowledgment <span className="text-red-500">*</span>
+                        {watchedValues.isEditingPreviousSubmission ? 'Updated Acknowledgment' : 'Acknowledgment'} <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormDescription className="text-sm text-muted-foreground">
-                        I acknowledge that I have reviewed all times and totals for accuracy. 
-                        Times imported from the schedule should be verified and updated if they 
-                        differ from actual worked hours.
+                        {watchedValues.isEditingPreviousSubmission ? (
+                          <>
+                            I acknowledge that I have re-reviewed all times and totals for accuracy after making my edits. 
+                            I understand that editing this timesheet will require my supervisor to re-approve it, and 
+                            I must submit these changes before Saturday at 11:59 PM ET.
+                          </>
+                        ) : (
+                          <>
+                            I acknowledge that I have reviewed all times and totals for accuracy. 
+                            Times imported from the schedule should be verified and updated if they 
+                            differ from actual worked hours.
+                          </>
+                        )}
                       </FormDescription>
                       <FormMessage />
                     </div>
@@ -1758,7 +1887,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                 data-testid="button-submit"
               >
                 <Send className="mr-2 h-4 w-4" />
-                {submitTimesheetMutation.isPending ? "Submitting..." : "Submit for Approval"}
+                {submitTimesheetMutation.isPending ? "Submitting..." : watchedValues.isEditingPreviousSubmission ? "Resubmit Edited Timesheet" : "Submit for Approval"}
               </Button>
             )}
             
@@ -1770,7 +1899,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
               data-testid="button-submit"
             >
               <Send className="mr-2 h-4 w-4" />
-              Submit
+              {watchedValues.isEditingPreviousSubmission ? "Resubmit Changes" : "Submit"}
             </Button>
           </div>
         </div>

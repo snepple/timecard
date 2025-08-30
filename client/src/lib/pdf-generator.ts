@@ -49,6 +49,12 @@ interface TimesheetData {
   
   signatureData?: string;
   completedBy?: string; // "employee", "supervisor", or null
+  
+  // Employee edit fields
+  isEditingPreviousSubmission?: boolean;
+  editComments?: string;
+  employeeEditedAt?: string;
+  originalSubmissionDate?: string;
 }
 
 function formatTimeForPDF(time?: string): string {
@@ -328,6 +334,63 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
         console.log('Added supervisor edit annotation');
       } catch (error) {
         console.warn("Could not add supervisor edit annotation:", error);
+      }
+    }
+
+    // Add employee edit annotations if employee edited their timesheet
+    if (data.isEditingPreviousSubmission && data.employeeEditedAt) {
+      try {
+        const pages = pdfDoc.getPages();
+        const firstPage = pages[0];
+        const pageHeight = firstPage.getSize().height;
+        
+        // Format edit date
+        const editDate = new Date(data.employeeEditedAt);
+        const formattedDate = editDate.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+        
+        // Calculate position - place below other annotations
+        let yPosition = pageHeight - 250;
+        if (data.completedBy === 'supervisor') yPosition -= 20;
+        if (data.isEdited) yPosition -= 20;
+        
+        // Add employee edit annotation text
+        firstPage.drawText(
+          `EDITED BY EMPLOYEE ON ${formattedDate}`, 
+          {
+            x: 50,
+            y: yPosition,
+            size: 10,
+          }
+        );
+        
+        // Add edit comments if available and there's space
+        if (data.editComments && data.editComments.trim()) {
+          const commentsYPosition = yPosition - 15;
+          const maxCommentLength = 60; // Limit length to fit on page
+          const truncatedComments = data.editComments.length > maxCommentLength 
+            ? data.editComments.substring(0, maxCommentLength) + "..."
+            : data.editComments;
+            
+          firstPage.drawText(
+            `Edit Comments: ${truncatedComments}`, 
+            {
+              x: 50,
+              y: commentsYPosition,
+              size: 9,
+            }
+          );
+        }
+        
+        console.log('Added employee edit annotation');
+      } catch (error) {
+        console.warn("Could not add employee edit annotation:", error);
       }
     }
 
