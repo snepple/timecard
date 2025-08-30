@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { AlertCircle, Plus, Edit2, Trash2, Users, Mail, Lock, Settings, FileText } from "lucide-react";
+import { AlertCircle, Plus, Edit2, Trash2, Users, Mail, Lock, Settings, FileText, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
@@ -460,6 +460,15 @@ export default function SupervisorDashboard() {
               >
                 <Settings className="w-4 h-4 mr-2" />
                 Security Settings
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => window.location.href = '/'}
+                className="flex items-center"
+                data-testid="button-logout"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
               </Button>
             </div>
           </div>
