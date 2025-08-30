@@ -1,7 +1,7 @@
 import { type Timesheet, type InsertTimesheet, type EmployeeNumber, type InsertEmployeeNumber, type Setting, type InsertSetting, type TimecardActivityLog, type InsertActivityLog, timesheets, employeeNumbers, settings, timecardActivityLog } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<any | undefined>;
@@ -500,19 +500,19 @@ Oakland Fire-Rescue Timesheet System`;
 
   async getActivityLogByEmployeeWeek(employeeNumber: string, weekEnding: string): Promise<TimecardActivityLog[]> {
     // First find all timesheets for this employee and week
-    const timesheets = await db.select()
-      .from(timesheetsTable)
+    const employeeTimesheets = await db.select()
+      .from(timesheets)
       .where(and(
-        eq(timesheetsTable.employeeNumber, employeeNumber),
-        eq(timesheetsTable.weekEnding, weekEnding)
+        eq(timesheets.employeeNumber, employeeNumber),
+        eq(timesheets.weekEnding, weekEnding)
       ));
 
-    if (timesheets.length === 0) {
+    if (employeeTimesheets.length === 0) {
       return [];
     }
 
     // Get activity logs for these timesheets
-    const timesheetIds = timesheets.map(ts => ts.id);
+    const timesheetIds = employeeTimesheets.map(ts => ts.id);
     return await db.select()
       .from(timecardActivityLog)
       .where(inArray(timecardActivityLog.timesheetId, timesheetIds))
@@ -525,20 +525,20 @@ Oakland Fire-Rescue Timesheet System`;
     const endDate = new Date(year, month, 0);
     
     // Find all timesheets for this employee in the month
-    const timesheets = await db.select()
-      .from(timesheetsTable)
+    const employeeTimesheets = await db.select()
+      .from(timesheets)
       .where(and(
-        eq(timesheetsTable.employeeNumber, employeeNumber),
-        gte(timesheetsTable.weekEnding, startDate.toISOString().split('T')[0]),
-        lte(timesheetsTable.weekEnding, endDate.toISOString().split('T')[0])
+        eq(timesheets.employeeNumber, employeeNumber),
+        gte(timesheets.weekEnding, startDate.toISOString().split('T')[0]),
+        lte(timesheets.weekEnding, endDate.toISOString().split('T')[0])
       ));
 
-    if (timesheets.length === 0) {
+    if (employeeTimesheets.length === 0) {
       return [];
     }
 
     // Get activity logs for these timesheets
-    const timesheetIds = timesheets.map(ts => ts.id);
+    const timesheetIds = employeeTimesheets.map(ts => ts.id);
     return await db.select()
       .from(timecardActivityLog)
       .where(inArray(timecardActivityLog.timesheetId, timesheetIds))
