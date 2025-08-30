@@ -370,22 +370,49 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
           }
         );
         
-        // Add edit comments if available and there's space
+        // Add edit comments if available
         if (data.editComments && data.editComments.trim()) {
-          const commentsYPosition = yPosition - 15;
-          const maxCommentLength = 60; // Limit length to fit on page
-          const truncatedComments = data.editComments.length > maxCommentLength 
-            ? data.editComments.substring(0, maxCommentLength) + "..."
-            : data.editComments;
-            
-          firstPage.drawText(
-            `Edit Comments: ${truncatedComments}`, 
-            {
-              x: 50,
-              y: commentsYPosition,
-              size: 9,
+          const maxLineLength = 85; // Characters per line
+          const maxLines = 3; // Maximum lines for comments
+          
+          // Split comments into multiple lines if needed
+          const words = data.editComments.split(' ');
+          const lines: string[] = [];
+          let currentLine = '';
+          
+          for (const word of words) {
+            if (currentLine.length + word.length + 1 <= maxLineLength) {
+              currentLine += (currentLine ? ' ' : '') + word;
+            } else {
+              if (currentLine) lines.push(currentLine);
+              currentLine = word;
+              if (lines.length >= maxLines) break;
             }
-          );
+          }
+          if (currentLine && lines.length < maxLines) {
+            lines.push(currentLine);
+          }
+          
+          // Add "..." if there are more comments than we can display
+          if (lines.length === maxLines && words.length > lines.join(' ').split(' ').length) {
+            lines[lines.length - 1] += '...';
+          }
+          
+          // Draw comment lines
+          let commentsYPosition = yPosition - 15;
+          firstPage.drawText('Edit Comments:', {
+            x: 50,
+            y: commentsYPosition,
+            size: 9,
+          });
+          
+          lines.forEach((line, index) => {
+            firstPage.drawText(line, {
+              x: 60, // Indent the comment text
+              y: commentsYPosition - (index + 1) * 12,
+              size: 8,
+            });
+          });
         }
         
         console.log('Added employee edit annotation');

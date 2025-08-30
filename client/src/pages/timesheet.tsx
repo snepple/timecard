@@ -915,6 +915,14 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       }
     });
     
+    // Include employee edit information for PDF annotations
+    if (formData.isEditingPreviousSubmission) {
+      pdfData.isEditingPreviousSubmission = true;
+      pdfData.editComments = formData.editComments;
+      pdfData.employeeEditedAt = new Date().toISOString(); // Current time for when PDF is generated
+      pdfData.originalSubmissionDate = formData.originalSubmissionDate;
+    }
+    
     return pdfData;
   };
 

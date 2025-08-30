@@ -87,11 +87,14 @@ Employee Number: ${editedTimesheet.employeeNumber}
 Week Ending: ${editedTimesheet.weekEnding}
 Edit Date: ${new Date().toLocaleDateString()}
 
-Employee Comments:
+=== EMPLOYEE EDIT COMMENTS ===
 ${editComments}
+================================
 
 Action Required:
 The employee's timesheet has been updated and resubmitted. Please review the changes and provide approval or feedback as needed. The timesheet is now pending your approval again.
+
+The employee's comments above explain what changes were made. Please review these changes carefully along with the updated timesheet data.
 
 You can access the updated timesheet through the supervisor dashboard to review the changes and approve or reject as necessary.
 
