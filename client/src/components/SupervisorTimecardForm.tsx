@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, Save, AlertTriangle } from "lucide-react";
+import { Trash2, Plus, Save, AlertTriangle, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { generateTimeSheetPDF } from "@/lib/pdf-generator";
@@ -69,14 +69,21 @@ const supervisorTimecardSchema = z.object({
 type SupervisorTimecardFormData = z.infer<typeof supervisorTimecardSchema>;
 
 interface SupervisorTimecardFormProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  employee: {
+  // Legacy dialog props (used by TimecardSummaryReport)
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  employee?: {
     employeeName: string;
     employeeNumber: string;
   };
-  weekEnding: string;
+  weekEnding?: string;
   onSuccess?: () => void;
+  
+  // New direct props (used by RescueCoverageReport)
+  employeeName?: string;
+  employeeNumber?: string;
+  onSave?: () => void;
+  onCancel?: () => void;
 }
 
 const dayNames = [
@@ -94,18 +101,37 @@ export function SupervisorTimecardForm({
   onOpenChange, 
   employee, 
   weekEnding, 
-  onSuccess 
+  onSuccess,
+  employeeName,
+  employeeNumber,
+  onSave,
+  onCancel
 }: SupervisorTimecardFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
+  const [existingTimecard, setExistingTimecard] = useState<any>(null);
+  const [dataSource, setDataSource] = useState<'new' | 'existing' | 'schedule'>('new');
+  
+  // Determine actual employee info and week ending from either prop pattern
+  const actualEmployeeName = employeeName || employee?.employeeName || '';
+  const actualEmployeeNumber = employeeNumber || employee?.employeeNumber || '';
+  const actualWeekEnding = weekEnding || (() => {
+    // Calculate current week ending (Saturday) if not provided
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const daysUntilSaturday = (6 - dayOfWeek) % 7;
+    const saturday = new Date(today);
+    saturday.setDate(today.getDate() + daysUntilSaturday);
+    return saturday.toISOString().split('T')[0];
+  })();
 
   const form = useForm<SupervisorTimecardFormData>({
     resolver: zodResolver(supervisorTimecardSchema),
     defaultValues: {
-      employeeName: employee.employeeName,
-      employeeNumber: employee.employeeNumber,
-      weekEnding: weekEnding,
+      employeeName: actualEmployeeName,
+      employeeNumber: actualEmployeeNumber,
+      weekEnding: actualWeekEnding,
       sundayShifts: [],
       mondayShifts: [],
       tuesdayShifts: [],
@@ -150,9 +176,76 @@ export function SupervisorTimecardForm({
     setValue('totalWeeklyHours', weekTotal);
   }, [watchedShifts, setValue]);
 
+  // Load existing timecard data
+  useEffect(() => {
+    const loadExistingTimecard = async () => {
+      if (!actualEmployeeNumber || !actualWeekEnding) return;
+      
+      try {
+        const response = await fetch(`/api/timesheets/${actualEmployeeNumber}/${actualWeekEnding}`);
+        if (response.ok) {
+          const timecard = await response.json();
+          setExistingTimecard(timecard);
+          setDataSource('existing');
+          
+          // Populate form with existing data
+          reset({
+            employeeName: timecard.employeeName,
+            employeeNumber: timecard.employeeNumber,
+            weekEnding: timecard.weekEnding,
+            
+            sundayDate: timecard.sundayDate,
+            sundayShifts: timecard.sundayShifts ? JSON.parse(timecard.sundayShifts) : [],
+            sundayTotalHours: parseFloat(timecard.sundayTotalHours || '0'),
+            
+            mondayDate: timecard.mondayDate,
+            mondayShifts: timecard.mondayShifts ? JSON.parse(timecard.mondayShifts) : [],
+            mondayTotalHours: parseFloat(timecard.mondayTotalHours || '0'),
+            
+            tuesdayDate: timecard.tuesdayDate,
+            tuesdayShifts: timecard.tuesdayShifts ? JSON.parse(timecard.tuesdayShifts) : [],
+            tuesdayTotalHours: parseFloat(timecard.tuesdayTotalHours || '0'),
+            
+            wednesdayDate: timecard.wednesdayDate,
+            wednesdayShifts: timecard.wednesdayShifts ? JSON.parse(timecard.wednesdayShifts) : [],
+            wednesdayTotalHours: parseFloat(timecard.wednesdayTotalHours || '0'),
+            
+            thursdayDate: timecard.thursdayDate,
+            thursdayShifts: timecard.thursdayShifts ? JSON.parse(timecard.thursdayShifts) : [],
+            thursdayTotalHours: parseFloat(timecard.thursdayTotalHours || '0'),
+            
+            fridayDate: timecard.fridayDate,
+            fridayShifts: timecard.fridayShifts ? JSON.parse(timecard.fridayShifts) : [],
+            fridayTotalHours: parseFloat(timecard.fridayTotalHours || '0'),
+            
+            saturdayDate: timecard.saturdayDate,
+            saturdayShifts: timecard.saturdayShifts ? JSON.parse(timecard.saturdayShifts) : [],
+            saturdayTotalHours: parseFloat(timecard.saturdayTotalHours || '0'),
+            
+            totalWeeklyHours: parseFloat(timecard.totalWeeklyHours || '0'),
+            
+            rescueCoverageMonday: timecard.rescueCoverageMonday || false,
+            rescueCoverageTuesday: timecard.rescueCoverageTuesday || false,
+            rescueCoverageWednesday: timecard.rescueCoverageWednesday || false,
+            rescueCoverageThursday: timecard.rescueCoverageThursday || false,
+            
+            supervisorAcknowledgment: false // Always require re-acknowledgment
+          });
+        } else {
+          setDataSource('new');
+        }
+      } catch (error) {
+        console.error('Error loading existing timecard:', error);
+        setDataSource('new');
+      }
+    };
+    
+    loadExistingTimecard();
+  }, [actualEmployeeNumber, actualWeekEnding, reset]);
+
   // Generate week dates for display
   const getWeekDates = () => {
-    const endDate = new Date(weekEnding);
+    const endDate = new Date(actualWeekEnding);
     const dates: string[] = [];
     
     for (let i = 6; i >= 0; i--) {
@@ -256,11 +349,12 @@ export function SupervisorTimecardForm({
       queryClient.invalidateQueries({ queryKey: ['/api/admin/timecard-summary'] });
       toast({
         title: "Timecard submitted",
-        description: `Timecard completed on behalf of ${employee.employeeName}`,
+        description: `Timecard completed on behalf of ${actualEmployeeName}`,
         duration: 2000,
       });
       reset();
-      onOpenChange(false);
+      onOpenChange?.(false);
+      onSave?.();
       onSuccess?.();
     },
     onError: (error) => {
@@ -364,7 +458,7 @@ export function SupervisorTimecardForm({
             <div className="flex items-center space-x-2 pt-2 border-t">
               <Checkbox
                 id={`rescue-${day.key}`}
-                checked={watch(rescueCoverageKey)}
+                checked={!!watch(rescueCoverageKey)}
                 onCheckedChange={(checked) => setValue(rescueCoverageKey, checked as boolean)}
                 className="h-4 w-4"
               />
@@ -386,9 +480,18 @@ export function SupervisorTimecardForm({
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <AlertTriangle className="h-5 w-5 text-orange-500" />
-            <span>Complete Timecard on Behalf of {employee.employeeName}</span>
+            <span>Complete Timecard on Behalf of {actualEmployeeName}</span>
           </DialogTitle>
           <DialogDescription>
+            {dataSource === 'existing' && existingTimecard && (
+              <div className="flex items-center space-x-2 p-3 bg-blue-50 border border-blue-200 rounded mb-3">
+                <FileText className="h-4 w-4 text-blue-600" />
+                <span className="text-sm text-blue-800 font-medium">
+                  Previously submitted timecard found - Status: {existingTimecard.status} | 
+                  Last modified: {new Date(existingTimecard.updatedAt || existingTimecard.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+            )}
             As a supervisor, you are completing this timecard for an employee who did not submit their own. 
             Please enter the hours to the best of your knowledge based on schedule and actual time worked.
           </DialogDescription>
@@ -399,9 +502,9 @@ export function SupervisorTimecardForm({
           <Alert>
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Employee:</strong> {employee.employeeName} (#{employee.employeeNumber}) 
+              <strong>Employee:</strong> {actualEmployeeName} (#{actualEmployeeNumber}) 
               <br />
-              <strong>Week Ending:</strong> {new Date(weekEnding).toLocaleDateString()}
+              <strong>Week Ending:</strong> {new Date(actualWeekEnding).toLocaleDateString()}
             </AlertDescription>
           </Alert>
 
@@ -438,7 +541,7 @@ export function SupervisorTimecardForm({
                 />
                 <Label htmlFor="supervisor-acknowledgment" className="text-sm leading-relaxed">
                   I acknowledge that I am completing this timecard on behalf of{' '}
-                  <strong>{employee.employeeName}</strong> due to their failure to submit a timecard. 
+                  <strong>{actualEmployeeName}</strong> due to their failure to submit a timecard. 
                   I certify that the hours entered above represent the time worked to the best of my knowledge 
                   based on schedule information and actual time worked. This timecard is being completed by 
                   the Fire Chief/Supervisor in accordance with department policy.
@@ -457,7 +560,7 @@ export function SupervisorTimecardForm({
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => { onOpenChange?.(false); onCancel?.(); }}
               disabled={isLoading}
             >
               Cancel
