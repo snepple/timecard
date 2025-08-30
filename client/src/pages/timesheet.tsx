@@ -415,7 +415,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
 
   // Check for existing timesheet for current week
   const existingTimesheetQuery = useQuery({
-    queryKey: ['/api/timesheets/employee', watchedValues.memberNumber, watchedValues.weekEnding],
+    queryKey: [`/api/timesheets/employee/${watchedValues.memberNumber}/${watchedValues.weekEnding}`],
     enabled: !!watchedValues.memberNumber && !!watchedValues.weekEnding,
     retry: false,
   });
@@ -424,7 +424,9 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
   useEffect(() => {
     if (existingTimesheetQuery.data && typeof existingTimesheetQuery.data === 'object' && existingTimesheetQuery.data.id) {
       const timesheet = existingTimesheetQuery.data; // Use the returned timesheet object directly
+      console.log('📋 Loading existing timesheet data:', timesheet);
       setCurrentTimesheet(timesheet);
+      setDataSource('existing');
       
       // Populate form with existing timesheet data
       setValue("memberName", timesheet.employeeName || "");
@@ -459,6 +461,20 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       if (timesheet.status === 'submitted' || timesheet.status === 'approved') {
         setValue("isEditingPreviousSubmission", true);
         setValue("originalSubmissionDate", timesheet.submittedAt || timesheet.createdAt);
+        
+        // Show toast indicating we loaded existing submitted timesheet
+        toast({
+          title: "Existing Timesheet Loaded", 
+          description: `Loaded previously submitted timesheet from ${new Date(timesheet.submittedAt || timesheet.createdAt).toLocaleDateString()}. You can now edit this submission.`,
+          duration: 4000,
+        });
+      } else {
+        // Show toast for draft timesheet
+        toast({
+          title: "Draft Timesheet Loaded", 
+          description: "Loaded saved draft timesheet. You can continue editing.",
+          duration: 3000,
+        });
       }
       
       // Set signature data if available
@@ -700,7 +716,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       
       toast({
         title: "Schedule loaded", 
-        description: `Populated timecard from ${shifts.length} scheduled shifts.`,
+        description: `Populated timecard from ${shifts.length} scheduled shift${shifts.length === 1 ? '' : 's'}.`,
         duration: 2000, // Auto-dismiss after 2 seconds
       });
     } catch (error) {
