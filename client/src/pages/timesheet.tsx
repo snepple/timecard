@@ -2119,6 +2119,36 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             </div>
           )}
 
+          {/* Member Attestation Card - iOS style */}
+          <div className="ios-card">
+            <div className="p-6">
+              <FormField
+                control={form.control}
+                name="signatureData"
+                render={() => (
+                  <FormItem>
+                    <FormLabel className="ios-headline">
+                      Member Attestation <span className="text-red-500">*</span>
+                    </FormLabel>
+                    <FormDescription className="text-sm text-muted-foreground mb-4">
+                      By signing, I attest that the hours submitted are a complete and accurate record of my time worked.
+                    </FormDescription>
+                    <FormControl>
+                      <SignaturePad
+                        onSignatureChange={(signature) => {
+                          setSignatureData(signature);
+                          form.setValue("signatureData", signature);
+                        }}
+                        data-testid="signature-pad"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+
           {/* Acknowledgment Card - iOS style */}
           <div className="ios-card">
             <div className="p-6">
@@ -2156,36 +2186,6 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                       </FormDescription>
                       <FormMessage />
                     </div>
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
-
-          {/* Member Attestation Card - iOS style */}
-          <div className="ios-card">
-            <div className="p-6">
-              <FormField
-                control={form.control}
-                name="signatureData"
-                render={() => (
-                  <FormItem>
-                    <FormLabel className="ios-headline">
-                      Member Attestation <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <FormDescription className="text-sm text-muted-foreground mb-4">
-                      By signing, I attest that the hours submitted are a complete and accurate record of my time worked.
-                    </FormDescription>
-                    <FormControl>
-                      <SignaturePad
-                        onSignatureChange={(signature) => {
-                          setSignatureData(signature);
-                          form.setValue("signatureData", signature);
-                        }}
-                        data-testid="signature-pad"
-                      />
-                    </FormControl>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
