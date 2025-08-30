@@ -464,11 +464,26 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         setValue("isEditingPreviousSubmission", true);
         setValue("originalSubmissionDate", timesheet.submittedAt || timesheet.createdAt);
         
+        // Build description with last activity info if available
+        let description = `Loaded previously submitted timesheet from ${formatDateShort(timesheet.submittedAt || timesheet.createdAt)}.`;
+        
+        if (timesheet.lastActivityInfo) {
+          const activityDate = formatDateShort(timesheet.lastActivityInfo.timestamp);
+          const activityTime = new Date(timesheet.lastActivityInfo.timestamp).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+          });
+          
+          description += ` Last ${timesheet.lastActivityInfo.type} timecard was ${timesheet.lastActivityInfo.type} by ${timesheet.lastActivityInfo.by} on ${activityDate} at ${activityTime}.`;
+        }
+        
         // Show toast indicating we loaded existing submitted timesheet
         toast({
           title: "Existing Timesheet Loaded", 
-          description: `Loaded previously submitted timesheet from ${formatDateShort(timesheet.submittedAt || timesheet.createdAt)}. You can now edit this submission.`,
-          duration: 4000,
+          description,
+          duration: 6000,
         });
       } else {
         // Show toast for draft timesheet
@@ -1573,6 +1588,28 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                 <p className="text-sm text-orange-700">
                   You are editing a previously submitted timesheet. Changes must be submitted before Saturday at 11:59 PM ET 
                   and will require supervisor re-approval.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Last Activity Banner - Show most recent activity on submitted timesheets */}
+        {currentTimesheet?.lastActivityInfo && watchedValues.isEditingPreviousSubmission && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-blue-600" />
+              <div>
+                <h3 className="font-semibold text-blue-800">Most Recent Activity</h3>
+                <p className="text-sm text-blue-700">
+                  Last {currentTimesheet.lastActivityInfo.type} timecard was {currentTimesheet.lastActivityInfo.type} by {currentTimesheet.lastActivityInfo.by} on{' '}
+                  {formatDateShort(currentTimesheet.lastActivityInfo.timestamp)} at{' '}
+                  {new Date(currentTimesheet.lastActivityInfo.timestamp).toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                  })}
                 </p>
               </div>
             </div>

@@ -693,7 +693,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const existingTimesheet = timesheets.find(ts => ts.weekEnding === weekEnding);
       
       if (existingTimesheet) {
-        res.json(existingTimesheet);
+        // Determine the most recent activity on this timesheet
+        let lastActivityInfo = null;
+        
+        // Collect all timestamps and their activity types
+        const activities = [];
+        
+        if (existingTimesheet.submittedAt) {
+          activities.push({
+            timestamp: new Date(existingTimesheet.submittedAt),
+            type: 'submitted',
+            by: 'member'
+          });
+        }
+        
+        if (existingTimesheet.employeeEditedAt) {
+          activities.push({
+            timestamp: new Date(existingTimesheet.employeeEditedAt),
+            type: 'edited',
+            by: 'member'
+          });
+        }
+        
+        if (existingTimesheet.editedAt) {
+          activities.push({
+            timestamp: new Date(existingTimesheet.editedAt),
+            type: 'edited',
+            by: 'supervisor'
+          });
+        }
+        
+        // Find the most recent activity
+        if (activities.length > 0) {
+          const mostRecent = activities.reduce((latest, current) => 
+            current.timestamp > latest.timestamp ? current : latest
+          );
+          
+          lastActivityInfo = {
+            type: mostRecent.type,
+            by: mostRecent.by,
+            timestamp: mostRecent.timestamp.toISOString(),
+            description: `Last ${mostRecent.type} timecard was ${mostRecent.type} by ${mostRecent.by}`
+          };
+        }
+        
+        // Add the activity info to the response
+        const response = {
+          ...existingTimesheet,
+          lastActivityInfo
+        };
+        
+        res.json(response);
       } else {
         res.status(404).json({ message: "No timesheet found for this week" });
       }
