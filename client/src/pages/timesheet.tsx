@@ -291,6 +291,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
   const [showEmployeeIdPrompt, setShowEmployeeIdPrompt] = useState(false);
   const [tempEmployeeData, setTempEmployeeData] = useState<{ id: string; name: string } | null>(null);
+  const [dataSource, setDataSource] = useState<'schedule' | 'existing'>('schedule');
   const [employeeIdInput, setEmployeeIdInput] = useState("");
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [employeeEmail, setEmployeeEmail] = useState("");
