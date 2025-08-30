@@ -1130,7 +1130,22 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                   </p>
                   <p className="ios-footnote text-muted-foreground">Member #: {watchedValues.employeeNumber || selectedEmployeeNumber}</p>
                   {currentEmployeeEmail && (
-                    <p className="ios-footnote text-muted-foreground">Email: {currentEmployeeEmail}</p>
+                    <div className="flex items-center justify-between">
+                      <p className="ios-footnote text-muted-foreground">Email: {currentEmployeeEmail}</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent the card click from triggering
+                          setEmployeeEmail(currentEmployeeEmail);
+                          setShowEmailDialog(true);
+                        }}
+                        className="h-auto p-1 text-xs text-primary hover:text-primary/80"
+                        data-testid="edit-email-button"
+                      >
+                        Edit
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>
