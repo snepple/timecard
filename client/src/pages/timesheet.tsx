@@ -350,6 +350,9 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
     
     if (!employeeNumber || !weekEnding) return;
     
+    // Show loading state during auto-populate
+    setIsLoading(true);
+    
     try {
       const response = await fetch(`/api/schedule/employee/${employeeNumber}/week/${weekEnding}`);
       if (!response.ok) return;
@@ -521,6 +524,9 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       });
     } catch (error) {
       console.error("Error auto-populating from schedule:", error);
+    } finally {
+      // Hide loading state
+      setIsLoading(false);
     }
   };
 
@@ -1033,13 +1039,22 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                   Select Member
                 </h2>
                 
-                {/* Employee Selection Dropdown */}
-                <div className="mb-6">
-                  <Label htmlFor="employeeSelect" className="flex items-center mb-2">
-                    <Users className="text-primary mr-2 h-4 w-4" />
-                    Select Your Name
-                    {scheduleQuery.isLoading && <RefreshCw className="ml-2 h-4 w-4 animate-spin" />}
-                  </Label>
+                {scheduleQuery.isLoading ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center mb-2">
+                      <Users className="text-primary mr-2 h-4 w-4" />
+                      <span className="text-sm font-medium">Loading members...</span>
+                      <RefreshCw className="ml-2 h-4 w-4 animate-spin" />
+                    </div>
+                    <div className="h-12 bg-muted animate-pulse rounded-md"></div>
+                  </div>
+                ) : (
+                  /* Employee Selection Dropdown */
+                  <div className="mb-6">
+                    <Label htmlFor="employeeSelect" className="flex items-center mb-2">
+                      <Users className="text-primary mr-2 h-4 w-4" />
+                      Select Your Name
+                    </Label>
                 <Popover open={employeeSearchOpen} onOpenChange={setEmployeeSearchOpen}>
                   <PopoverTrigger asChild>
                     <Button
@@ -1102,9 +1117,10 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                     Failed to load employee schedule.
                   </p>
                 )}
+                  </div>
+                )}
               </div>
             </div>
-          </div>
           ) : (
             /* Selected Member Display - Clickable to change */
             <div 
@@ -1129,7 +1145,12 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                     {scheduleQuery.data?.employees?.find((emp) => emp.employeeNumber === selectedEmployeeNumber)?.fullName}
                   </p>
                   <p className="ios-footnote text-muted-foreground">Member #: {watchedValues.employeeNumber || selectedEmployeeNumber}</p>
-                  {currentEmployeeEmail && (
+                  {employeeEmailQuery.isLoading ? (
+                    <div className="flex items-center">
+                      <div className="h-3 bg-muted animate-pulse rounded w-32"></div>
+                      <RefreshCw className="ml-2 h-3 w-3 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : currentEmployeeEmail ? (
                     <div className="flex items-center justify-between">
                       <p className="ios-footnote text-muted-foreground">Email: {currentEmployeeEmail}</p>
                       <Button
@@ -1146,7 +1167,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                         Edit
                       </Button>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
