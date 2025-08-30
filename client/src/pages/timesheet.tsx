@@ -30,9 +30,9 @@ const dayShiftSchema = z.object({
 });
 
 const timesheetSchema = z.object({
-  employeeName: z.string().min(1, "Employee name is required"),
-  employeeNumber: z.string().min(1, "Employee number is required"),
-  selectedEmployee: z.string().optional(),
+  memberName: z.string().min(1, "Member name is required"),
+  memberNumber: z.string().min(1, "Member number is required"),
+  selectedMember: z.string().optional(),
   weekEnding: z.string().min(1, "Week ending date is required"),
   
   sundayDate: z.string().optional(),
@@ -186,16 +186,16 @@ function combineBackToBackShifts(shifts: Shift[]): Shift[] {
   return combined;
 }
 
-interface Employee {
+interface Member {
   firstName: string;
   lastName: string;
   fullName: string;
-  employeeNumber: string;
+  memberNumber: string;
 }
 
 interface Shift {
-  employeeNumber: string;
-  employeeName: string;
+  memberNumber: string;
+  memberName: string;
   startTime: string;
   endTime: string;
   position: string;
@@ -205,7 +205,7 @@ interface Shift {
 }
 
 interface ScheduleData {
-  employees: Employee[];
+  members: Member[];
   shifts: Shift[];
   lastUpdated: string;
 }
