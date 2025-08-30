@@ -1128,7 +1128,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                   <p className="ios-body font-medium text-foreground">
                     {scheduleQuery.data?.employees?.find((emp) => emp.employeeNumber === selectedEmployeeNumber)?.fullName}
                   </p>
-                  <p className="ios-footnote text-muted-foreground">Employee #: {watchedValues.employeeNumber || selectedEmployeeNumber}</p>
+                  <p className="ios-footnote text-muted-foreground">Member #: {watchedValues.employeeNumber || selectedEmployeeNumber}</p>
                   {currentEmployeeEmail && (
                     <p className="ios-footnote text-muted-foreground">Email: {currentEmployeeEmail}</p>
                   )}
