@@ -204,17 +204,17 @@ export default function SignaturePad({
         )}
       </div>
       
-      <div className="flex justify-center">
+      <div className="flex justify-end">
         <Button
           type="button"
-          variant="destructive"
-          size="lg"
+          variant="default"
+          size="sm"
           onClick={clearSignature}
           disabled={!hasSignature}
-          className="bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-2"
+          className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-1.5 text-sm scale-70"
           data-testid="button-clear-signature"
         >
-          <Eraser className="mr-2 h-5 w-5" />
+          <Eraser className="mr-1.5 h-4 w-4" />
           Clear Signature
         </Button>
       </div>
