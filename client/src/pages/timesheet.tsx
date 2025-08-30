@@ -422,8 +422,8 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
 
   // Populate form with existing timesheet data when found
   useEffect(() => {
-    if (existingTimesheetQuery.data && existingTimesheetQuery.data.length > 0) {
-      const timesheet = existingTimesheetQuery.data[0]; // Get the most recent timesheet
+    if (existingTimesheetQuery.data && typeof existingTimesheetQuery.data === 'object' && existingTimesheetQuery.data.id) {
+      const timesheet = existingTimesheetQuery.data; // Use the returned timesheet object directly
       setCurrentTimesheet(timesheet);
       
       // Populate form with existing timesheet data
@@ -525,7 +525,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
     if (!employeeNumber || !weekEnding) return;
     
     // Don't auto-populate if there's already an existing timesheet
-    if (existingTimesheetQuery.data && existingTimesheetQuery.data.length > 0) {
+    if (existingTimesheetQuery.data && typeof existingTimesheetQuery.data === 'object' && existingTimesheetQuery.data.id) {
       console.log('📋 Existing timesheet found, skipping auto-populate from schedule');
       return;
     }
