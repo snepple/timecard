@@ -1016,10 +1016,10 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       setIsLoading(true);
       
       emailTimesheetMutation.mutate({
-        employeeNumber: formData.memberNumber,
+        employeeNumber: formData.memberNumber || selectedEmployeeData?.number || 'Unknown',
         employeeEmail: employeeEmail,
         timesheetData: {
-          employeeName: formData.memberName,
+          employeeName: formData.memberName || selectedEmployeeData?.name || 'Unknown Employee',
           weekEnding: formData.weekEnding,
           pdfBuffer: `data:application/pdf;base64,${previewPdfData}`, // Convert base64 back to data URL
           // Include all timesheet data for database storage
