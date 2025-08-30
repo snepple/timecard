@@ -13,6 +13,7 @@ export interface IStorage {
   getTimesheet(id: string): Promise<Timesheet | undefined>;
   getTimesheetsByEmployee(employeeNumber: string): Promise<Timesheet[]>;
   getTimesheetsByWeek(weekEnding: string): Promise<Timesheet[]>;
+  getAllTimesheets(): Promise<Timesheet[]>;
   updateTimesheet(id: string, timesheet: Partial<InsertTimesheet>): Promise<Timesheet | undefined>;
   
   // Employee number operations
@@ -80,12 +81,19 @@ export class MemStorage implements IStorage {
       status: insertTimesheet.status || "draft",
       createdAt: new Date().toISOString(),
       sundayDate: insertTimesheet.sundayDate ?? null,
+      sundayShifts: insertTimesheet.sundayShifts ?? null,
       mondayDate: insertTimesheet.mondayDate ?? null,
+      mondayShifts: insertTimesheet.mondayShifts ?? null,
       tuesdayDate: insertTimesheet.tuesdayDate ?? null,
+      tuesdayShifts: insertTimesheet.tuesdayShifts ?? null,
       wednesdayDate: insertTimesheet.wednesdayDate ?? null,
+      wednesdayShifts: insertTimesheet.wednesdayShifts ?? null,
       thursdayDate: insertTimesheet.thursdayDate ?? null,
+      thursdayShifts: insertTimesheet.thursdayShifts ?? null,
       fridayDate: insertTimesheet.fridayDate ?? null,
+      fridayShifts: insertTimesheet.fridayShifts ?? null,
       saturdayDate: insertTimesheet.saturdayDate ?? null,
+      saturdayShifts: insertTimesheet.saturdayShifts ?? null,
     };
     this.timesheets.set(id, timesheet);
     return timesheet;
@@ -99,6 +107,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.timesheets.values()).filter(
       (timesheet) => timesheet.employeeNumber === employeeNumber
     );
+  }
+
+  async getAllTimesheets(): Promise<Timesheet[]> {
+    return Array.from(this.timesheets.values());
   }
 
   async updateTimesheet(id: string, updates: Partial<InsertTimesheet>): Promise<Timesheet | undefined> {
@@ -380,6 +392,10 @@ export class DatabaseStorage implements IStorage {
 
   async getTimesheetsByWeek(weekEnding: string): Promise<Timesheet[]> {
     return await db.select().from(timesheets).where(eq(timesheets.weekEnding, weekEnding));
+  }
+
+  async getAllTimesheets(): Promise<Timesheet[]> {
+    return await db.select().from(timesheets);
   }
 
   async deleteEmployeeNumber(id: string): Promise<void> {
