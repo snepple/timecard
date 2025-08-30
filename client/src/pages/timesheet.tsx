@@ -1880,7 +1880,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             {/* Show rest of form only when both employee and week are selected */}
             {selectedEmployeeNumber && watchedValues.weekEnding && (
               <div className="space-y-4">
-                {/* Submission Readiness Indicator */}
+                {/* Submission Readiness Indicator - Full Version */}
                 <SubmissionReadinessIndicator
                   hasEmployee={!!(watchedValues.memberName && watchedValues.memberNumber)}
                   hasWeekEnding={!!watchedValues.weekEnding}
@@ -1905,6 +1905,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                            (watchedValues.fridayTotalHours || 0) +
                            (watchedValues.saturdayTotalHours || 0);
                   })()}
+                  compact={false}
                 />
 
                   {/* Time Entry Card - iOS style */}
@@ -2084,6 +2085,34 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             </div>
           </div>
 
+          {/* Compact Readiness Indicator - Before Rescue Coverage */}
+          <SubmissionReadinessIndicator
+            hasEmployee={!!(watchedValues.memberName && watchedValues.memberNumber)}
+            hasWeekEnding={!!watchedValues.weekEnding}
+            hasTimeEntries={(() => {
+              const totalHours = (watchedValues.sundayTotalHours || 0) +
+                                (watchedValues.mondayTotalHours || 0) +
+                                (watchedValues.tuesdayTotalHours || 0) +
+                                (watchedValues.wednesdayTotalHours || 0) +
+                                (watchedValues.thursdayTotalHours || 0) +
+                                (watchedValues.fridayTotalHours || 0) +
+                                (watchedValues.saturdayTotalHours || 0);
+              return totalHours > 0;
+            })()}
+            hasAcknowledgment={!!watchedValues.acknowledgmentChecked}
+            hasSignature={!!(signatureData && signatureData.trim() !== '')}
+            totalHours={(() => {
+              return (watchedValues.sundayTotalHours || 0) +
+                     (watchedValues.mondayTotalHours || 0) +
+                     (watchedValues.tuesdayTotalHours || 0) +
+                     (watchedValues.wednesdayTotalHours || 0) +
+                     (watchedValues.thursdayTotalHours || 0) +
+                     (watchedValues.fridayTotalHours || 0) +
+                     (watchedValues.saturdayTotalHours || 0);
+            })()}
+            compact={true}
+          />
+
           {/* Weeknight Rescue Coverage Card - iOS style */}
           <div className="ios-card">
             <div className="p-6">
@@ -2158,6 +2187,34 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
               </div>
             </div>
           )}
+
+          {/* Compact Readiness Indicator - Before Signature */}
+          <SubmissionReadinessIndicator
+            hasEmployee={!!(watchedValues.memberName && watchedValues.memberNumber)}
+            hasWeekEnding={!!watchedValues.weekEnding}
+            hasTimeEntries={(() => {
+              const totalHours = (watchedValues.sundayTotalHours || 0) +
+                                (watchedValues.mondayTotalHours || 0) +
+                                (watchedValues.tuesdayTotalHours || 0) +
+                                (watchedValues.wednesdayTotalHours || 0) +
+                                (watchedValues.thursdayTotalHours || 0) +
+                                (watchedValues.fridayTotalHours || 0) +
+                                (watchedValues.saturdayTotalHours || 0);
+              return totalHours > 0;
+            })()}
+            hasAcknowledgment={!!watchedValues.acknowledgmentChecked}
+            hasSignature={!!(signatureData && signatureData.trim() !== '')}
+            totalHours={(() => {
+              return (watchedValues.sundayTotalHours || 0) +
+                     (watchedValues.mondayTotalHours || 0) +
+                     (watchedValues.tuesdayTotalHours || 0) +
+                     (watchedValues.wednesdayTotalHours || 0) +
+                     (watchedValues.thursdayTotalHours || 0) +
+                     (watchedValues.fridayTotalHours || 0) +
+                     (watchedValues.saturdayTotalHours || 0);
+            })()}
+            compact={true}
+          />
 
           {/* Member Attestation Card - iOS style */}
           <div className="ios-card">
