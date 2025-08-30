@@ -1300,8 +1300,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
             friday: 0,
             saturday: 0
           };
+
+          let scheduledRescueCounts = {
+            sunday: 0,
+            monday: 0,
+            tuesday: 0,
+            wednesday: 0,
+            thursday: 0,
+            friday: 0,
+            saturday: 0
+          };
+
+          let rescueDeviations: Record<string, boolean> = {};
           
           let timecardStatus: 'complete' | 'missing' | 'pending' = 'missing';
+          
+          // Always fetch scheduled night duty for comparison
+          try {
+            const shiftsResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${employee.employeeNumber}/week/${week.weekEnding}`);
+            const shifts = shiftsResponse.ok ? await shiftsResponse.json() : [];
+            
+            // Count scheduled night duty shifts by day
+            shifts.forEach((shift: any) => {
+              if (shift.position === 'Night Duty') {
+                const shiftDate = new Date(shift.startTime);
+                const dayOfWeek = shiftDate.getDay();
+                const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                const dayName = dayNames[dayOfWeek] as keyof typeof scheduledRescueCounts;
+                scheduledRescueCounts[dayName] = 1;
+              }
+            });
+          } catch (error) {
+            console.error(`Error fetching shifts for ${employee.employeeName}:`, error);
+          }
           
           if (timesheet) {
             timecardStatus = 'complete';
@@ -1313,25 +1344,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (timesheet.rescueCoverageThursday) rescueCounts.thursday = 1;
             if (timesheet.rescueCoverageFriday) rescueCounts.friday = 1;
             if (timesheet.rescueCoverageSaturday) rescueCounts.saturday = 1;
+
+            // Check for deviations between timecard and schedule
+            const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            dayNames.forEach(day => {
+              const timecardHasRescue = rescueCounts[day as keyof typeof rescueCounts] === 1;
+              const scheduleHasRescue = scheduledRescueCounts[day as keyof typeof scheduledRescueCounts] === 1;
+              rescueDeviations[day] = timecardHasRescue !== scheduleHasRescue;
+            });
           } else {
-            // Get scheduled night duty for this week
-            try {
-              const shiftsResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${employee.employeeNumber}/week/${week.weekEnding}`);
-              const shifts = shiftsResponse.ok ? await shiftsResponse.json() : [];
-              
-              // Count night duty shifts by day
-              shifts.forEach((shift: any) => {
-                if (shift.position === 'Night Duty') {
-                  const shiftDate = new Date(shift.startTime);
-                  const dayOfWeek = shiftDate.getDay();
-                  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                  const dayName = dayNames[dayOfWeek] as keyof typeof rescueCounts;
-                  rescueCounts[dayName] = 1;
-                }
-              });
-            } catch (error) {
-              console.error(`Error fetching shifts for ${employee.employeeName}:`, error);
-            }
+            // Use scheduled data when no timecard
+            rescueCounts = { ...scheduledRescueCounts };
           }
           
           return {
@@ -1343,7 +1366,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             totalShifts: Object.values(rescueCounts).reduce((a, b) => a + b, 0),
             hasTimecard: !!timesheet,
             timecardStatus,
-            dataSource: timesheet ? 'timecard' : 'schedule'
+            dataSource: timesheet ? 'timecard' : 'schedule',
+            scheduledRescueCounts,
+            rescueDeviations
           };
         }));
         

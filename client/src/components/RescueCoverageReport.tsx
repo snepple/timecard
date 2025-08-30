@@ -28,6 +28,16 @@ interface WeeklyRescueData {
   hasTimecard: boolean;
   timecardStatus: 'complete' | 'missing' | 'pending';
   dataSource: 'timecard' | 'schedule';
+  scheduledRescueCounts?: {
+    sunday: number;
+    monday: number;
+    tuesday: number;
+    wednesday: number;
+    thursday: number;
+    friday: number;
+    saturday: number;
+  };
+  rescueDeviations?: Record<string, boolean>;
 }
 
 interface RescueCoverageEmployee {
@@ -169,6 +179,54 @@ export function RescueCoverageReport() {
     // Refresh the report data after timecard changes
     queryClient.invalidateQueries({ queryKey: ['/api/admin/rescue-coverage-report'] });
     setEditingEmployee(null);
+  };
+
+  const renderDayCell = (week: WeeklyRescueData, day: keyof WeeklyRescueData, dayName: string) => {
+    const dayValue = week[day] as number;
+    const hasDeviation = week.rescueDeviations?.[dayName];
+    const scheduledValue = week.scheduledRescueCounts?.[dayName as keyof typeof week.scheduledRescueCounts];
+    
+    return (
+      <TableCell className="text-center">
+        <div className="flex items-center justify-center space-x-1">
+          {dayValue > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <div className="flex items-center space-x-1">
+                    {week.dataSource === 'timecard' ? (
+                      <FileText className="h-3 w-3 text-green-600" />
+                    ) : (
+                      <Calendar className="h-3 w-3 text-blue-500" />
+                    )}
+                    {hasDeviation && (
+                      <AlertTriangle className="h-3 w-3 text-orange-500" />
+                    )}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <div className="text-sm">
+                    <p>{week.dataSource === 'timecard' ? 'From submitted timecard' : 'From schedule'}</p>
+                    {hasDeviation && (
+                      <p className="text-orange-600 font-medium mt-1">
+                        ⚠️ Rescue coverage differs from schedule
+                      </p>
+                    )}
+                    {week.hasTimecard && week.scheduledRescueCounts && (
+                      <div className="mt-2 pt-2 border-t border-gray-200">
+                        <p className="text-xs">Timecard: {dayValue > 0 ? 'Yes' : 'No'}</p>
+                        <p className="text-xs">Scheduled: {scheduledValue && scheduledValue > 0 ? 'Yes' : 'No'}</p>
+                      </div>
+                    )}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          <span className={hasDeviation ? 'text-orange-700 font-medium' : ''}>{dayValue > 0 ? dayValue : ''}</span>
+        </div>
+      </TableCell>
+    );
   };
 
 
@@ -329,153 +387,13 @@ export function RescueCoverageReport() {
                             <div>{week.weekLabel}</div>
                             <div className="text-xs text-muted-foreground">({week.dateLabel})</div>
                           </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex items-center justify-center space-x-1">
-                              {week.sunday > 0 && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      {week.dataSource === 'timecard' ? (
-                                        <FileText className="h-3 w-3 text-green-600" />
-                                      ) : (
-                                        <Calendar className="h-3 w-3 text-blue-500" />
-                                      )}
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>{week.dataSource === 'timecard' ? 'From submitted timecard' : 'From schedule'}</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                              <span>{week.sunday > 0 ? week.sunday : ''}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex items-center justify-center space-x-1">
-                              {week.monday > 0 && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      {week.dataSource === 'timecard' ? (
-                                        <FileText className="h-3 w-3 text-green-600" />
-                                      ) : (
-                                        <Calendar className="h-3 w-3 text-blue-500" />
-                                      )}
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>{week.dataSource === 'timecard' ? 'From submitted timecard' : 'From schedule'}</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                              <span>{week.monday > 0 ? week.monday : ''}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex items-center justify-center space-x-1">
-                              {week.tuesday > 0 && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      {week.dataSource === 'timecard' ? (
-                                        <FileText className="h-3 w-3 text-green-600" />
-                                      ) : (
-                                        <Calendar className="h-3 w-3 text-blue-500" />
-                                      )}
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>{week.dataSource === 'timecard' ? 'From submitted timecard' : 'From schedule'}</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                              <span>{week.tuesday > 0 ? week.tuesday : ''}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex items-center justify-center space-x-1">
-                              {week.wednesday > 0 && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      {week.dataSource === 'timecard' ? (
-                                        <FileText className="h-3 w-3 text-green-600" />
-                                      ) : (
-                                        <Calendar className="h-3 w-3 text-blue-500" />
-                                      )}
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>{week.dataSource === 'timecard' ? 'From submitted timecard' : 'From schedule'}</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                              <span>{week.wednesday > 0 ? week.wednesday : ''}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex items-center justify-center space-x-1">
-                              {week.thursday > 0 && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      {week.dataSource === 'timecard' ? (
-                                        <FileText className="h-3 w-3 text-green-600" />
-                                      ) : (
-                                        <Calendar className="h-3 w-3 text-blue-500" />
-                                      )}
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>{week.dataSource === 'timecard' ? 'From submitted timecard' : 'From schedule'}</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                              <span>{week.thursday > 0 ? week.thursday : ''}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex items-center justify-center space-x-1">
-                              {week.friday > 0 && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      {week.dataSource === 'timecard' ? (
-                                        <FileText className="h-3 w-3 text-green-600" />
-                                      ) : (
-                                        <Calendar className="h-3 w-3 text-blue-500" />
-                                      )}
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>{week.dataSource === 'timecard' ? 'From submitted timecard' : 'From schedule'}</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                              <span>{week.friday > 0 ? week.friday : ''}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex items-center justify-center space-x-1">
-                              {week.saturday > 0 && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      {week.dataSource === 'timecard' ? (
-                                        <FileText className="h-3 w-3 text-green-600" />
-                                      ) : (
-                                        <Calendar className="h-3 w-3 text-blue-500" />
-                                      )}
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>{week.dataSource === 'timecard' ? 'From submitted timecard' : 'From schedule'}</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                              <span>{week.saturday > 0 ? week.saturday : ''}</span>
-                            </div>
-                          </TableCell>
+                          {renderDayCell(week, 'sunday', 'sunday')}
+                          {renderDayCell(week, 'monday', 'monday')}
+                          {renderDayCell(week, 'tuesday', 'tuesday')}
+                          {renderDayCell(week, 'wednesday', 'wednesday')}
+                          {renderDayCell(week, 'thursday', 'thursday')}
+                          {renderDayCell(week, 'friday', 'friday')}
+                          {renderDayCell(week, 'saturday', 'saturday')}
                           <TableCell className="text-center">
                             <Badge variant="outline" className="text-xs">
                               {week.totalShifts}
