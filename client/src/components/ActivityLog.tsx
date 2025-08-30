@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { History, Clock, User, Edit, UserPlus, FileText } from "lucide-react";
+import { History, Clock, User, Edit, UserPlus, FileText, Eye } from "lucide-react";
 import { format } from "date-fns";
 
 interface ActivityLogProps {
@@ -31,6 +31,7 @@ interface ActivityLogEntry {
   details: string | null;
   employeeName: string;
   weekEnding: string;
+  pdfData: string | null;
 }
 
 export function ActivityLog({ timesheetId, employeeName, trigger }: ActivityLogProps) {
@@ -40,6 +41,24 @@ export function ActivityLog({ timesheetId, employeeName, trigger }: ActivityLogP
     queryKey: ['/api/timecards', timesheetId, 'activity-log'],
     enabled: open,
   });
+
+  const handleViewPDF = (pdfData: string) => {
+    // Create a blob from the base64 data and open it in a new tab
+    const byteCharacters = atob(pdfData);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    
+    // Open in new tab
+    window.open(url, '_blank');
+    
+    // Clean up the URL after a delay
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
 
   const getActivityIcon = (activityType: string) => {
     switch (activityType) {
@@ -168,6 +187,18 @@ export function ActivityLog({ timesheetId, employeeName, trigger }: ActivityLogP
                         </div>
                         {getActivityBadge(entry.activityType)}
                       </div>
+                      {entry.pdfData && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewPDF(entry.pdfData!)}
+                          className="flex items-center space-x-1"
+                          data-testid={`button-view-pdf-${entry.id}`}
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>View PDF</span>
+                        </Button>
+                      )}
                     </div>
                     <CardDescription className="flex items-center space-x-2">
                       <Clock className="w-4 h-4" />

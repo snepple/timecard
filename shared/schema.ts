@@ -82,6 +82,7 @@ export const timecardActivityLog = pgTable("timecard_activity_log", {
   details: text("details"), // additional details about the action
   employeeName: text("employee_name").notNull(), // for easy filtering
   weekEnding: text("week_ending").notNull(), // for easy filtering
+  pdfData: text("pdf_data"), // base64 encoded PDF document associated with this activity
 });
 
 export const insertTimesheetSchema = createInsertSchema(timesheets).omit({

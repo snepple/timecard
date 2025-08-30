@@ -1344,7 +1344,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const newTimesheet = await storage.createTimesheet(timesheetDataForDB);
           console.log(`Created new timesheet for ${timesheetData.employeeName} for week ${timesheetData.weekEnding}`);
           
-          // Log the submission activity
+          // Log the submission activity with PDF data
           try {
             await storage.createActivityLog({
               timesheetId: newTimesheet.id,
@@ -1352,7 +1352,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               performedBy: timesheetData.employeeName,
               employeeName: timesheetData.employeeName,
               weekEnding: timesheetData.weekEnding,
-              details: "Employee submitted timesheet via email"
+              details: "Employee submitted timesheet via email",
+              pdfData: timesheetData.pdfBuffer.replace('data:application/pdf;base64,', '') // Store the base64 data
             });
           } catch (logError) {
             console.error("Failed to log timesheet submission activity:", logError);
