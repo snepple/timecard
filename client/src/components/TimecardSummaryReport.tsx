@@ -192,6 +192,75 @@ export function TimecardSummaryReport() {
     return hours === 0 ? "-" : hours.toString();
   };
 
+  // Helper function to parse time string into 24-hour format for sorting
+  const parseTimeToMinutes = (timeStr: string): number => {
+    const match = timeStr.match(/(\d{1,2}):?(\d{0,2})\s*(a|p|am|pm)?/i);
+    if (!match) return 0;
+    
+    let hours = parseInt(match[1]);
+    const minutes = parseInt(match[2] || '0');
+    const period = (match[3] || '').toLowerCase();
+    
+    // Convert to 24-hour format
+    if (period.includes('p') && hours !== 12) {
+      hours += 12;
+    } else if (period.includes('a') && hours === 12) {
+      hours = 0;
+    }
+    
+    return hours * 60 + minutes;
+  };
+
+  // Helper function to sort and combine consecutive shifts
+  const processSortedShifts = (shiftTimes: string[]): string[] => {
+    if (!shiftTimes || shiftTimes.length === 0) return [];
+    
+    // Parse shifts into start/end times
+    const shifts = shiftTimes.map(timeRange => {
+      const [startStr, endStr] = timeRange.split(' - ');
+      return {
+        original: timeRange,
+        startTime: startStr?.trim() || '',
+        endTime: endStr?.trim() || '',
+        startMinutes: parseTimeToMinutes(startStr?.trim() || ''),
+        endMinutes: parseTimeToMinutes(endStr?.trim() || '')
+      };
+    }).filter(shift => shift.startTime && shift.endTime);
+    
+    if (shifts.length === 0) return [];
+    
+    // Sort by start time
+    shifts.sort((a, b) => a.startMinutes - b.startMinutes);
+    
+    // Combine consecutive back-to-back shifts
+    const combined = [];
+    let currentShift = shifts[0];
+    
+    for (let i = 1; i < shifts.length; i++) {
+      const nextShift = shifts[i];
+      
+      // Check if shifts are back-to-back (current end time = next start time)
+      if (currentShift.endMinutes === nextShift.startMinutes) {
+        // Combine shifts - keep start time of current, end time of next
+        currentShift = {
+          ...currentShift,
+          endTime: nextShift.endTime,
+          endMinutes: nextShift.endMinutes,
+          original: `${currentShift.startTime} - ${nextShift.endTime}`
+        };
+      } else {
+        // Not consecutive, add current shift and start new one
+        combined.push(`${currentShift.startTime} - ${currentShift.endTime}`);
+        currentShift = nextShift;
+      }
+    }
+    
+    // Add the last shift
+    combined.push(`${currentShift.startTime} - ${currentShift.endTime}`);
+    
+    return combined;
+  };
+
   const renderHoursWithTooltip = (hours: number, shiftTimes: string[], day: string) => {
     if (hours === 0) {
       return <span className="text-gray-400">-</span>;
@@ -200,6 +269,8 @@ export function TimecardSummaryReport() {
     if (!shiftTimes || shiftTimes.length === 0) {
       return <span>{hours}</span>;
     }
+
+    const processedShifts = processSortedShifts(shiftTimes);
 
     return (
       <TooltipProvider>
@@ -214,7 +285,7 @@ export function TimecardSummaryReport() {
               <div className="font-medium mb-1">
                 {day.charAt(0).toUpperCase() + day.slice(1)} Shifts:
               </div>
-              {shiftTimes.map((time, index) => (
+              {processedShifts.map((time, index) => (
                 <div key={index} className="text-xs">
                   {time}
                 </div>

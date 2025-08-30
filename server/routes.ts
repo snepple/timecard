@@ -26,6 +26,26 @@ const emailSubmissionSchema = z.object({
   }),
 });
 
+// Helper function to parse shift times from JSON data
+function parseShiftTimes(shiftsJson: string | null): string[] {
+  if (!shiftsJson) return [];
+  
+  try {
+    const shifts = JSON.parse(shiftsJson);
+    if (!Array.isArray(shifts)) return [];
+    
+    return shifts.map(shift => {
+      if (shift.startTime && shift.endTime) {
+        return `${shift.startTime} - ${shift.endTime}`;
+      }
+      return '';
+    }).filter(time => time !== '');
+  } catch (error) {
+    console.error('Error parsing shift times:', error);
+    return [];
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Create timesheet
   app.post("/api/timesheets", async (req, res) => {
@@ -614,13 +634,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             regularHours: regularHours,
             overtimeHours: overtimeHours,
             shiftTimes: {
-              sunday: [`${submittedTimesheet.sundayStartTime || ''} - ${submittedTimesheet.sundayEndTime || ''}`].filter(t => t.trim() !== ' - '),
-              monday: [`${submittedTimesheet.mondayStartTime || ''} - ${submittedTimesheet.mondayEndTime || ''}`].filter(t => t.trim() !== ' - '),
-              tuesday: [`${submittedTimesheet.tuesdayStartTime || ''} - ${submittedTimesheet.tuesdayEndTime || ''}`].filter(t => t.trim() !== ' - '),
-              wednesday: [`${submittedTimesheet.wednesdayStartTime || ''} - ${submittedTimesheet.wednesdayEndTime || ''}`].filter(t => t.trim() !== ' - '),
-              thursday: [`${submittedTimesheet.thursdayStartTime || ''} - ${submittedTimesheet.thursdayEndTime || ''}`].filter(t => t.trim() !== ' - '),
-              friday: [`${submittedTimesheet.fridayStartTime || ''} - ${submittedTimesheet.fridayEndTime || ''}`].filter(t => t.trim() !== ' - '),
-              saturday: [`${submittedTimesheet.saturdayStartTime || ''} - ${submittedTimesheet.saturdayEndTime || ''}`].filter(t => t.trim() !== ' - ')
+              sunday: parseShiftTimes(submittedTimesheet.sundayShifts),
+              monday: parseShiftTimes(submittedTimesheet.mondayShifts),
+              tuesday: parseShiftTimes(submittedTimesheet.tuesdayShifts),
+              wednesday: parseShiftTimes(submittedTimesheet.wednesdayShifts),
+              thursday: parseShiftTimes(submittedTimesheet.thursdayShifts),
+              friday: parseShiftTimes(submittedTimesheet.fridayShifts),
+              saturday: parseShiftTimes(submittedTimesheet.saturdayShifts)
             }
           });
         } else {
