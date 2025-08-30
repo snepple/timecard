@@ -1934,24 +1934,28 @@ Oakland Fire-Rescue Timesheet System`;
     try {
       const recipientEmail = await storage.getSetting('timesheet_recipient_email');
       const emailTemplate = await storage.getSetting('timesheet_email_template');
+      const employeeEditTemplate = await storage.getSetting('employee_edit_email_template');
+      const supervisorEditTemplate = await storage.getSetting('supervisor_edit_email_template');
       
       res.json({
         recipient_email: recipientEmail || 'supervisor@oaklandfire.gov',
-        email_template: emailTemplate || `Subject: Weekly Timesheet Submission - {employeeName}
+        email_template: emailTemplate || `Subject: New Timecard Submitted - {employeeName}
 
-Dear Supervisor,
+A new timecard has been submitted by {employeeName} for the week ending {weekEnding}.
 
-A new weekly timesheet has been submitted for your review:
+Submission Date: {submissionDate}`,
+        employee_edit_template: employeeEditTemplate || `Subject: Edited Timecard Submitted by Employee - {employeeName}
 
-Employee: {employeeName}
-Week Ending: {weekEnding}
+{employeeName} has submitted an edited timecard for the week ending {weekEnding}.
 
-The completed timesheet is attached as a PDF for your review and approval.
+Edit Reason: {editComments}
+Submission Date: {submissionDate}`,
+        supervisor_edit_template: supervisorEditTemplate || `Subject: Timecard Edited by Supervisor - {employeeName}
 
-Please review the hours and approve or provide feedback as needed.
+A timecard for {employeeName} has been edited by supervisor {supervisorName} for the week ending {weekEnding}.
 
-Best regards,
-Oakland Fire-Rescue Timesheet System`
+Edit Reason: {editComments}
+Submission Date: {submissionDate}`
       });
     } catch (error) {
       console.error("Error fetching email settings:", error);
@@ -1961,7 +1965,7 @@ Oakland Fire-Rescue Timesheet System`
 
   app.put("/api/settings/email", async (req, res) => {
     try {
-      const { recipient_email, email_template } = req.body;
+      const { recipient_email, email_template, employee_edit_template, supervisor_edit_template } = req.body;
       
       if (recipient_email) {
         await storage.setSetting('timesheet_recipient_email', recipient_email);
@@ -1969,6 +1973,14 @@ Oakland Fire-Rescue Timesheet System`
       
       if (email_template) {
         await storage.setSetting('timesheet_email_template', email_template);
+      }
+      
+      if (employee_edit_template) {
+        await storage.setSetting('employee_edit_email_template', employee_edit_template);
+      }
+      
+      if (supervisor_edit_template) {
+        await storage.setSetting('supervisor_edit_email_template', supervisor_edit_template);
       }
       
       res.json({ message: "Email settings updated successfully" });
