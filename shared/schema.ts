@@ -57,6 +57,12 @@ export const timesheets = pgTable("timesheets", {
   approvedAt: timestamp("approved_at"),
   completedBy: text("completed_by"), // "employee" or "supervisor" - indicates who completed the timecard
   
+  // Edit tracking for supervisor modifications
+  editedBy: text("edited_by"), // supervisor name who made edits
+  editedAt: timestamp("edited_at"), // timestamp of edit
+  originalTimesheetData: text("original_timesheet_data"), // JSON backup of original data before edit
+  isEdited: boolean("is_edited").default(false), // flag to indicate if timecard was edited
+  
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 

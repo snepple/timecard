@@ -46,6 +46,107 @@ function parseShiftTimes(shiftsJson: string | null): string[] {
   }
 }
 
+// Helper function to send edit notification email to employee
+async function sendEditNotificationEmail(editedTimesheet: any, originalTimesheet: any, editReason: string) {
+  try {
+    // Find employee email
+    const employees = await storage.getEmployeeNumbers();
+    const employee = employees.find(emp => 
+      emp.employeeNumber === editedTimesheet.employeeNumber || 
+      emp.employeeName === editedTimesheet.employeeName
+    );
+    
+    if (!employee?.email) {
+      console.log(`No email found for employee ${editedTimesheet.employeeName}`);
+      return;
+    }
+
+    // Create email transporter (similar to other email functions in the app)
+    const transporter = nodemailer.createTransporter({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_PASS,
+      },
+    });
+
+    // Generate PDF of the edited timesheet
+    const { generateTimeSheetPDF } = await import('../client/src/lib/pdf-generator');
+    const pdfData = {
+      employeeName: editedTimesheet.employeeName,
+      employeeNumber: editedTimesheet.employeeNumber,
+      weekEnding: editedTimesheet.weekEnding,
+      sundayDate: editedTimesheet.sundayDate,
+      sundayTotalHours: parseFloat(editedTimesheet.sundayTotalHours || '0'),
+      mondayDate: editedTimesheet.mondayDate,
+      mondayTotalHours: parseFloat(editedTimesheet.mondayTotalHours || '0'),
+      tuesdayDate: editedTimesheet.tuesdayDate,
+      tuesdayTotalHours: parseFloat(editedTimesheet.tuesdayTotalHours || '0'),
+      wednesdayDate: editedTimesheet.wednesdayDate,
+      wednesdayTotalHours: parseFloat(editedTimesheet.wednesdayTotalHours || '0'),
+      thursdayDate: editedTimesheet.thursdayDate,
+      thursdayTotalHours: parseFloat(editedTimesheet.thursdayTotalHours || '0'),
+      fridayDate: editedTimesheet.fridayDate,
+      fridayTotalHours: parseFloat(editedTimesheet.fridayTotalHours || '0'),
+      saturdayDate: editedTimesheet.saturdayDate,
+      saturdayTotalHours: parseFloat(editedTimesheet.saturdayTotalHours || '0'),
+      totalWeeklyHours: parseFloat(editedTimesheet.totalWeeklyHours || '0'),
+      rescueCoverageMonday: editedTimesheet.rescueCoverageMonday,
+      rescueCoverageTuesday: editedTimesheet.rescueCoverageTuesday,
+      rescueCoverageWednesday: editedTimesheet.rescueCoverageWednesday,
+      rescueCoverageThursday: editedTimesheet.rescueCoverageThursday,
+      signatureData: editedTimesheet.signatureData,
+      isEdited: true,
+      editedBy: editedTimesheet.editedBy,
+      editedAt: editedTimesheet.editedAt,
+    };
+
+    // Note: In a real implementation, we'd generate the PDF on the server
+    // For now, we'll send notification without PDF attachment
+    const emailHtml = `
+      <h2>Timecard Edited - Oakland Fire Department</h2>
+      <p>Dear ${editedTimesheet.employeeName},</p>
+      
+      <p>Your timecard for the week ending ${editedTimesheet.weekEnding} has been edited by ${editedTimesheet.editedBy}.</p>
+      
+      <h3>Edit Details:</h3>
+      <p><strong>Reason for Edit:</strong> ${editReason}</p>
+      <p><strong>Edited by:</strong> ${editedTimesheet.editedBy}</p>
+      <p><strong>Edit Date:</strong> ${new Date(editedTimesheet.editedAt).toLocaleString()}</p>
+      
+      <h3>Updated Hours:</h3>
+      <ul>
+        <li>Sunday: ${editedTimesheet.sundayTotalHours || 0} hours</li>
+        <li>Monday: ${editedTimesheet.mondayTotalHours || 0} hours</li>
+        <li>Tuesday: ${editedTimesheet.tuesdayTotalHours || 0} hours</li>
+        <li>Wednesday: ${editedTimesheet.wednesdayTotalHours || 0} hours</li>
+        <li>Thursday: ${editedTimesheet.thursdayTotalHours || 0} hours</li>
+        <li>Friday: ${editedTimesheet.fridayTotalHours || 0} hours</li>
+        <li>Saturday: ${editedTimesheet.saturdayTotalHours || 0} hours</li>
+      </ul>
+      <p><strong>Total Weekly Hours:</strong> ${editedTimesheet.totalWeeklyHours || 0}</p>
+      
+      <p>Please review the updated timecard in the system. If you have any questions about these changes, please contact your supervisor.</p>
+      
+      <p>Best regards,<br>Oakland Fire Department</p>
+    `;
+
+    await transporter.sendMail({
+      from: process.env.GMAIL_USER,
+      to: employee.email,
+      subject: `Timecard Edited - Week Ending ${editedTimesheet.weekEnding}`,
+      html: emailHtml,
+    });
+
+    console.log(`Edit notification email sent to ${employee.email}`);
+  } catch (error) {
+    console.error('Error sending edit notification email:', error);
+    throw error;
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Create timesheet
   app.post("/api/timesheets", async (req, res) => {
@@ -105,6 +206,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Edit timesheet by supervisor
+  app.post("/api/timesheets/:id/edit", async (req, res) => {
+    try {
+      const timesheetId = req.params.id;
+      const { supervisorName, editReason, ...timesheetData } = req.body;
+      
+      if (!supervisorName || !editReason) {
+        res.status(400).json({ message: "Supervisor name and edit reason are required" });
+        return;
+      }
+
+      // Get the original timesheet first
+      const originalTimesheet = await storage.getTimesheet(timesheetId);
+      if (!originalTimesheet) {
+        res.status(404).json({ message: "Timesheet not found" });
+        return;
+      }
+
+      // Store original data as JSON backup
+      const originalData = JSON.stringify(originalTimesheet);
+      
+      // Update the timesheet with edited data and tracking information
+      const editedTimesheet = await storage.updateTimesheet(timesheetId, {
+        ...timesheetData,
+        isEdited: true,
+        editedBy: supervisorName,
+        editedAt: new Date(),
+        originalTimesheetData: originalData,
+      });
+
+      if (!editedTimesheet) {
+        res.status(404).json({ message: "Failed to edit timesheet" });
+        return;
+      }
+
+      // Send email notification to employee
+      try {
+        await sendEditNotificationEmail(editedTimesheet, originalTimesheet, editReason);
+      } catch (emailError) {
+        console.error("Failed to send edit notification email:", emailError);
+        // Continue even if email fails
+      }
+
+      res.json(editedTimesheet);
+    } catch (error) {
+      console.error("Error editing timesheet:", error);
+      res.status(500).json({ message: "Failed to edit timesheet" });
+    }
+  });
 
   // Submit timesheet for approval
   app.post("/api/timesheets/:id/submit", async (req, res) => {
@@ -623,6 +773,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             hasTimesheet: true,
             timesheetId: submittedTimesheet.id,
             completedBy: submittedTimesheet.completedBy || 'employee',
+            
+            // Edit tracking information
+            isEdited: submittedTimesheet.isEdited || false,
+            editedBy: submittedTimesheet.editedBy,
+            editedAt: submittedTimesheet.editedAt,
+            
             sunday: submittedTimesheet.sundayTotalHours || 0,
             monday: submittedTimesheet.mondayTotalHours || 0,
             tuesday: submittedTimesheet.tuesdayTotalHours || 0,

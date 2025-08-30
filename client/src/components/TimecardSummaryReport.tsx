@@ -6,9 +6,10 @@ import { WeekPicker } from "@/components/ui/week-picker";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { FileText, Calendar, AlertCircle, CheckCircle2, Eye, Download, UserPlus } from "lucide-react";
+import { FileText, Calendar, AlertCircle, CheckCircle2, Eye, Download, UserPlus, Edit } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SupervisorTimecardForm } from "./SupervisorTimecardForm";
+import { SupervisorEditTimecardForm } from "./SupervisorEditTimecardForm";
 
 interface TimecardSummaryData {
   employeeName: string;
@@ -16,6 +17,9 @@ interface TimecardSummaryData {
   hasTimesheet: boolean;
   timesheetId?: string;
   completedBy?: string; // "employee", "supervisor", or null
+  isEdited?: boolean; // Whether timecard was edited by supervisor
+  editedBy?: string; // Who edited the timecard
+  editedAt?: string; // When it was edited
   sunday: number;
   monday: number;
   tuesday: number;
@@ -55,9 +59,11 @@ function getCurrentWeekEnding(): string {
 export function TimecardSummaryReport() {
   const [selectedWeekEnding, setSelectedWeekEnding] = useState<string>("");
   const [supervisorFormOpen, setSupervisorFormOpen] = useState(false);
+  const [editFormOpen, setEditFormOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<{
     employeeName: string;
     employeeNumber: string;
+    timesheetId?: string;
   } | null>(null);
   
   // Set default week ending to current week on component mount
@@ -123,6 +129,11 @@ export function TimecardSummaryReport() {
         
         signatureData: timesheet.signatureData,
         completedBy: timesheet.completedBy || 'employee',
+        
+        // Edit tracking information
+        isEdited: timesheet.isEdited || false,
+        editedBy: timesheet.editedBy,
+        editedAt: timesheet.editedAt,
       };
 
       // Generate PDF
@@ -167,6 +178,102 @@ export function TimecardSummaryReport() {
       employeeNumber: employee.employeeNumber,
     });
     setSupervisorFormOpen(true);
+  };
+
+  const handleEditTimecard = (employee: TimecardSummaryData) => {
+    setSelectedEmployee({
+      employeeName: employee.employeeName,
+      employeeNumber: employee.employeeNumber,
+      timesheetId: employee.timesheetId,
+    });
+    setEditFormOpen(true);
+  };
+
+  const handleViewOriginalPDF = async (timesheetId: string, employeeName: string) => {
+    try {
+      // Fetch timesheet data
+      const response = await fetch(`/api/timesheets/${timesheetId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch timesheet data');
+      }
+      
+      const timesheet = await response.json();
+      
+      // Parse original timesheet data from JSON backup
+      let originalData;
+      try {
+        originalData = JSON.parse(timesheet.originalTimesheetData || '{}');
+      } catch {
+        console.error('Failed to parse original timesheet data');
+        return;
+      }
+      
+      // Import the PDF generator
+      const { generateTimeSheetPDF } = await import('../lib/pdf-generator');
+      
+      // Convert original timesheet data to PDF format
+      const pdfData = {
+        employeeName: originalData.employeeName,
+        employeeNumber: originalData.employeeNumber,
+        weekEnding: originalData.weekEnding,
+        
+        sundayDate: originalData.sundayDate,
+        sundayTotalHours: parseFloat(originalData.sundayTotalHours || '0'),
+        
+        mondayDate: originalData.mondayDate,
+        mondayTotalHours: parseFloat(originalData.mondayTotalHours || '0'),
+        
+        tuesdayDate: originalData.tuesdayDate,
+        tuesdayTotalHours: parseFloat(originalData.tuesdayTotalHours || '0'),
+        
+        wednesdayDate: originalData.wednesdayDate,
+        wednesdayTotalHours: parseFloat(originalData.wednesdayTotalHours || '0'),
+        
+        thursdayDate: originalData.thursdayDate,
+        thursdayTotalHours: parseFloat(originalData.thursdayTotalHours || '0'),
+        
+        fridayDate: originalData.fridayDate,
+        fridayTotalHours: parseFloat(originalData.fridayTotalHours || '0'),
+        
+        saturdayDate: originalData.saturdayDate,
+        saturdayTotalHours: parseFloat(originalData.saturdayTotalHours || '0'),
+        
+        totalWeeklyHours: parseFloat(originalData.totalWeeklyHours || '0'),
+        
+        rescueCoverageMonday: originalData.rescueCoverageMonday,
+        rescueCoverageTuesday: originalData.rescueCoverageTuesday,
+        rescueCoverageWednesday: originalData.rescueCoverageWednesday,
+        rescueCoverageThursday: originalData.rescueCoverageThursday,
+        
+        signatureData: originalData.signatureData,
+        completedBy: originalData.completedBy || 'employee',
+        
+        // Mark as original version
+        isOriginal: true,
+      };
+
+      // Generate PDF
+      const pdfDataUrl = await generateTimeSheetPDF(pdfData);
+      
+      // Convert to blob and open
+      const base64Data = pdfDataUrl.replace(/^data:application\/pdf;base64,/, '');
+      const binaryData = atob(base64Data);
+      const bytes = new Uint8Array(binaryData.length);
+      for (let i = 0; i < binaryData.length; i++) {
+        bytes[i] = binaryData.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      
+      // Clean up URL after a delay
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error generating original PDF:', error);
+    }
   };
 
   // Function to generate day headers with dates
@@ -301,9 +408,16 @@ export function TimecardSummaryReport() {
     return hasTimesheet ? "" : "bg-orange-50 dark:bg-orange-900/20";
   };
 
-  const getStatusBadge = (hasTimesheet: boolean, completedBy?: string) => {
+  const getStatusBadge = (hasTimesheet: boolean, completedBy?: string, isEdited?: boolean) => {
     if (hasTimesheet) {
-      if (completedBy === 'supervisor') {
+      if (isEdited) {
+        return (
+          <Badge variant="default" className="bg-purple-100 text-purple-800 hover:bg-purple-200">
+            <Edit className="w-3 h-3 mr-1" />
+            Edited by Supervisor
+          </Badge>
+        );
+      } else if (completedBy === 'supervisor') {
         return (
           <Badge variant="default" className="bg-blue-100 text-blue-800 hover:bg-blue-200">
             <UserPlus className="w-3 h-3 mr-1" />
@@ -508,7 +622,7 @@ export function TimecardSummaryReport() {
                           {employee.employeeName}
                         </TableCell>
                         <TableCell className="text-center">
-                          {getStatusBadge(employee.hasTimesheet, employee.completedBy)}
+                          {getStatusBadge(employee.hasTimesheet, employee.completedBy, employee.isEdited)}
                         </TableCell>
                         <TableCell className="text-center">
                           {renderHoursWithTooltip(employee.sunday, employee.shiftTimes?.sunday, 'sunday')}
@@ -543,16 +657,53 @@ export function TimecardSummaryReport() {
                         </TableCell>
                         <TableCell className="text-center">
                           {employee.hasTimesheet && employee.timesheetId ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewPDF(employee.timesheetId!, employee.employeeName)}
-                              className="flex items-center space-x-1"
-                              data-testid={`button-view-pdf-${employee.employeeNumber}`}
-                            >
-                              <Eye className="w-3 h-3" />
-                              <span>View PDF</span>
-                            </Button>
+                            <div className="flex gap-1 justify-center flex-wrap">
+                              {employee.isEdited ? (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleViewPDF(employee.timesheetId!, employee.employeeName)}
+                                    className="flex items-center space-x-1 text-green-600 hover:text-green-700 border-green-200 hover:border-green-300"
+                                    data-testid={`button-view-edited-pdf-${employee.employeeNumber}`}
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                    <span>View Edited</span>
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleViewOriginalPDF(employee.timesheetId!, employee.employeeName)}
+                                    className="flex items-center space-x-1 text-gray-600 hover:text-gray-700 border-gray-200 hover:border-gray-300"
+                                    data-testid={`button-view-original-pdf-${employee.employeeNumber}`}
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                    <span>View Original</span>
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleViewPDF(employee.timesheetId!, employee.employeeName)}
+                                  className="flex items-center space-x-1"
+                                  data-testid={`button-view-pdf-${employee.employeeNumber}`}
+                                >
+                                  <Eye className="w-3 h-3" />
+                                  <span>View PDF</span>
+                                </Button>
+                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditTimecard(employee)}
+                                className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 border-blue-200 hover:border-blue-300"
+                                data-testid={`button-edit-timecard-${employee.employeeNumber}`}
+                              >
+                                <Edit className="w-3 h-3" />
+                                <span>Edit</span>
+                              </Button>
+                            </div>
                           ) : (
                             <Button
                               variant="outline"
@@ -595,6 +746,20 @@ export function TimecardSummaryReport() {
         <SupervisorTimecardForm
           open={supervisorFormOpen}
           onOpenChange={setSupervisorFormOpen}
+          employee={selectedEmployee}
+          weekEnding={selectedWeekEnding}
+          onSuccess={() => {
+            // Refresh the summary data
+            summaryQuery.refetch();
+          }}
+        />
+      )}
+
+      {/* Supervisor Edit Timecard Form */}
+      {selectedEmployee && selectedEmployee.timesheetId && (
+        <SupervisorEditTimecardForm
+          open={editFormOpen}
+          onOpenChange={setEditFormOpen}
           employee={selectedEmployee}
           weekEnding={selectedWeekEnding}
           onSuccess={() => {

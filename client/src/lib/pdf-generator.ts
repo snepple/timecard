@@ -295,6 +295,42 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
       }
     }
 
+    // Add edit annotation if timecard was edited by supervisor
+    if (data.isEdited && data.editedBy && data.editedAt) {
+      try {
+        const pages = pdfDoc.getPages();
+        const firstPage = pages[0];
+        const pageHeight = firstPage.getSize().height;
+        
+        // Format edit date
+        const editDate = new Date(data.editedAt);
+        const formattedDate = editDate.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+        
+        // Position edit notice based on whether there's already a supervisor completion notice
+        const yPosition = data.completedBy === 'supervisor' ? pageHeight - 270 : pageHeight - 250;
+        
+        // Add edit annotation text
+        firstPage.drawText(
+          `EDITED BY ${data.editedBy.toUpperCase()} ON ${formattedDate}`, 
+          {
+            x: 50,
+            y: yPosition,
+            size: 10,
+          }
+        );
+        console.log('Added supervisor edit annotation');
+      } catch (error) {
+        console.warn("Could not add supervisor edit annotation:", error);
+      }
+    }
+
     // Add signature as image overlay (since signature field is not fillable)
     if (data.signatureData) {
       try {
