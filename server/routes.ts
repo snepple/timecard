@@ -1284,9 +1284,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Save timesheet to database so it appears in summary reports
       try {
+        console.log("DEBUG: timesheetData.employeeName =", timesheetData.employeeName);
+        console.log("DEBUG: employeeNumber =", employeeNumber);
+        console.log("DEBUG: Full timesheetData =", JSON.stringify(timesheetData, null, 2));
+        
         const timesheetDataForDB = {
-          employeeName: timesheetData.employeeName,
-          employeeNumber: employeeNumber,
+          employeeName: timesheetData.employeeName || 'Unknown Employee',
+          employeeNumber: employeeNumber || 'Unknown',
           weekEnding: timesheetData.weekEnding,
           status: 'submitted',
           submittedAt: new Date(),
