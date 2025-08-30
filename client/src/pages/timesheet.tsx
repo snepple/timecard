@@ -231,33 +231,6 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
   const [previewPdfData, setPreviewPdfData] = useState<string | null>(null);
   const [showSubmissionPreview, setShowSubmissionPreview] = useState(false);
 
-  // Auto-close dialogs after 2 seconds
-  useEffect(() => {
-    if (showEmployeeIdPrompt) {
-      const timer = setTimeout(() => {
-        setShowEmployeeIdPrompt(false);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [showEmployeeIdPrompt]);
-
-  useEffect(() => {
-    if (showEmailDialog) {
-      const timer = setTimeout(() => {
-        setShowEmailDialog(false);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [showEmailDialog]);
-
-  useEffect(() => {
-    if (showPdfPreview) {
-      const timer = setTimeout(() => {
-        setShowPdfPreview(false);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [showPdfPreview]);
 
   // Fetch schedule data (employees and shifts)
   const scheduleQuery = useQuery<ScheduleData>({
