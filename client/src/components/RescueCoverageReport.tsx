@@ -38,6 +38,15 @@ interface WeeklyRescueData {
     saturday: number;
   };
   rescueDeviations?: Record<string, boolean>;
+  daysInMonth?: {
+    sunday: boolean;
+    monday: boolean;
+    tuesday: boolean;
+    wednesday: boolean;
+    thursday: boolean;
+    friday: boolean;
+    saturday: boolean;
+  };
 }
 
 interface RescueCoverageEmployee {
@@ -185,9 +194,10 @@ export function RescueCoverageReport() {
     const dayValue = week[day] as number;
     const hasDeviation = week.rescueDeviations?.[dayName];
     const scheduledValue = week.scheduledRescueCounts?.[dayName as keyof typeof week.scheduledRescueCounts];
+    const isDayInMonth = week.daysInMonth?.[dayName as keyof typeof week.daysInMonth] ?? true;
     
     return (
-      <TableCell className="text-center">
+      <TableCell className={`text-center ${!isDayInMonth ? 'opacity-30 bg-gray-50' : ''}`}>
         <div className="flex items-center justify-center space-x-1">
           {dayValue > 0 && (
             <TooltipProvider>
@@ -195,19 +205,22 @@ export function RescueCoverageReport() {
                 <TooltipTrigger>
                   <div className="flex items-center space-x-1">
                     {week.dataSource === 'timecard' ? (
-                      <FileText className="h-3 w-3 text-green-600" />
+                      <FileText className={`h-3 w-3 ${!isDayInMonth ? 'text-gray-400' : 'text-green-600'}`} />
                     ) : (
-                      <Calendar className="h-3 w-3 text-blue-500" />
+                      <Calendar className={`h-3 w-3 ${!isDayInMonth ? 'text-gray-400' : 'text-blue-500'}`} />
                     )}
-                    {hasDeviation && (
+                    {hasDeviation && isDayInMonth && (
                       <AlertTriangle className="h-3 w-3 text-orange-500" />
                     )}
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>
                   <div className="text-sm">
+                    {!isDayInMonth && (
+                      <p className="text-gray-600 font-medium mb-2">📅 Outside selected month</p>
+                    )}
                     <p>{week.dataSource === 'timecard' ? 'From submitted timecard' : 'From schedule'}</p>
-                    {hasDeviation && (
+                    {hasDeviation && isDayInMonth && (
                       <p className="text-orange-600 font-medium mt-1">
                         ⚠️ Rescue coverage differs from schedule
                       </p>
@@ -223,7 +236,9 @@ export function RescueCoverageReport() {
               </Tooltip>
             </TooltipProvider>
           )}
-          <span className={hasDeviation ? 'text-orange-700 font-medium' : ''}>{dayValue > 0 ? dayValue : ''}</span>
+          <span className={`${hasDeviation && isDayInMonth ? 'text-orange-700 font-medium' : ''} ${!isDayInMonth ? 'text-gray-400' : ''}`}>
+            {dayValue > 0 ? dayValue : ''}
+          </span>
         </div>
       </TableCell>
     );

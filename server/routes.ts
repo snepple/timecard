@@ -1259,11 +1259,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Check if this week intersects with our month
         if (saturday >= startDate && sunday <= endDate) {
           const weekEndingStr = saturday.toISOString().split('T')[0];
-          const startMonth = sunday.getMonth() + 1;
-          const startDay = sunday.getDate();
-          const endMonth = saturday.getMonth() + 1;
-          const endDay = saturday.getDate();
+          
+          // Determine which days of the week fall within the selected month
+          const selectedMonth = parseInt(month);
+          const selectedYear = parseInt(year);
+          
+          // Calculate actual start and end dates within the month for this week
+          const weekStartInMonth = new Date(Math.max(sunday.getTime(), startDate.getTime()));
+          const weekEndInMonth = new Date(Math.min(saturday.getTime(), endDate.getTime()));
+          
+          const startMonth = weekStartInMonth.getMonth() + 1;
+          const startDay = weekStartInMonth.getDate();
+          const endMonth = weekEndInMonth.getMonth() + 1;
+          const endDay = weekEndInMonth.getDate();
           const dateLabel = `${startMonth}/${startDay}-${endMonth}/${endDay}`;
+          
+          // Create a map of which days are in the selected month
+          const daysInMonth = {
+            sunday: sunday.getMonth() + 1 === selectedMonth && sunday.getFullYear() === selectedYear,
+            monday: new Date(sunday.getTime() + 24*60*60*1000).getMonth() + 1 === selectedMonth && new Date(sunday.getTime() + 24*60*60*1000).getFullYear() === selectedYear,
+            tuesday: new Date(sunday.getTime() + 2*24*60*60*1000).getMonth() + 1 === selectedMonth && new Date(sunday.getTime() + 2*24*60*60*1000).getFullYear() === selectedYear,
+            wednesday: new Date(sunday.getTime() + 3*24*60*60*1000).getMonth() + 1 === selectedMonth && new Date(sunday.getTime() + 3*24*60*60*1000).getFullYear() === selectedYear,
+            thursday: new Date(sunday.getTime() + 4*24*60*60*1000).getMonth() + 1 === selectedMonth && new Date(sunday.getTime() + 4*24*60*60*1000).getFullYear() === selectedYear,
+            friday: new Date(sunday.getTime() + 5*24*60*60*1000).getMonth() + 1 === selectedMonth && new Date(sunday.getTime() + 5*24*60*60*1000).getFullYear() === selectedYear,
+            saturday: saturday.getMonth() + 1 === selectedMonth && saturday.getFullYear() === selectedYear
+          };
           
           weeks.push({
             weekNumber: weekNum,
@@ -1271,7 +1291,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             saturday: new Date(saturday),
             weekLabel: `Week ${weekNum}`,
             dateLabel: dateLabel,
-            weekEnding: weekEndingStr
+            weekEnding: weekEndingStr,
+            daysInMonth
           });
           weekNum++;
         }
@@ -1320,14 +1341,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const shiftsResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${employee.employeeNumber}/week/${week.weekEnding}`);
             const shifts = shiftsResponse.ok ? await shiftsResponse.json() : [];
             
-            // Count scheduled night duty shifts by day
+            // Count scheduled night duty shifts by day, only if day is in selected month
             shifts.forEach((shift: any) => {
               if (shift.position === 'Night Duty') {
                 const shiftDate = new Date(shift.startTime);
                 const dayOfWeek = shiftDate.getDay();
                 const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
                 const dayName = dayNames[dayOfWeek] as keyof typeof scheduledRescueCounts;
-                scheduledRescueCounts[dayName] = 1;
+                
+                // Only count if this day falls within the selected month
+                if (week.daysInMonth && week.daysInMonth[dayName]) {
+                  scheduledRescueCounts[dayName] = 1;
+                }
               }
             });
           } catch (error) {
@@ -1336,14 +1361,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (timesheet) {
             timecardStatus = 'complete';
-            // Count rescue coverage from timesheet
-            if (timesheet.rescueCoverageSunday) rescueCounts.sunday = 1;
-            if (timesheet.rescueCoverageMonday) rescueCounts.monday = 1;
-            if (timesheet.rescueCoverageTuesday) rescueCounts.tuesday = 1;
-            if (timesheet.rescueCoverageWednesday) rescueCounts.wednesday = 1;
-            if (timesheet.rescueCoverageThursday) rescueCounts.thursday = 1;
-            if (timesheet.rescueCoverageFriday) rescueCounts.friday = 1;
-            if (timesheet.rescueCoverageSaturday) rescueCounts.saturday = 1;
+            // Count rescue coverage from timesheet, only for days in selected month
+            if (timesheet.rescueCoverageSunday && week.daysInMonth?.sunday) rescueCounts.sunday = 1;
+            if (timesheet.rescueCoverageMonday && week.daysInMonth?.monday) rescueCounts.monday = 1;
+            if (timesheet.rescueCoverageTuesday && week.daysInMonth?.tuesday) rescueCounts.tuesday = 1;
+            if (timesheet.rescueCoverageWednesday && week.daysInMonth?.wednesday) rescueCounts.wednesday = 1;
+            if (timesheet.rescueCoverageThursday && week.daysInMonth?.thursday) rescueCounts.thursday = 1;
+            if (timesheet.rescueCoverageFriday && week.daysInMonth?.friday) rescueCounts.friday = 1;
+            if (timesheet.rescueCoverageSaturday && week.daysInMonth?.saturday) rescueCounts.saturday = 1;
 
             // Check for deviations between timecard and schedule
             const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -1368,7 +1393,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             timecardStatus,
             dataSource: timesheet ? 'timecard' : 'schedule',
             scheduledRescueCounts,
-            rescueDeviations
+            rescueDeviations,
+            daysInMonth: week.daysInMonth
           };
         }));
         
