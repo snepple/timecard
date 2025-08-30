@@ -1667,53 +1667,30 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                     <div className="h-12 bg-muted animate-pulse rounded-md"></div>
                   </div>
                 ) : (
-                  /* Employee Selection Dropdown */
+                  /* Employee Selection - Inline */
                   <div className="mb-6">
-                    <Label htmlFor="employeeSelect" className="flex items-center mb-2">
-                      <Users className="text-primary mr-2 h-4 w-4" />
-                      Select Your Name
-                    </Label>
-                <Dialog open={memberDialogOpen} onOpenChange={setMemberDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-between ios-input h-14 text-left"
-                      disabled={scheduleQuery.isLoading || !scheduleQuery.data?.employees?.length}
-                      data-testid="select-employee"
-                    >
-                      <span className="ios-body">
-                        {selectedEmployeeNumber
-                          ? scheduleQuery.data?.employees?.find((employee) => employee.employeeNumber === selectedEmployeeNumber)?.fullName
-                          : "Choose your name from the list"}
-                      </span>
-                      <Users className="ml-2 h-5 w-5 shrink-0 opacity-50" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="w-full max-w-md mx-auto max-h-[90vh] overflow-hidden flex flex-col">
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center">
-                        <Users className="mr-2 h-5 w-5" />
-                        Select Your Name
-                      </DialogTitle>
-                      <DialogDescription>
-                        Choose your name from the list below. You can search to find it quickly.
-                      </DialogDescription>
-                    </DialogHeader>
+                    <div className="flex items-center mb-4">
+                      <Users className="text-primary mr-2 h-5 w-5" />
+                      <h3 className="text-lg font-medium">Select Your Name</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Choose your name from the list below. You can search to find it quickly.
+                    </p>
                     
                     {/* Search Input */}
-                    <div className="px-1 pb-4">
+                    <div className="mb-4">
                       <Input
                         placeholder="Search by name..."
                         value={memberSearchQuery}
                         onChange={(e) => setMemberSearchQuery(e.target.value)}
                         className="h-12 text-base"
-                        autoFocus
+                        data-testid="search-employee"
                       />
                     </div>
                     
                     {/* Member List */}
-                    <div className="flex-1 overflow-y-auto px-1">
-                      <div className="space-y-2">
+                    <div className="max-h-80 overflow-y-auto border rounded-lg bg-background">
+                      <div className="p-2 space-y-2">
                         {scheduleQuery.data?.employees
                           ?.filter((employee) => {
                             // Filter out inactive employees
@@ -1740,9 +1717,9 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                               className="w-full h-16 flex items-center justify-start p-4 text-left"
                               onClick={() => {
                                 handleEmployeeSelect(employee.employeeNumber);
-                                setMemberDialogOpen(false);
                                 setMemberSearchQuery('');
                               }}
+                              data-testid={`select-employee-${employee.employeeNumber}`}
                             >
                               <div className="flex items-center w-full">
                                 <div className="flex-1">
@@ -1776,8 +1753,6 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                         )}
                       </div>
                     </div>
-                  </DialogContent>
-                </Dialog>
                 {scheduleQuery.error && (
                   <p className="text-sm text-destructive mt-1">
                     Failed to load employee schedule.
