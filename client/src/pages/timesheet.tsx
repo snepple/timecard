@@ -2236,11 +2236,6 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         </Form>
       </main>
 
-      {/* Copyright notice only - admin button moved to App.tsx footer */}
-      <div className="text-center py-6 mt-12">
-        <p className="ios-footnote text-muted-foreground">© 2024 Oakland Fire-Rescue Department</p>
-        <p className="ios-caption2 text-muted-foreground mt-1">Timesheet Application v1.0</p>
-      </div>
 
       {/* Employee ID Prompt Dialog */}
       <AlertDialog open={showEmployeeIdPrompt} onOpenChange={setShowEmployeeIdPrompt}>
