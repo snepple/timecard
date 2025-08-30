@@ -2194,41 +2194,47 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
 
 
           {/* Action Buttons */}
-          <div className="flex flex-col md:flex-row gap-4 mb-8 justify-center items-center">
-            <Button
-              type="button"
-              variant="outline"
-              className="ios-button ios-button-secondary"
-              onClick={handleClearAll}
-              data-testid="button-clear-all"
-            >
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Clear All
-            </Button>
-            
-            {currentTimesheet && currentTimesheet.status === "draft" && (
+          <div className="relative mb-8">
+            {/* Clear All button - positioned on the left */}
+            <div className="absolute left-0 top-0">
               <Button
                 type="button"
-                className="ios-button ios-button-primary"
-                onClick={handleSubmitForApproval}
-                disabled={submitTimesheetMutation.isPending}
+                variant="outline"
+                className="ios-button ios-button-secondary"
+                onClick={handleClearAll}
+                data-testid="button-clear-all"
+              >
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Clear All
+              </Button>
+            </div>
+            
+            {/* Submit buttons - centered */}
+            <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
+              {currentTimesheet && currentTimesheet.status === "draft" && (
+                <Button
+                  type="button"
+                  className="ios-button ios-button-primary"
+                  onClick={handleSubmitForApproval}
+                  disabled={submitTimesheetMutation.isPending}
+                  data-testid="button-submit"
+                >
+                  <Send className="mr-2 h-4 w-4" />
+                  {submitTimesheetMutation.isPending ? "Submitting..." : watchedValues.isEditingPreviousSubmission ? "Resubmit Edited Timesheet" : "Submit for Approval"}
+                </Button>
+              )}
+              
+              <Button
+                type="button"
+                className="ios-button ios-button-primary bg-accent hover:bg-accent/90"
+                onClick={handleSubmit}
+                disabled={isLoading || emailTimesheetMutation.isPending}
                 data-testid="button-submit"
               >
                 <Send className="mr-2 h-4 w-4" />
-                {submitTimesheetMutation.isPending ? "Submitting..." : watchedValues.isEditingPreviousSubmission ? "Resubmit Edited Timesheet" : "Submit for Approval"}
+                {watchedValues.isEditingPreviousSubmission ? "Resubmit Changes" : "Submit"}
               </Button>
-            )}
-            
-            <Button
-              type="button"
-              className="ios-button ios-button-primary bg-accent hover:bg-accent/90"
-              onClick={handleSubmit}
-              disabled={isLoading || emailTimesheetMutation.isPending}
-              data-testid="button-submit"
-            >
-              <Send className="mr-2 h-4 w-4" />
-              {watchedValues.isEditingPreviousSubmission ? "Resubmit Changes" : "Submit"}
-            </Button>
+            </div>
           </div>
         </div>
         )}
