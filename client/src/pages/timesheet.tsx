@@ -929,10 +929,10 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
 
   const handleEmail = async () => {
     const formData = getValues();
-    if (!formData.employeeName || !formData.employeeNumber || !formData.weekEnding) {
+    if (!formData.memberName || !formData.memberNumber || !formData.weekEnding) {
       toast({
         title: "Validation Error",
-        description: "Please fill in employee name, number, and week ending date.",
+        description: "Please fill in member name, number, and week ending date.",
         variant: "destructive",
       });
       return;
@@ -1013,10 +1013,10 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       setIsLoading(true);
       
       emailTimesheetMutation.mutate({
-        employeeNumber: formData.employeeNumber,
+        employeeNumber: formData.memberNumber,
         employeeEmail: employeeEmail,
         timesheetData: {
-          employeeName: formData.employeeName,
+          employeeName: formData.memberName,
           weekEnding: formData.weekEnding,
           pdfBuffer: `data:application/pdf;base64,${previewPdfData}`, // Convert base64 back to data URL
         },
@@ -1296,10 +1296,10 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       } else {
         // Regular submission - Submit email with timesheet data
         await emailTimesheetMutation.mutateAsync({
-          memberNumber: formData.memberNumber,
+          employeeNumber: formData.memberNumber,
           employeeEmail: finalEmail,
           timesheetData: {
-            memberName: formData.memberName,
+            employeeName: formData.memberName,
             weekEnding: formData.weekEnding,
             pdfBuffer: `data:application/pdf;base64,${previewPdfData}`,
           },
