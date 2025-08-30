@@ -188,7 +188,7 @@ export default function SignaturePad({
         {!hasSignature && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 pointer-events-none">
             <PenTool className="mb-2 h-8 w-8" />
-            <p className="text-sm">Sign above</p>
+            <p className="text-sm">Sign here</p>
             <p className="text-xs text-gray-400">Use mouse or touch to draw your signature</p>
           </div>
         )}
