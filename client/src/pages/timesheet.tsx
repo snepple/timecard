@@ -2194,7 +2194,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
 
 
           {/* Action Buttons */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="flex flex-col md:flex-row gap-4 mb-8 justify-center items-center">
             <Button
               type="button"
               variant="outline"
