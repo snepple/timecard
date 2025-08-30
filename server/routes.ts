@@ -1214,155 +1214,179 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Rescue coverage report endpoint
+  // Enhanced rescue coverage report endpoint with weekly breakdown
   app.get("/api/admin/rescue-coverage-report/:year/:month", async (req, res) => {
     try {
       const { year, month } = req.params;
       
       // Calculate the start and end dates for the month
       const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-      const endDate = new Date(parseInt(year), parseInt(month), 0); // Last day of month
+      const endDate = new Date(parseInt(year), parseInt(month), 0);
       
       // Get all employees
       const employeesResponse = await fetch(`${req.protocol}://${req.get('host')}/api/employee-numbers`);
       const employees = employeesResponse.ok ? await employeesResponse.json() : [];
       
-      const employeeStats: Record<string, {
-        employeeName: string;
-        employeeNumber: string;
-        monday: number;
-        tuesday: number;
-        wednesday: number;
-        thursday: number;
-        total: number;
-        hasTimecards: boolean;
-        timecardIds: string[];
-        scheduleSource: {
-          monday: 'schedule' | 'timecard';
-          tuesday: 'schedule' | 'timecard';
-          wednesday: 'schedule' | 'timecard';
-          thursday: 'schedule' | 'timecard';
-        };
-      }> = {};
+      // Helper to get week boundaries for a given date
+      const getWeekBoundaries = (date: Date) => {
+        const day = date.getDay();
+        const diff = date.getDate() - day; // Get Sunday of this week
+        const sunday = new Date(date.getFullYear(), date.getMonth(), diff);
+        const saturday = new Date(sunday);
+        saturday.setDate(sunday.getDate() + 6);
+        return { sunday, saturday };
+      };
       
-      // Initialize stats for all employees
-      employees.forEach((employee: any) => {
-        const key = `${employee.employeeName}-${employee.employeeNumber}`;
-        employeeStats[key] = {
-          employeeName: employee.employeeName,
-          employeeNumber: employee.employeeNumber,
-          monday: 0,
-          tuesday: 0,
-          wednesday: 0,
-          thursday: 0,
-          total: 0,
-          hasTimecards: false,
-          timecardIds: [],
-          scheduleSource: {
-            monday: 'schedule',
-            tuesday: 'schedule',
-            wednesday: 'schedule', 
-            thursday: 'schedule'
-          }
-        };
-      });
+      // Generate all weeks that intersect with this month
+      const weeks: Array<{
+        weekNumber: number;
+        sunday: Date;
+        saturday: Date;
+        weekLabel: string;
+        weekEnding: string;
+      }> = [];
       
-      // Process each day in the month to get scheduled night duty and timecard data
-      for (let day = 1; day <= endDate.getDate(); day++) {
-        const currentDate = new Date(parseInt(year), parseInt(month) - 1, day);
-        const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      let weekNum = 1;
+      let currentDate = new Date(startDate);
+      
+      // Start from the Sunday of the first week
+      const firstWeek = getWeekBoundaries(currentDate);
+      currentDate = new Date(firstWeek.sunday);
+      
+      while (currentDate <= endDate) {
+        const { sunday, saturday } = getWeekBoundaries(currentDate);
         
-        // Only process weekdays (Monday-Thursday)
-        if (dayOfWeek < 1 || dayOfWeek > 4) continue;
+        // Check if this week intersects with our month
+        if (saturday >= startDate && sunday <= endDate) {
+          const weekEndingStr = saturday.toISOString().split('T')[0];
+          weeks.push({
+            weekNumber: weekNum,
+            sunday: new Date(sunday),
+            saturday: new Date(saturday),
+            weekLabel: `Week ${weekNum}`,
+            weekEnding: weekEndingStr
+          });
+          weekNum++;
+        }
         
-        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const dayName = dayNames[dayOfWeek];
-        
-        // Calculate the week ending date for this day (next Saturday)
-        const daysUntilSaturday = (6 - dayOfWeek + 7) % 7;
-        const weekEndingDate = new Date(currentDate);
-        weekEndingDate.setDate(currentDate.getDate() + daysUntilSaturday);
-        const weekEnding = weekEndingDate.toISOString().split('T')[0];
-        
-        // Get all timesheets for this week
-        const timesheets = await storage.getAllTimesheets();
-        const weekTimesheets = timesheets.filter(ts => ts.weekEnding === weekEnding && ts.status === 'submitted');
-        
-        // Create a map of submitted timecards by employee
-        const timecardMap: Record<string, any> = {};
-        weekTimesheets.forEach(timesheet => {
-          const key = `${timesheet.employeeName}-${timesheet.employeeNumber}`;
-          timecardMap[key] = timesheet;
-        });
-        
-        // Process each employee for this day
-        for (const employee of employees) {
-          const key = `${employee.employeeName}-${employee.employeeNumber}`;
-          const stats = employeeStats[key];
+        // Move to next week
+        currentDate.setDate(currentDate.getDate() + 7);
+      }
+      
+      // Initialize employee data
+      const employeeData = await Promise.all(employees.map(async (employee: any) => {
+        const weeklyData = await Promise.all(weeks.map(async (week) => {
+          // Get timesheet for this week
+          const timesheets = await storage.getAllTimesheets();
+          const timesheet = timesheets.find(ts => 
+            ts.weekEnding === week.weekEnding && 
+            ts.status === 'submitted' &&
+            (ts.employeeNumber === employee.employeeNumber || ts.employeeName === employee.employeeName)
+          );
           
-          if (!stats) continue;
+          let rescueCounts = {
+            sunday: 0,
+            monday: 0,
+            tuesday: 0,
+            wednesday: 0,
+            thursday: 0,
+            friday: 0,
+            saturday: 0
+          };
           
-          const timecard = timecardMap[key];
+          let timecardStatus: 'complete' | 'missing' | 'pending' = 'missing';
           
-          if (timecard) {
-            // Employee has submitted timecard - use timecard data
-            stats.hasTimecards = true;
-            if (!stats.timecardIds.includes(timecard.id)) {
-              stats.timecardIds.push(timecard.id);
-            }
-            
-            const rescueField = `rescueCoverage${dayName.charAt(0).toUpperCase() + dayName.slice(1)}` as keyof typeof timecard;
-            if (timecard[rescueField]) {
-              stats[dayName as keyof typeof stats] += 1;
-              stats.total += 1;
-            }
-            stats.scheduleSource[dayName as keyof typeof stats.scheduleSource] = 'timecard';
+          if (timesheet) {
+            timecardStatus = 'complete';
+            // Count rescue coverage from timesheet
+            if (timesheet.rescueCoverageSunday) rescueCounts.sunday = 1;
+            if (timesheet.rescueCoverageMonday) rescueCounts.monday = 1;
+            if (timesheet.rescueCoverageTuesday) rescueCounts.tuesday = 1;
+            if (timesheet.rescueCoverageWednesday) rescueCounts.wednesday = 1;
+            if (timesheet.rescueCoverageThursday) rescueCounts.thursday = 1;
+            if (timesheet.rescueCoverageFriday) rescueCounts.friday = 1;
+            if (timesheet.rescueCoverageSaturday) rescueCounts.saturday = 1;
           } else {
-            // No timecard - use scheduled night duty data
+            // Get scheduled night duty for this week
             try {
-              const shiftsResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${employee.employeeNumber}/week/${weekEnding}`);
+              const shiftsResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${employee.employeeNumber}/week/${week.weekEnding}`);
               const shifts = shiftsResponse.ok ? await shiftsResponse.json() : [];
               
-              // Look for Night Duty shifts on this specific day
-              const nightDutyShifts = shifts.filter((shift: any) => {
-                if (shift.position !== 'Night Duty') return false;
-                
-                const shiftDate = new Date(shift.startTime);
-                const shiftStartHour = shiftDate.getHours();
-                
-                // Determine which day this night duty belongs to based on start time
-                let nightDutyDay = shiftDate.getDate();
-                if (shiftStartHour < 7) {
-                  // Night duty starting before 7am belongs to previous day
-                  const prevDate = new Date(shiftDate);
-                  prevDate.setDate(prevDate.getDate() - 1);
-                  nightDutyDay = prevDate.getDate();
+              // Count night duty shifts by day
+              shifts.forEach((shift: any) => {
+                if (shift.position === 'Night Duty') {
+                  const shiftDate = new Date(shift.startTime);
+                  const dayOfWeek = shiftDate.getDay();
+                  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                  const dayName = dayNames[dayOfWeek] as keyof typeof rescueCounts;
+                  rescueCounts[dayName] = 1;
                 }
-                
-                return nightDutyDay === day;
               });
-              
-              if (nightDutyShifts.length > 0) {
-                stats[dayName as keyof typeof stats] += 1;
-                stats.total += 1;
-              }
             } catch (error) {
               console.error(`Error fetching shifts for ${employee.employeeName}:`, error);
             }
           }
-        }
-      }
+          
+          return {
+            weekNumber: week.weekNumber,
+            weekLabel: week.weekLabel,
+            weekEnding: week.weekEnding,
+            ...rescueCounts,
+            totalShifts: Object.values(rescueCounts).reduce((a, b) => a + b, 0),
+            hasTimecard: !!timesheet,
+            timecardStatus
+          };
+        }));
+        
+        // Calculate monthly totals for this employee
+        const monthlyTotals = weeklyData.reduce((totals, week) => ({
+          sunday: totals.sunday + week.sunday,
+          monday: totals.monday + week.monday,
+          tuesday: totals.tuesday + week.tuesday,
+          wednesday: totals.wednesday + week.wednesday,
+          thursday: totals.thursday + week.thursday,
+          friday: totals.friday + week.friday,
+          saturday: totals.saturday + week.saturday,
+          total: totals.total + week.totalShifts
+        }), {
+          sunday: 0, monday: 0, tuesday: 0, wednesday: 0, 
+          thursday: 0, friday: 0, saturday: 0, total: 0
+        });
+        
+        return {
+          employeeName: employee.employeeName,
+          employeeNumber: employee.employeeNumber,
+          weeks: weeklyData,
+          monthlyTotals
+        };
+      }));
       
-      // Convert to array and sort by employee name
-      const reportData = Object.values(employeeStats)
-        .filter(emp => emp.total > 0 || emp.hasTimecards) // Only show employees with data
+      // Calculate grand totals across all employees
+      const grandTotals = employeeData.reduce((totals, emp) => ({
+        sunday: totals.sunday + emp.monthlyTotals.sunday,
+        monday: totals.monday + emp.monthlyTotals.monday,
+        tuesday: totals.tuesday + emp.monthlyTotals.tuesday,
+        wednesday: totals.wednesday + emp.monthlyTotals.wednesday,
+        thursday: totals.thursday + emp.monthlyTotals.thursday,
+        friday: totals.friday + emp.monthlyTotals.friday,
+        saturday: totals.saturday + emp.monthlyTotals.saturday,
+        total: totals.total + emp.monthlyTotals.total
+      }), {
+        sunday: 0, monday: 0, tuesday: 0, wednesday: 0,
+        thursday: 0, friday: 0, saturday: 0, total: 0
+      });
+      
+      // Filter and sort employees
+      const filteredEmployees = employeeData
+        .filter(emp => emp.monthlyTotals.total > 0 || emp.weeks.some(w => w.hasTimecard))
         .sort((a, b) => a.employeeName.localeCompare(b.employeeName));
       
       res.json({
         year: parseInt(year),
         month: parseInt(month),
         monthName: new Date(parseInt(year), parseInt(month) - 1).toLocaleString('default', { month: 'long' }),
-        employees: reportData
+        employees: filteredEmployees,
+        grandTotals
       });
     } catch (error) {
       console.error("Error generating rescue coverage report:", error);

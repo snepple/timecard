@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Download, Shield, Edit, Calendar, FileText, Eye, AlertTriangle } from "lucide-react";
+import { Loader2, Download, Shield, Edit, Calendar, FileText, Eye, AlertTriangle, CheckCircle, Clock, BarChart3 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -12,21 +12,35 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { SupervisorTimecardForm } from "@/components/SupervisorTimecardForm";
 import { EmployeeMonthActivityDialog } from "@/components/EmployeeMonthActivityDialog";
 
-interface RescueCoverageEmployee {
-  employeeName: string;
-  employeeNumber: string;
+interface WeeklyRescueData {
+  weekNumber: number;
+  weekLabel: string;
+  weekEnding: string;
+  sunday: number;
   monday: number;
   tuesday: number;
   wednesday: number;
   thursday: number;
-  total: number;
-  hasTimecards: boolean;
-  timecardIds: string[];
-  scheduleSource: {
-    monday: 'schedule' | 'timecard';
-    tuesday: 'schedule' | 'timecard';
-    wednesday: 'schedule' | 'timecard';
-    thursday: 'schedule' | 'timecard';
+  friday: number;
+  saturday: number;
+  totalShifts: number;
+  hasTimecard: boolean;
+  timecardStatus: 'complete' | 'missing' | 'pending';
+}
+
+interface RescueCoverageEmployee {
+  employeeName: string;
+  employeeNumber: string;
+  weeks: WeeklyRescueData[];
+  monthlyTotals: {
+    sunday: number;
+    monday: number;
+    tuesday: number;
+    wednesday: number;
+    thursday: number;
+    friday: number;
+    saturday: number;
+    total: number;
   };
 }
 
@@ -35,6 +49,16 @@ interface RescueCoverageReportData {
   month: number;
   monthName: string;
   employees: RescueCoverageEmployee[];
+  grandTotals: {
+    sunday: number;
+    monday: number;
+    tuesday: number;
+    wednesday: number;
+    thursday: number;
+    friday: number;
+    saturday: number;
+    total: number;
+  };
 }
 
 export function RescueCoverageReport() {
@@ -80,20 +104,31 @@ export function RescueCoverageReport() {
   const handleExportCSV = () => {
     if (!reportData?.employees) return;
 
-    const headers = ['Employee Name', 'Employee #', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Total', 'Source Type'];
+    const headers = ['Employee Name', 'Employee #', 'Week', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Total Shifts'];
     const csvData = [
       headers.join(','),
-      ...reportData.employees.map(emp => {
-        const sourceInfo = `Schedule: ${Object.values(emp.scheduleSource).filter(s => s === 'schedule').length}, Timecard: ${Object.values(emp.scheduleSource).filter(s => s === 'timecard').length}`;
-        return [emp.employeeName, emp.employeeNumber, emp.monday, emp.tuesday, emp.wednesday, emp.thursday, emp.total, sourceInfo].join(',');
-      })
+      ...reportData.employees.flatMap(emp => 
+        emp.weeks?.map(week => [
+          emp.employeeName, 
+          emp.employeeNumber, 
+          week.weekLabel,
+          week.sunday,
+          week.monday, 
+          week.tuesday, 
+          week.wednesday, 
+          week.thursday,
+          week.friday,
+          week.saturday,
+          week.totalShifts
+        ].join(',')) || []
+      )
     ].join('\n');
 
     const blob = new Blob([csvData], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `rescue-coverage-${reportData.monthName}-${reportData.year}.csv`;
+    a.download = `rescue-coverage-weekly-${reportData.monthName}-${reportData.year}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -106,31 +141,23 @@ export function RescueCoverageReport() {
     setEditingEmployee(null);
   };
 
-  const getDataSourceIcon = (source: 'schedule' | 'timecard') => {
-    return source === 'schedule' ? (
-      <Calendar className="h-3 w-3 text-blue-500" />
-    ) : (
-      <FileText className="h-3 w-3 text-green-600" />
-    );
+
+  const getTimecardButtonText = (status: 'complete' | 'missing' | 'pending') => {
+    switch (status) {
+      case 'complete': return 'Complete';
+      case 'missing': return 'Create';
+      case 'pending': return 'View';
+      default: return 'Edit';
+    }
   };
 
-  const getDataSourceTooltip = (employee: RescueCoverageEmployee, day: keyof RescueCoverageEmployee['scheduleSource']) => {
-    const source = employee.scheduleSource[day];
-    return source === 'schedule' 
-      ? 'Data from scheduled night duty shifts'
-      : 'Data from submitted timecard';
-  };
-
-  const getTotalsByDay = () => {
-    if (!reportData?.employees) return { monday: 0, tuesday: 0, wednesday: 0, thursday: 0, total: 0 };
-    
-    return reportData.employees.reduce((totals, emp) => ({
-      monday: totals.monday + emp.monday,
-      tuesday: totals.tuesday + emp.tuesday,
-      wednesday: totals.wednesday + emp.wednesday,
-      thursday: totals.thursday + emp.thursday,
-      total: totals.total + emp.total
-    }), { monday: 0, tuesday: 0, wednesday: 0, thursday: 0, total: 0 });
+  const getTimecardButtonVariant = (status: 'complete' | 'missing' | 'pending') => {
+    switch (status) {
+      case 'complete': return 'default' as const;
+      case 'missing': return 'outline' as const;
+      case 'pending': return 'secondary' as const;
+      default: return 'outline' as const;
+    }
   };
 
   if (error) {
@@ -142,8 +169,6 @@ export function RescueCoverageReport() {
       </Alert>
     );
   }
-
-  const totals = getTotalsByDay();
 
   return (
     <div className="space-y-6">
@@ -202,7 +227,7 @@ export function RescueCoverageReport() {
             </span>
             {reportData && (
               <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                Total: {totals.total} shifts
+                Total: {reportData.grandTotals?.total || 0} shifts
               </Badge>
             )}
           </CardTitle>
@@ -214,227 +239,175 @@ export function RescueCoverageReport() {
               <span>Loading rescue coverage report...</span>
             </div>
           ) : reportData?.employees ? (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <Alert>
                 <Shield className="h-4 w-4" />
                 <AlertDescription>
-                  This report shows weekday rescue coverage shifts by member. Data comes from scheduled night duty shifts unless timecard data is available.
-                  <div className="flex items-center space-x-4 mt-2 text-xs">
-                    <div className="flex items-center space-x-1">
-                      <Calendar className="h-3 w-3 text-blue-500" />
-                      <span>Schedule data</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <FileText className="h-3 w-3 text-green-600" />
-                      <span>Timecard data</span>
-                    </div>
-                  </div>
+                  This report shows weekly rescue coverage shifts by member for {reportData.monthName} {reportData.year}. Each row represents one week.
                 </AlertDescription>
               </Alert>
 
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="font-semibold">Employee Name</TableHead>
-                    <TableHead className="font-semibold text-center">Employee #</TableHead>
-                    <TableHead className="font-semibold text-center">Monday</TableHead>
-                    <TableHead className="font-semibold text-center">Tuesday</TableHead>
-                    <TableHead className="font-semibold text-center">Wednesday</TableHead>
-                    <TableHead className="font-semibold text-center">Thursday</TableHead>
-                    <TableHead className="font-semibold text-center">Total</TableHead>
-                    <TableHead className="font-semibold text-center">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {reportData.employees.map((employee, index) => (
-                    <TableRow key={`${employee.employeeName}-${employee.employeeNumber}`} data-testid={`row-employee-${index}`}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center space-x-2">
-                          <span>{employee.employeeName}</span>
-                          {!employee.hasTimecards && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>No timecards submitted - showing scheduled night duty only</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">{employee.employeeNumber}</TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center space-x-1">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                {getDataSourceIcon(employee.scheduleSource.monday)}
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{getDataSourceTooltip(employee, 'monday')}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          {employee.monday > 0 ? (
-                            <Badge variant="secondary" className="bg-green-100 text-green-800">
-                              {employee.monday}
+              {/* Employee Tables */}
+              {reportData.employees.map((employee, employeeIndex) => (
+                <div key={`${employee.employeeName}-${employee.employeeNumber}`} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">{employee.employeeName}</h3>
+                  </div>
+                  
+                  <Table className="border">
+                    <TableHeader>
+                      <TableRow className="bg-gray-50">
+                        <TableHead className="font-semibold w-32">Week</TableHead>
+                        <TableHead className="font-semibold text-center w-20">Sunday</TableHead>
+                        <TableHead className="font-semibold text-center w-20">Monday</TableHead>
+                        <TableHead className="font-semibold text-center w-20">Tuesday</TableHead>
+                        <TableHead className="font-semibold text-center w-20">Wednesday</TableHead>
+                        <TableHead className="font-semibold text-center w-20">Thursday</TableHead>
+                        <TableHead className="font-semibold text-center w-20">Friday</TableHead>
+                        <TableHead className="font-semibold text-center w-20">Saturday</TableHead>
+                        <TableHead className="font-semibold text-center w-24">Total Shifts</TableHead>
+                        <TableHead className="font-semibold text-center w-32">PDF Timesheet</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {employee.weeks?.map((week, weekIndex) => (
+                        <TableRow key={`${employee.employeeNumber}-week-${week.weekNumber}`}>
+                          <TableCell className="font-medium text-sm">
+                            {week.weekLabel}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {week.sunday > 0 ? week.sunday : ''}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {week.monday > 0 ? week.monday : ''}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {week.tuesday > 0 ? week.tuesday : ''}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {week.wednesday > 0 ? week.wednesday : ''}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {week.thursday > 0 ? week.thursday : ''}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {week.friday > 0 ? week.friday : ''}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {week.saturday > 0 ? week.saturday : ''}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="outline" className="text-xs">
+                              {week.totalShifts}
                             </Badge>
-                          ) : (
-                            <span className="text-gray-400">0</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center space-x-1">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                {getDataSourceIcon(employee.scheduleSource.tuesday)}
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{getDataSourceTooltip(employee, 'tuesday')}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          {employee.tuesday > 0 ? (
-                            <Badge variant="secondary" className="bg-green-100 text-green-800">
-                              {employee.tuesday}
-                            </Badge>
-                          ) : (
-                            <span className="text-gray-400">0</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center space-x-1">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                {getDataSourceIcon(employee.scheduleSource.wednesday)}
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{getDataSourceTooltip(employee, 'wednesday')}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          {employee.wednesday > 0 ? (
-                            <Badge variant="secondary" className="bg-green-100 text-green-800">
-                              {employee.wednesday}
-                            </Badge>
-                          ) : (
-                            <span className="text-gray-400">0</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center space-x-1">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                {getDataSourceIcon(employee.scheduleSource.thursday)}
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{getDataSourceTooltip(employee, 'thursday')}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          {employee.thursday > 0 ? (
-                            <Badge variant="secondary" className="bg-green-100 text-green-800">
-                              {employee.thursday}
-                            </Badge>
-                          ) : (
-                            <span className="text-gray-400">0</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {employee.total > 0 ? (
-                          <Badge variant="default" className="bg-blue-600 text-white">
-                            {employee.total}
-                          </Badge>
-                        ) : (
-                          <span className="text-gray-400">0</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center space-x-1">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex flex-col space-y-1">
+                              <Button
+                                variant={getTimecardButtonVariant(week.timecardStatus)}
+                                size="sm"
+                                className="text-xs h-6"
+                                onClick={() => setEditingEmployee({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
+                                data-testid={`button-timecard-${employee.employeeNumber}-week-${week.weekNumber}`}
+                              >
+                                {getTimecardButtonText(week.timecardStatus)}
+                              </Button>
+                              <div className="flex space-x-1">
                                 <Button
                                   variant="ghost"
                                   size="sm"
+                                  className="text-xs h-5 px-1"
                                   onClick={() => setEditingEmployee({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
-                                  data-testid={`button-edit-${employee.employeeNumber}`}
                                 >
-                                  <Edit className="h-4 w-4" />
+                                  View
                                 </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Edit/Create Timecard</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          {employee.timecardIds.length > 0 && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setShowActivityLog({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
-                                    data-testid={`button-activity-${employee.employeeNumber}`}
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>View Activity Log</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  
-                  {/* Totals row */}
-                  <TableRow className="border-t-2 border-gray-300 bg-gray-50 font-semibold">
-                    <TableCell className="font-bold">TOTALS</TableCell>
-                    <TableCell></TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
-                        {totals.monday}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
-                        {totals.tuesday}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
-                        {totals.wednesday}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
-                        {totals.thursday}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant="default" className="bg-blue-700 text-white">
-                        {totals.total}
-                      </Badge>
-                    </TableCell>
-                    <TableCell></TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-xs h-5 px-1"
+                                  onClick={() => setEditingEmployee({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
+                                >
+                                  Edited
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-xs h-5 px-1"
+                                  onClick={() => setEditingEmployee({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
+                                >
+                                  Original
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-xs h-5 px-1"
+                                  onClick={() => setEditingEmployee({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-xs h-5 px-1"
+                                  onClick={() => setShowActivityLog({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
+                                >
+                                  Activity
+                                </Button>
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      
+                      {/* Employee totals row */}
+                      <TableRow className="border-t-2 border-gray-300 bg-gray-50 font-semibold">
+                        <TableCell className="font-bold">TOTALS</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                            {employee.monthlyTotals?.sunday || 0}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                            {employee.monthlyTotals?.monday || 0}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                            {employee.monthlyTotals?.tuesday || 0}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                            {employee.monthlyTotals?.wednesday || 0}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                            {employee.monthlyTotals?.thursday || 0}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                            {employee.monthlyTotals?.friday || 0}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                            {employee.monthlyTotals?.saturday || 0}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="default" className="bg-blue-700 text-white">
+                            {employee.monthlyTotals?.total || 0}
+                          </Badge>
+                        </TableCell>
+                        <TableCell></TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              ))}
 
               {reportData.employees.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
