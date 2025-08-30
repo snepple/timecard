@@ -1116,6 +1116,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper functions for schedule deviation comparison
+  function normalizeShiftTimes(shifts: string[]): string[] {
+    return shifts.map(shift => {
+      // Remove extra spaces and normalize format
+      return shift.replace(/\s+/g, ' ').trim().toLowerCase();
+    }).sort();
+  }
+
+  function arraysEqual(arr1: string[], arr2: string[]): boolean {
+    if (arr1.length !== arr2.length) return false;
+    return arr1.every((val, index) => val === arr2[index]);
+  }
+
+  function findDeviatingShifts(submittedShifts: string[], scheduledShifts: string[]): string[] {
+    const normalizedSubmitted = normalizeShiftTimes(submittedShifts);
+    const normalizedScheduled = normalizeShiftTimes(scheduledShifts);
+    
+    // Find shifts that are in submitted but not in scheduled, or vice versa
+    const deviating = [];
+    
+    // Check submitted shifts that don't match scheduled
+    for (const submitted of normalizedSubmitted) {
+      if (!normalizedScheduled.includes(submitted)) {
+        // Find the original case of this shift
+        const original = submittedShifts.find(s => normalizeShiftTimes([s])[0] === submitted);
+        if (original) deviating.push(original);
+      }
+    }
+    
+    return deviating;
+  }
+
   // Admin timecard summary endpoint
   app.get("/api/admin/timecard-summary/:weekEnding", async (req, res) => {
     try {
@@ -1147,10 +1179,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
         
         if (submittedTimesheet) {
-          // Employee submitted timesheet - use their data
+          // Employee submitted timesheet - use their data and compare with schedule
           const totalHours = parseFloat(submittedTimesheet.totalWeeklyHours || '0');
           const regularHours = Math.min(totalHours, overtimeThreshold);
           const overtimeHours = Math.max(0, totalHours - overtimeThreshold);
+          
+          // Get scheduled shifts for comparison
+          let scheduleDeviations = {};
+          let scheduledShiftTimes = {
+            sunday: [] as string[], monday: [] as string[], tuesday: [] as string[], 
+            wednesday: [] as string[], thursday: [] as string[], friday: [] as string[], 
+            saturday: [] as string[]
+          };
+          
+          try {
+            const shiftsResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${employee.employeeNumber}/week/${weekEnding}`);
+            const shifts = shiftsResponse.ok ? await shiftsResponse.json() : [];
+            
+            // Build scheduled shift times for comparison
+            shifts.forEach((shift: any) => {
+              // Skip Night Duty shifts
+              if (shift.position === 'Night Duty') {
+                return;
+              }
+              
+              const shiftDate = new Date(shift.startTime);
+              const dayName = shiftDate.toLocaleDateString('en-US', { 
+                weekday: 'long',
+                timeZone: 'America/New_York'
+              }).toLowerCase();
+              
+              if (scheduledShiftTimes.hasOwnProperty(dayName)) {
+                // Format shift times (convert from UTC to Eastern Time)
+                const startTime = new Date(shift.startTime).toLocaleTimeString('en-US', { 
+                  hour: 'numeric', minute: '2-digit', hour12: true,
+                  timeZone: 'America/New_York'
+                });
+                const endTime = new Date(shift.endTime).toLocaleTimeString('en-US', { 
+                  hour: 'numeric', minute: '2-digit', hour12: true,
+                  timeZone: 'America/New_York'
+                });
+                scheduledShiftTimes[dayName as keyof typeof scheduledShiftTimes].push(`${startTime} - ${endTime}`);
+              }
+            });
+            
+            // Compare submitted times with scheduled times for each day
+            const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            scheduleDeviations = {};
+            
+            daysOfWeek.forEach(day => {
+              const submittedShifts = parseShiftTimes(submittedTimesheet[`${day}Shifts`]);
+              const scheduledShifts = scheduledShiftTimes[day as keyof typeof scheduledShiftTimes];
+              
+              // Compare shift times to detect deviations
+              const hasDeviation = !arraysEqual(
+                normalizeShiftTimes(submittedShifts), 
+                normalizeShiftTimes(scheduledShifts)
+              );
+              
+              if (hasDeviation) {
+                scheduleDeviations[day] = {
+                  hasDeviation: true,
+                  submittedShifts,
+                  scheduledShifts,
+                  deviatingShifts: findDeviatingShifts(submittedShifts, scheduledShifts)
+                };
+              }
+            });
+          } catch (error) {
+            console.error(`Error fetching schedule for comparison for ${fullName}:`, error);
+          }
           
           summary.push({
             employeeName: fullName,
@@ -1182,7 +1280,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               thursday: parseShiftTimes(submittedTimesheet.thursdayShifts),
               friday: parseShiftTimes(submittedTimesheet.fridayShifts),
               saturday: parseShiftTimes(submittedTimesheet.saturdayShifts)
-            }
+            },
+            // Add schedule deviation data
+            scheduleDeviations,
+            scheduledShiftTimes
           });
         } else {
           // Employee didn't submit - use scheduled hours

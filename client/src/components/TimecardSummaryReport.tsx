@@ -6,7 +6,7 @@ import { WeekPicker } from "@/components/ui/week-picker";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { FileText, Calendar, AlertCircle, CheckCircle2, Eye, Download, UserPlus, Edit } from "lucide-react";
+import { FileText, Calendar, AlertCircle, CheckCircle2, Eye, Download, UserPlus, Edit, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SupervisorTimecardForm } from "./SupervisorTimecardForm";
 import { SupervisorEditTimecardForm } from "./SupervisorEditTimecardForm";
@@ -33,6 +33,24 @@ interface TimecardSummaryData {
   regularHours: number;
   overtimeHours: number;
   shiftTimes: {
+    sunday: string[];
+    monday: string[];
+    tuesday: string[];
+    wednesday: string[];
+    thursday: string[];
+    friday: string[];
+    saturday: string[];
+  };
+  // Schedule deviation data
+  scheduleDeviations?: {
+    [key: string]: {
+      hasDeviation: boolean;
+      submittedShifts: string[];
+      scheduledShifts: string[];
+      deviatingShifts: string[];
+    };
+  };
+  scheduledShiftTimes?: {
     sunday: string[];
     monday: string[];
     tuesday: string[];
@@ -397,7 +415,11 @@ export function TimecardSummaryReport() {
 
     // Make hours clickable for timecards that exist
     const isClickable = employee?.hasTimesheet && employee?.timesheetId;
-
+    
+    // Check for schedule deviation
+    const hasScheduleDeviation = employee?.scheduleDeviations?.[day]?.hasDeviation;
+    const deviationData = employee?.scheduleDeviations?.[day];
+    
     if (!shiftTimes || shiftTimes.length === 0) {
       if (isClickable) {
         return (
@@ -421,15 +443,25 @@ export function TimecardSummaryReport() {
           <TooltipTrigger asChild>
             {isClickable ? (
               <span 
-                className="cursor-pointer hover:bg-blue-100 hover:text-blue-700 px-1 py-0.5 rounded underline decoration-dotted underline-offset-2 transition-colors"
+                className={`cursor-pointer hover:bg-blue-100 hover:text-blue-700 px-1 py-0.5 rounded underline decoration-dotted underline-offset-2 transition-colors flex items-center gap-1 ${
+                  hasScheduleDeviation ? 'text-orange-700' : ''
+                }`}
                 onClick={() => handleDailyEdit(employee!, day, shiftTimes)}
                 data-testid={`hours-${day}-${employee?.employeeNumber}`}
               >
                 {hours}
+                {hasScheduleDeviation && (
+                  <AlertTriangle className="w-3 h-3 text-orange-600" />
+                )}
               </span>
             ) : (
-              <span className="cursor-help underline decoration-dotted underline-offset-2">
+              <span className={`cursor-help underline decoration-dotted underline-offset-2 flex items-center gap-1 ${
+                hasScheduleDeviation ? 'text-orange-700' : ''
+              }`}>
                 {hours}
+                {hasScheduleDeviation && (
+                  <AlertTriangle className="w-3 h-3 text-orange-600" />
+                )}
               </span>
             )}
           </TooltipTrigger>
@@ -443,6 +475,37 @@ export function TimecardSummaryReport() {
                   {time}
                 </div>
               ))}
+              
+              {hasScheduleDeviation && deviationData && (
+                <div className="mt-2 pt-2 border-t border-gray-200">
+                  <div className="font-medium text-orange-700 mb-1 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" />
+                    Schedule Deviation
+                  </div>
+                  
+                  {deviationData.scheduledShifts.length > 0 && (
+                    <div className="mb-2">
+                      <div className="text-xs font-medium mb-1">Scheduled:</div>
+                      {deviationData.scheduledShifts.map((scheduled, index) => (
+                        <div key={index} className="text-xs text-gray-600">
+                          {scheduled}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {deviationData.deviatingShifts.length > 0 && (
+                    <div>
+                      <div className="text-xs font-medium mb-1">Deviating shifts:</div>
+                      {deviationData.deviatingShifts.map((deviating, index) => (
+                        <div key={index} className="text-xs text-orange-600">
+                          {deviating}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </TooltipContent>
         </Tooltip>
@@ -588,6 +651,10 @@ export function TimecardSummaryReport() {
                   Scheduled
                 </Badge>
                 <span className="text-sm">Hours from schedule (no timesheet submitted)</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <AlertTriangle className="w-3 h-3 text-orange-600" />
+                <span className="text-sm">Schedule deviation detected - submitted times differ from scheduled times</span>
               </div>
             </div>
           </AlertDescription>
