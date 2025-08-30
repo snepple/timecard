@@ -1289,7 +1289,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           employeeNumber: employeeNumber,
           weekEnding: timesheetData.weekEnding,
           status: 'submitted',
-          submittedAt: new Date().toISOString(),
+          submittedAt: new Date(),
           completedBy: 'employee',
           
           // Daily data
@@ -1332,7 +1332,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
 
         // Check if timesheet already exists for this employee and week
-        const existingTimesheet = await storage.getTimesheetByEmployeeAndWeek(employeeNumber, timesheetData.weekEnding);
+        const existingTimesheets = await storage.getTimesheetsByEmployee(employeeNumber);
+        const existingTimesheet = existingTimesheets.find(ts => ts.weekEnding === timesheetData.weekEnding);
         
         if (existingTimesheet) {
           // Update existing timesheet

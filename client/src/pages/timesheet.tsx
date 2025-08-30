@@ -277,8 +277,11 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       }, 1000);
     } else if (autoSubmitCountdown === 0) {
       // Time's up, auto-submit
-      handleSaveAndSubmit();
       setAutoSubmitCountdown(null);
+      // Use setTimeout to break the dependency chain
+      setTimeout(() => {
+        handleSaveAndSubmit();
+      }, 0);
     }
     
     // Reset countdown when dialog closes
@@ -1048,7 +1051,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
           saturdayTotalHours: formData.saturdayTotalHours || 0,
           saturdayShifts: JSON.stringify(formData.saturdayShifts || []),
           
-          totalWeeklyHours: calculateTotalHours(formData),
+          totalWeeklyHours: (formData.sundayTotalHours || 0) + (formData.mondayTotalHours || 0) + (formData.tuesdayTotalHours || 0) + (formData.wednesdayTotalHours || 0) + (formData.thursdayTotalHours || 0) + (formData.fridayTotalHours || 0) + (formData.saturdayTotalHours || 0),
           
           rescueCoverageMonday: formData.rescueCoverageMonday || false,
           rescueCoverageTuesday: formData.rescueCoverageTuesday || false,
@@ -1368,7 +1371,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             saturdayTotalHours: formData.saturdayTotalHours || 0,
             saturdayShifts: JSON.stringify(formData.saturdayShifts || []),
             
-            totalWeeklyHours: calculateTotalHours(formData),
+            totalWeeklyHours: (formData.sundayTotalHours || 0) + (formData.mondayTotalHours || 0) + (formData.tuesdayTotalHours || 0) + (formData.wednesdayTotalHours || 0) + (formData.thursdayTotalHours || 0) + (formData.fridayTotalHours || 0) + (formData.saturdayTotalHours || 0),
             
             rescueCoverageMonday: formData.rescueCoverageMonday || false,
             rescueCoverageTuesday: formData.rescueCoverageTuesday || false,
