@@ -440,15 +440,6 @@ export default function SupervisorDashboard() {
     }
   }, [showOvertimeSettings, overtimeSettingsQuery.data]);
 
-  // Auto-close dialogs after 2 seconds
-  useEffect(() => {
-    if (editDialogOpen) {
-      const timer = setTimeout(() => {
-        setEditDialogOpen(false);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [editDialogOpen]);
 
 
   useEffect(() => {

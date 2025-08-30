@@ -29,25 +29,6 @@ export default function EmployeeManagement() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<EmployeeNumber | null>(null);
 
-  // Auto-close dialogs after 2 seconds
-  useEffect(() => {
-    if (isAddDialogOpen) {
-      const timer = setTimeout(() => {
-        setIsAddDialogOpen(false);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [isAddDialogOpen]);
-
-  useEffect(() => {
-    if (isEditDialogOpen) {
-      const timer = setTimeout(() => {
-        setIsEditDialogOpen(false);
-        setEditingEmployee(null);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [isEditDialogOpen]);
   const [searchTerm, setSearchTerm] = useState('');
   
   // Form state
@@ -472,14 +453,50 @@ export default function EmployeeManagement() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="bg-green-100 text-green-800">
-                        Active
-                      </Badge>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          checked={employee.status === 'active'}
+                          onCheckedChange={(checked) => {
+                            updateEmployeeMutation.mutate({
+                              id: employee.id,
+                              data: {
+                                employeeName: employee.employeeName,
+                                employeeNumber: employee.employeeNumber,
+                                email: employee.email || '',
+                                active: employee.active,
+                                status: checked ? 'active' : 'inactive'
+                              }
+                            });
+                          }}
+                          data-testid={`switch-status-${employee.id}`}
+                        />
+                        <span className="text-sm text-gray-600">
+                          {employee.status === 'active' ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={employee.active ? "secondary" : "outline"} className={employee.active ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-600"}>
-                        {employee.active ? 'Visible' : 'Hidden'}
-                      </Badge>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          checked={employee.active}
+                          onCheckedChange={(checked) => {
+                            updateEmployeeMutation.mutate({
+                              id: employee.id,
+                              data: {
+                                employeeName: employee.employeeName,
+                                employeeNumber: employee.employeeNumber,
+                                email: employee.email || '',
+                                active: checked,
+                                status: employee.status || 'active'
+                              }
+                            });
+                          }}
+                          data-testid={`switch-visibility-${employee.id}`}
+                        />
+                        <span className="text-sm text-gray-600">
+                          {employee.active ? 'Visible' : 'Hidden'}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end space-x-2">
