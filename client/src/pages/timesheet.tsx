@@ -400,7 +400,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         setValue(`${key}TotalHours` as keyof TimesheetFormData, 0);
       }
     });
-  }, [watchedValues, setValue]);
+  }, [DAYS_OF_WEEK.map(({ key }) => watchedValues[`${key}Shifts`]).join(','), setValue]);
 
   // Auto-calculate total weekly hours
   useEffect(() => {
@@ -410,7 +410,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
     }, 0);
     
     setValue("totalWeeklyHours", parseFloat(total.toFixed(2)));
-  }, [watchedValues, setValue]);
+  }, [DAYS_OF_WEEK.map(({ key }) => watchedValues[`${key}TotalHours`]).join(','), setValue]);
 
   // Auto-populate week dates when week ending date changes
   useEffect(() => {
