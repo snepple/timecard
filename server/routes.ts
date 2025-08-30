@@ -1125,27 +1125,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
       const endDate = new Date(parseInt(year), parseInt(month), 0); // Last day of month
       
-      // Get all timesheets for the specified month
-      const timesheets = await storage.getAllTimesheets();
+      // Get all employees
+      const employeesResponse = await fetch(`${req.protocol}://${req.get('host')}/api/employee-numbers`);
+      const employees = employeesResponse.ok ? await employeesResponse.json() : [];
       
-      // Filter timesheets by month/year and only include submitted ones
-      const monthlyTimesheets = timesheets.filter(timesheet => {
-        if (timesheet.status !== 'submitted') return false;
-        
-        const weekEndingDate = new Date(timesheet.weekEnding);
-        // Check if any day of the week falls within the target month
-        for (let i = 0; i < 7; i++) {
-          const dayDate = new Date(weekEndingDate);
-          dayDate.setDate(weekEndingDate.getDate() - i);
-          
-          if (dayDate >= startDate && dayDate <= endDate) {
-            return true;
-          }
-        }
-        return false;
-      });
-      
-      // Group by employee and count rescue coverage shifts
       const employeeStats: Record<string, {
         employeeName: string;
         employeeNumber: string;
@@ -1154,53 +1137,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
         wednesday: number;
         thursday: number;
         total: number;
+        hasTimecards: boolean;
+        timecardIds: string[];
+        scheduleSource: {
+          monday: 'schedule' | 'timecard';
+          tuesday: 'schedule' | 'timecard';
+          wednesday: 'schedule' | 'timecard';
+          thursday: 'schedule' | 'timecard';
+        };
       }> = {};
       
-      monthlyTimesheets.forEach(timesheet => {
-        const key = `${timesheet.employeeName}-${timesheet.employeeNumber}`;
-        
-        if (!employeeStats[key]) {
-          employeeStats[key] = {
-            employeeName: timesheet.employeeName,
-            employeeNumber: timesheet.employeeNumber,
-            monday: 0,
-            tuesday: 0,
-            wednesday: 0,
-            thursday: 0,
-            total: 0
-          };
-        }
-        
-        const stats = employeeStats[key];
-        const weekEndingDate = new Date(timesheet.weekEnding);
-        
-        // Check each weekday and count rescue coverage shifts that fall within the target month
-        const weekdayFields = [
-          { field: 'rescueCoverageMonday', day: 'monday', offset: 1 },
-          { field: 'rescueCoverageTuesday', day: 'tuesday', offset: 2 },
-          { field: 'rescueCoverageWednesday', day: 'wednesday', offset: 3 },
-          { field: 'rescueCoverageThursday', day: 'thursday', offset: 4 }
-        ];
-        
-        weekdayFields.forEach(({ field, day, offset }) => {
-          if (timesheet[field as keyof typeof timesheet]) {
-            // Calculate the actual date of this weekday
-            const dayDate = new Date(weekEndingDate);
-            dayDate.setDate(weekEndingDate.getDate() - (6 - offset));
-            
-            // Only count if the day falls within the target month
-            if (dayDate >= startDate && dayDate <= endDate) {
-              stats[day as keyof typeof stats] += 1;
-              stats.total += 1;
-            }
+      // Initialize stats for all employees
+      employees.forEach((employee: any) => {
+        const key = `${employee.employeeName}-${employee.employeeNumber}`;
+        employeeStats[key] = {
+          employeeName: employee.employeeName,
+          employeeNumber: employee.employeeNumber,
+          monday: 0,
+          tuesday: 0,
+          wednesday: 0,
+          thursday: 0,
+          total: 0,
+          hasTimecards: false,
+          timecardIds: [],
+          scheduleSource: {
+            monday: 'schedule',
+            tuesday: 'schedule',
+            wednesday: 'schedule', 
+            thursday: 'schedule'
           }
-        });
+        };
       });
       
+      // Process each day in the month to get scheduled night duty and timecard data
+      for (let day = 1; day <= endDate.getDate(); day++) {
+        const currentDate = new Date(parseInt(year), parseInt(month) - 1, day);
+        const dayOfWeek = currentDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        
+        // Only process weekdays (Monday-Thursday)
+        if (dayOfWeek < 1 || dayOfWeek > 4) continue;
+        
+        const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const dayName = dayNames[dayOfWeek];
+        
+        // Calculate the week ending date for this day (next Saturday)
+        const daysUntilSaturday = (6 - dayOfWeek + 7) % 7;
+        const weekEndingDate = new Date(currentDate);
+        weekEndingDate.setDate(currentDate.getDate() + daysUntilSaturday);
+        const weekEnding = weekEndingDate.toISOString().split('T')[0];
+        
+        // Get all timesheets for this week
+        const timesheets = await storage.getAllTimesheets();
+        const weekTimesheets = timesheets.filter(ts => ts.weekEnding === weekEnding && ts.status === 'submitted');
+        
+        // Create a map of submitted timecards by employee
+        const timecardMap: Record<string, any> = {};
+        weekTimesheets.forEach(timesheet => {
+          const key = `${timesheet.employeeName}-${timesheet.employeeNumber}`;
+          timecardMap[key] = timesheet;
+        });
+        
+        // Process each employee for this day
+        for (const employee of employees) {
+          const key = `${employee.employeeName}-${employee.employeeNumber}`;
+          const stats = employeeStats[key];
+          
+          if (!stats) continue;
+          
+          const timecard = timecardMap[key];
+          
+          if (timecard) {
+            // Employee has submitted timecard - use timecard data
+            stats.hasTimecards = true;
+            if (!stats.timecardIds.includes(timecard.id)) {
+              stats.timecardIds.push(timecard.id);
+            }
+            
+            const rescueField = `rescueCoverage${dayName.charAt(0).toUpperCase() + dayName.slice(1)}` as keyof typeof timecard;
+            if (timecard[rescueField]) {
+              stats[dayName as keyof typeof stats] += 1;
+              stats.total += 1;
+            }
+            stats.scheduleSource[dayName as keyof typeof stats.scheduleSource] = 'timecard';
+          } else {
+            // No timecard - use scheduled night duty data
+            try {
+              const shiftsResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${employee.employeeNumber}/week/${weekEnding}`);
+              const shifts = shiftsResponse.ok ? await shiftsResponse.json() : [];
+              
+              // Look for Night Duty shifts on this specific day
+              const nightDutyShifts = shifts.filter((shift: any) => {
+                if (shift.position !== 'Night Duty') return false;
+                
+                const shiftDate = new Date(shift.startTime);
+                const shiftStartHour = shiftDate.getHours();
+                
+                // Determine which day this night duty belongs to based on start time
+                let nightDutyDay = shiftDate.getDate();
+                if (shiftStartHour < 7) {
+                  // Night duty starting before 7am belongs to previous day
+                  const prevDate = new Date(shiftDate);
+                  prevDate.setDate(prevDate.getDate() - 1);
+                  nightDutyDay = prevDate.getDate();
+                }
+                
+                return nightDutyDay === day;
+              });
+              
+              if (nightDutyShifts.length > 0) {
+                stats[dayName as keyof typeof stats] += 1;
+                stats.total += 1;
+              }
+            } catch (error) {
+              console.error(`Error fetching shifts for ${employee.employeeName}:`, error);
+            }
+          }
+        }
+      }
+      
       // Convert to array and sort by employee name
-      const reportData = Object.values(employeeStats).sort((a, b) => 
-        a.employeeName.localeCompare(b.employeeName)
-      );
+      const reportData = Object.values(employeeStats)
+        .filter(emp => emp.total > 0 || emp.hasTimecards) // Only show employees with data
+        .sort((a, b) => a.employeeName.localeCompare(b.employeeName));
       
       res.json({
         year: parseInt(year),

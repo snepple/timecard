@@ -1,12 +1,16 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Download, Shield } from "lucide-react";
+import { Loader2, Download, Shield, Edit, Calendar, FileText, Eye, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { SupervisorTimecardForm } from "@/components/SupervisorTimecardForm";
+import { ActivityLog } from "@/components/ActivityLog";
 
 interface RescueCoverageEmployee {
   employeeName: string;
@@ -16,6 +20,14 @@ interface RescueCoverageEmployee {
   wednesday: number;
   thursday: number;
   total: number;
+  hasTimecards: boolean;
+  timecardIds: string[];
+  scheduleSource: {
+    monday: 'schedule' | 'timecard';
+    tuesday: 'schedule' | 'timecard';
+    wednesday: 'schedule' | 'timecard';
+    thursday: 'schedule' | 'timecard';
+  };
 }
 
 interface RescueCoverageReportData {
@@ -29,6 +41,9 @@ export function RescueCoverageReport() {
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
+  const [editingEmployee, setEditingEmployee] = useState<{ employeeName: string; employeeNumber: string } | null>(null);
+  const [showActivityLog, setShowActivityLog] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: reportData, isLoading, error } = useQuery<RescueCoverageReportData>({
     queryKey: ['/api/admin/rescue-coverage-report', selectedYear, selectedMonth],
@@ -65,12 +80,13 @@ export function RescueCoverageReport() {
   const handleExportCSV = () => {
     if (!reportData?.employees) return;
 
-    const headers = ['Employee Name', 'Employee #', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Total'];
+    const headers = ['Employee Name', 'Employee #', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Total', 'Source Type'];
     const csvData = [
       headers.join(','),
-      ...reportData.employees.map(emp => 
-        [emp.employeeName, emp.employeeNumber, emp.monday, emp.tuesday, emp.wednesday, emp.thursday, emp.total].join(',')
-      )
+      ...reportData.employees.map(emp => {
+        const sourceInfo = `Schedule: ${Object.values(emp.scheduleSource).filter(s => s === 'schedule').length}, Timecard: ${Object.values(emp.scheduleSource).filter(s => s === 'timecard').length}`;
+        return [emp.employeeName, emp.employeeNumber, emp.monday, emp.tuesday, emp.wednesday, emp.thursday, emp.total, sourceInfo].join(',');
+      })
     ].join('\n');
 
     const blob = new Blob([csvData], { type: 'text/csv' });
@@ -82,6 +98,27 @@ export function RescueCoverageReport() {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+  };
+
+  const handleTimecardSaved = () => {
+    // Refresh the report data after timecard changes
+    queryClient.invalidateQueries({ queryKey: ['/api/admin/rescue-coverage-report'] });
+    setEditingEmployee(null);
+  };
+
+  const getDataSourceIcon = (source: 'schedule' | 'timecard') => {
+    return source === 'schedule' ? (
+      <Calendar className="h-3 w-3 text-blue-500" />
+    ) : (
+      <FileText className="h-3 w-3 text-green-600" />
+    );
+  };
+
+  const getDataSourceTooltip = (employee: RescueCoverageEmployee, day: keyof RescueCoverageEmployee['scheduleSource']) => {
+    const source = employee.scheduleSource[day];
+    return source === 'schedule' 
+      ? 'Data from scheduled night duty shifts'
+      : 'Data from submitted timecard';
   };
 
   const getTotalsByDay = () => {
@@ -181,8 +218,17 @@ export function RescueCoverageReport() {
               <Alert>
                 <Shield className="h-4 w-4" />
                 <AlertDescription>
-                  This report shows weekday rescue coverage shifts completed by each member. 
-                  Only submitted timesheets are included in the counts.
+                  This report shows weekday rescue coverage shifts by member. Data comes from scheduled night duty shifts unless timecard data is available.
+                  <div className="flex items-center space-x-4 mt-2 text-xs">
+                    <div className="flex items-center space-x-1">
+                      <Calendar className="h-3 w-3 text-blue-500" />
+                      <span>Schedule data</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <FileText className="h-3 w-3 text-green-600" />
+                      <span>Timecard data</span>
+                    </div>
+                  </div>
                 </AlertDescription>
               </Alert>
 
@@ -196,48 +242,113 @@ export function RescueCoverageReport() {
                     <TableHead className="font-semibold text-center">Wednesday</TableHead>
                     <TableHead className="font-semibold text-center">Thursday</TableHead>
                     <TableHead className="font-semibold text-center">Total</TableHead>
+                    <TableHead className="font-semibold text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {reportData.employees.map((employee, index) => (
                     <TableRow key={`${employee.employeeName}-${employee.employeeNumber}`} data-testid={`row-employee-${index}`}>
-                      <TableCell className="font-medium">{employee.employeeName}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center space-x-2">
+                          <span>{employee.employeeName}</span>
+                          {!employee.hasTimecards && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>No timecards submitted - showing scheduled night duty only</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-center">{employee.employeeNumber}</TableCell>
                       <TableCell className="text-center">
-                        {employee.monday > 0 ? (
-                          <Badge variant="secondary" className="bg-green-100 text-green-800">
-                            {employee.monday}
-                          </Badge>
-                        ) : (
-                          <span className="text-gray-400">0</span>
-                        )}
+                        <div className="flex items-center justify-center space-x-1">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                {getDataSourceIcon(employee.scheduleSource.monday)}
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{getDataSourceTooltip(employee, 'monday')}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          {employee.monday > 0 ? (
+                            <Badge variant="secondary" className="bg-green-100 text-green-800">
+                              {employee.monday}
+                            </Badge>
+                          ) : (
+                            <span className="text-gray-400">0</span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        {employee.tuesday > 0 ? (
-                          <Badge variant="secondary" className="bg-green-100 text-green-800">
-                            {employee.tuesday}
-                          </Badge>
-                        ) : (
-                          <span className="text-gray-400">0</span>
-                        )}
+                        <div className="flex items-center justify-center space-x-1">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                {getDataSourceIcon(employee.scheduleSource.tuesday)}
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{getDataSourceTooltip(employee, 'tuesday')}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          {employee.tuesday > 0 ? (
+                            <Badge variant="secondary" className="bg-green-100 text-green-800">
+                              {employee.tuesday}
+                            </Badge>
+                          ) : (
+                            <span className="text-gray-400">0</span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        {employee.wednesday > 0 ? (
-                          <Badge variant="secondary" className="bg-green-100 text-green-800">
-                            {employee.wednesday}
-                          </Badge>
-                        ) : (
-                          <span className="text-gray-400">0</span>
-                        )}
+                        <div className="flex items-center justify-center space-x-1">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                {getDataSourceIcon(employee.scheduleSource.wednesday)}
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{getDataSourceTooltip(employee, 'wednesday')}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          {employee.wednesday > 0 ? (
+                            <Badge variant="secondary" className="bg-green-100 text-green-800">
+                              {employee.wednesday}
+                            </Badge>
+                          ) : (
+                            <span className="text-gray-400">0</span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        {employee.thursday > 0 ? (
-                          <Badge variant="secondary" className="bg-green-100 text-green-800">
-                            {employee.thursday}
-                          </Badge>
-                        ) : (
-                          <span className="text-gray-400">0</span>
-                        )}
+                        <div className="flex items-center justify-center space-x-1">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                {getDataSourceIcon(employee.scheduleSource.thursday)}
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{getDataSourceTooltip(employee, 'thursday')}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          {employee.thursday > 0 ? (
+                            <Badge variant="secondary" className="bg-green-100 text-green-800">
+                              {employee.thursday}
+                            </Badge>
+                          ) : (
+                            <span className="text-gray-400">0</span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
                         {employee.total > 0 ? (
@@ -247,6 +358,46 @@ export function RescueCoverageReport() {
                         ) : (
                           <span className="text-gray-400">0</span>
                         )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center space-x-1">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setEditingEmployee({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
+                                  data-testid={`button-edit-${employee.employeeNumber}`}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit/Create Timecard</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          {employee.timecardIds.length > 0 && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setShowActivityLog(employee.employeeNumber)}
+                                    data-testid={`button-activity-${employee.employeeNumber}`}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>View Activity Log</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -280,6 +431,7 @@ export function RescueCoverageReport() {
                         {totals.total}
                       </Badge>
                     </TableCell>
+                    <TableCell></TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -293,6 +445,39 @@ export function RescueCoverageReport() {
           ) : null}
         </CardContent>
       </Card>
+
+      {/* Timecard Edit Dialog */}
+      {editingEmployee && (
+        <Dialog open={!!editingEmployee} onOpenChange={() => setEditingEmployee(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                Edit Timecard - {editingEmployee.employeeName} (#{editingEmployee.employeeNumber})
+              </DialogTitle>
+            </DialogHeader>
+            <SupervisorTimecardForm
+              employeeName={editingEmployee.employeeName}
+              employeeNumber={editingEmployee.employeeNumber}
+              onSave={handleTimecardSaved}
+              onCancel={() => setEditingEmployee(null)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Activity Log Dialog */}
+      {showActivityLog && (
+        <Dialog open={!!showActivityLog} onOpenChange={() => setShowActivityLog(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>
+                Activity Log - Employee #{showActivityLog}
+              </DialogTitle>
+            </DialogHeader>
+            <ActivityLog employeeNumber={showActivityLog} />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
