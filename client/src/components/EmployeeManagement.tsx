@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Users, Plus, Pencil, Trash2, Mail, Search, UserCheck } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, Mail, Search, UserCheck, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { EmployeeNumber, InsertEmployeeNumber } from '@shared/schema';
 
@@ -132,6 +132,32 @@ export default function EmployeeManagement() {
     }
   });
 
+  // Manual sync mutation
+  const syncEmployeesMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/employee-numbers/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error('Failed to sync employees');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/employee-numbers'] });
+      toast({
+        title: 'Sync completed',
+        description: `${data.message || 'Employee data has been synchronized with the schedule.'}`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error deleting employee',
+        description: error instanceof Error ? error.message : 'Failed to delete employee',
+        variant: 'destructive',
+      });
+    }
+  });
+
   // Utility functions
   const resetForm = () => {
     setFormData({
@@ -206,14 +232,25 @@ export default function EmployeeManagement() {
             <Users className="text-primary mr-2 h-5 w-5" />
             Employee Management
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={handleOpenAddDialog} className="flex items-center" data-testid="button-add-employee">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Employee
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
+          <div className="flex items-center space-x-2">
+            <Button 
+              variant="outline"
+              onClick={() => syncEmployeesMutation.mutate()}
+              disabled={syncEmployeesMutation.isPending}
+              className="flex items-center" 
+              data-testid="button-sync-employees"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${syncEmployeesMutation.isPending ? 'animate-spin' : ''}`} />
+              {syncEmployeesMutation.isPending ? 'Syncing...' : 'Sync Schedule'}
+            </Button>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={handleOpenAddDialog} className="flex items-center" data-testid="button-add-employee">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Employee
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add New Employee</DialogTitle>
               </DialogHeader>
@@ -282,6 +319,7 @@ export default function EmployeeManagement() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
