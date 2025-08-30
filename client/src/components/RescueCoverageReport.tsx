@@ -236,7 +236,7 @@ export function RescueCoverageReport() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>
-              Weekday Rescue Coverage Shifts - {reportData?.monthName} {reportData?.year}
+              Rescue Coverage Shifts - {reportData?.monthName} {reportData?.year}
             </span>
             {reportData && (
               <Badge variant="secondary" className="bg-blue-100 text-blue-800">
@@ -260,8 +260,48 @@ export function RescueCoverageReport() {
                 </AlertDescription>
               </Alert>
 
-              {/* Employee Tables */}
-              {reportData.employees.map((employee, employeeIndex) => (
+              {/* Summary Table */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Monthly Summary</h3>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="font-semibold">Employee</TableHead>
+                      <TableHead className="font-semibold text-center">Total Shifts</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {reportData.employees.map((employee) => (
+                      <TableRow key={employee.employeeNumber}>
+                        <TableCell className="font-medium">
+                          {employee.employeeName}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline">
+                            {employee.monthlyTotals.total}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {/* Grand Total Row */}
+                    <TableRow className="border-t-2 bg-gray-50">
+                      <TableCell className="font-bold text-gray-900">
+                        Grand Total
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="default" className="bg-blue-600 text-white">
+                          {reportData.grandTotals?.total || 0}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Weekly Breakdown */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Weekly Breakdown</h3>
+                {reportData.employees.map((employee, employeeIndex) => (
                 <div key={`${employee.employeeName}-${employee.employeeNumber}`} className="space-y-2">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold">{employee.employeeName}</h3>
@@ -547,6 +587,7 @@ export function RescueCoverageReport() {
                   No rescue coverage shifts found for {reportData.monthName} {reportData.year}
                 </div>
               )}
+              </div>
             </div>
           ) : null}
         </CardContent>
