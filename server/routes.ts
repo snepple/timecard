@@ -1388,7 +1388,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             dateLabel: week.dateLabel,
             weekEnding: week.weekEnding,
             ...rescueCounts,
-            totalShifts: Object.values(rescueCounts).reduce((a, b) => a + b, 0),
+            totalShifts: (
+              (rescueCounts.sunday && week.daysInMonth?.sunday ? 1 : 0) +
+              (rescueCounts.monday && week.daysInMonth?.monday ? 1 : 0) +
+              (rescueCounts.tuesday && week.daysInMonth?.tuesday ? 1 : 0) +
+              (rescueCounts.wednesday && week.daysInMonth?.wednesday ? 1 : 0) +
+              (rescueCounts.thursday && week.daysInMonth?.thursday ? 1 : 0) +
+              (rescueCounts.friday && week.daysInMonth?.friday ? 1 : 0) +
+              (rescueCounts.saturday && week.daysInMonth?.saturday ? 1 : 0)
+            ),
             hasTimecard: !!timesheet,
             timecardStatus,
             dataSource: timesheet ? 'timecard' : 'schedule',
