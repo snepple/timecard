@@ -10,7 +10,7 @@ import { FileText, Calendar, AlertCircle, CheckCircle2, Eye, Download, UserPlus,
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SupervisorTimecardForm } from "./SupervisorTimecardForm";
 import { SupervisorEditTimecardForm } from "./SupervisorEditTimecardForm";
-import { ActivityLog } from "./ActivityLog";
+import { TimecardActivityDialog } from "./TimecardActivityDialog";
 import { DailyShiftEditDialog } from "./DailyShiftEditDialog";
 
 interface TimecardSummaryData {
@@ -816,7 +816,7 @@ export function TimecardSummaryReport() {
                                 <Edit className="w-3 h-3" />
                                 <span>Edit</span>
                               </Button>
-                              <ActivityLog
+                              <TimecardActivityDialog
                                 timesheetId={employee.timesheetId!}
                                 employeeName={employee.employeeName}
                               />

@@ -1,7 +1,7 @@
 import { type Timesheet, type InsertTimesheet, type EmployeeNumber, type InsertEmployeeNumber, type Setting, type InsertSetting, type TimecardActivityLog, type InsertActivityLog, timesheets, employeeNumbers, settings, timecardActivityLog } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<any | undefined>;
@@ -43,6 +43,7 @@ export interface IStorage {
   createActivityLog(activityLog: InsertActivityLog): Promise<TimecardActivityLog>;
   getActivityLogByTimesheet(timesheetId: string): Promise<TimecardActivityLog[]>;
   getActivityLogByEmployee(employeeName: string, weekEnding?: string): Promise<TimecardActivityLog[]>;
+  getAllActivityLog(): Promise<TimecardActivityLog[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -78,6 +79,13 @@ export class MemStorage implements IStorage {
       id,
       status: insertTimesheet.status || "draft",
       createdAt: new Date().toISOString(),
+      sundayDate: insertTimesheet.sundayDate ?? null,
+      mondayDate: insertTimesheet.mondayDate ?? null,
+      tuesdayDate: insertTimesheet.tuesdayDate ?? null,
+      wednesdayDate: insertTimesheet.wednesdayDate ?? null,
+      thursdayDate: insertTimesheet.thursdayDate ?? null,
+      fridayDate: insertTimesheet.fridayDate ?? null,
+      saturdayDate: insertTimesheet.saturdayDate ?? null,
     };
     this.timesheets.set(id, timesheet);
     return timesheet;
@@ -232,6 +240,7 @@ export class MemStorage implements IStorage {
       id,
       performedAt: new Date(),
       details: activityLog.details || null,
+      pdfData: activityLog.pdfData || null,
     };
     return log;
   }
@@ -241,6 +250,10 @@ export class MemStorage implements IStorage {
   }
 
   async getActivityLogByEmployee(employeeName: string, weekEnding?: string): Promise<TimecardActivityLog[]> {
+    return [];
+  }
+
+  async getAllActivityLog(): Promise<TimecardActivityLog[]> {
     return [];
   }
 }
@@ -457,6 +470,12 @@ Oakland Fire-Rescue Timesheet System`;
         .where(eq(timecardActivityLog.employeeName, employeeName))
         .orderBy(timecardActivityLog.performedAt);
     }
+  }
+
+  async getAllActivityLog(): Promise<TimecardActivityLog[]> {
+    return await db.select()
+      .from(timecardActivityLog)
+      .orderBy(desc(timecardActivityLog.performedAt));
   }
 }
 

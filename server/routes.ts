@@ -625,7 +625,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Activity log endpoint
+  // Activity log endpoints
   app.get("/api/timecards/:timesheetId/activity-log", async (req, res) => {
     try {
       const { timesheetId } = req.params;
@@ -634,6 +634,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching activity log:", error);
       res.status(500).json({ error: "Failed to fetch activity log" });
+    }
+  });
+
+  // System-wide activity log endpoint
+  app.get("/api/timecards/activity-log", async (req, res) => {
+    try {
+      const activityLog = await storage.getAllActivityLog();
+      res.json(activityLog);
+    } catch (error) {
+      console.error("Error fetching system activity log:", error);
+      res.status(500).json({ error: "Failed to fetch system activity log" });
     }
   });
 
