@@ -367,7 +367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      // Log edit activity
+      // Log edit activity with PDF data
       try {
         await storage.createActivityLog({
           timesheetId: editedTimesheet.id,
@@ -375,7 +375,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           performedBy: supervisorName,
           employeeName: editedTimesheet.employeeName,
           weekEnding: editedTimesheet.weekEnding,
-          details: `Supervisor edited timecard. Reason: ${editReason}`
+          details: `Supervisor edited timecard. Reason: ${editReason}`,
+          pdfData: editedTimesheet.pdfData || null
         });
       } catch (logError) {
         console.error("Failed to log edit activity:", logError);
@@ -511,8 +512,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue even if PDF generation fails
       }
 
-      // Log edit activity
+      // Log edit activity with PDF data
       try {
+        // Get the updated timesheet with PDF data
+        const updatedTimesheetWithPdf = await storage.getTimesheet(timesheetId);
         const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
         await storage.createActivityLog({
           timesheetId: editedTimesheet.id,
@@ -520,7 +523,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           performedBy: 'Admin (Daily Edit)',
           employeeName: editedTimesheet.employeeName,
           weekEnding: editedTimesheet.weekEnding,
-          details: `Admin edited ${capitalizedDay} shifts: ${totalHours} hours total`
+          details: `Admin edited ${capitalizedDay} shifts: ${totalHours} hours total`,
+          pdfData: updatedTimesheetWithPdf?.pdfData || null
         });
       } catch (logError) {
         console.error("Failed to log daily edit activity:", logError);
@@ -542,7 +546,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
       
-      // Log submission activity
+      // Log submission activity with PDF data
       try {
         await storage.createActivityLog({
           timesheetId: timesheet.id,
@@ -550,7 +554,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           performedBy: timesheet.employeeName,
           employeeName: timesheet.employeeName,
           weekEnding: timesheet.weekEnding,
-          details: "Employee submitted timecard for approval"
+          details: "Employee submitted timecard for approval",
+          pdfData: timesheet.pdfData || null
         });
       } catch (logError) {
         console.error("Failed to log submission activity:", logError);
@@ -682,7 +687,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         submittedAt: new Date().toISOString(), // Update submission time
       });
       
-      // Log the employee edit activity
+      // Log the employee edit activity with PDF data
       await storage.createActivityLog({
         timesheetId: id,
         activityType: 'employee_edited',
@@ -690,6 +695,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         details: `Employee edited timesheet with comments: ${editComments}`,
         employeeName: existingTimesheet.employeeName,
         weekEnding: existingTimesheet.weekEnding,
+        pdfData: updatedTimesheet.pdfData || null
       });
       
       // Send email notification to supervisor
