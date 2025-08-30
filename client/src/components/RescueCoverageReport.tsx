@@ -191,8 +191,18 @@ export function RescueCoverageReport() {
     const scheduledValue = week.scheduledRescueCounts?.[dayName as keyof typeof week.scheduledRescueCounts];
     const isDayInMonth = week.daysInMonth?.[dayName as keyof typeof week.daysInMonth] ?? true;
     
+    // Calculate the actual date for this day
+    const dayOfWeekMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+    const dayOffset = dayOfWeekMap[dayName as keyof typeof dayOfWeekMap];
+    const weekEndingDate = new Date(week.weekEnding);
+    const sundayDate = new Date(weekEndingDate);
+    sundayDate.setDate(weekEndingDate.getDate() - 6); // Go back to Sunday from Saturday
+    const currentDayDate = new Date(sundayDate);
+    currentDayDate.setDate(sundayDate.getDate() + dayOffset);
+    const dayNumber = currentDayDate.getDate();
+    
     return (
-      <TableCell className={`text-center ${!isDayInMonth ? 'opacity-30 bg-gray-50' : ''}`}>
+      <TableCell className={`text-center relative ${!isDayInMonth ? 'opacity-30 bg-gray-50' : ''}`}>
         <div className="flex items-center justify-center space-x-1">
           {dayValue > 0 && (
             <TooltipProvider>
@@ -234,6 +244,10 @@ export function RescueCoverageReport() {
           <span className={`${hasDeviation && isDayInMonth ? 'text-orange-700 font-medium' : ''} ${!isDayInMonth ? 'text-gray-400' : ''}`}>
             {dayValue > 0 ? dayValue : ''}
           </span>
+        </div>
+        {/* Date in bottom right corner */}
+        <div className="absolute bottom-0 right-1 text-xs text-gray-400 leading-none">
+          {dayNumber}
         </div>
       </TableCell>
     );
