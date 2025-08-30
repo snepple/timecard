@@ -120,6 +120,44 @@ const DAYS_OF_WEEK = [
   { key: "saturday", label: "Saturday" },
 ] as const;
 
+// Helper function to parse shift times back to shift objects
+function parseShiftTimesToObjects(shiftTimesString: string): DayShift[] {
+  if (!shiftTimesString || shiftTimesString.trim() === '') return [];
+  
+  const shifts = shiftTimesString.split(', ').map(timeString => {
+    // Parse format like "7:00 AM - 3:00 PM (8.0 hours)"
+    const match = timeString.match(/(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)\s*\((.+?)\s*hours?\)/i);
+    if (match) {
+      const [, startTime, endTime, hoursStr] = match;
+      // Convert to 24-hour format for time inputs
+      const start24 = convertTo24Hour(startTime.trim());
+      const end24 = convertTo24Hour(endTime.trim());
+      const hours = parseFloat(hoursStr) || 0;
+      return { startTime: start24, endTime: end24, hours };
+    }
+    return { startTime: "", endTime: "", hours: 0 };
+  }).filter(shift => shift.startTime && shift.endTime);
+  
+  return shifts;
+}
+
+// Helper function to convert 12-hour to 24-hour format
+function convertTo24Hour(time12: string): string {
+  const match = time12.match(/(\d{1,2}):(\d{2})\s*([AP]M)/i);
+  if (!match) return "";
+  
+  let [, hours, minutes, period] = match;
+  let hour24 = parseInt(hours);
+  
+  if (period.toUpperCase() === 'PM' && hour24 !== 12) {
+    hour24 += 12;
+  } else if (period.toUpperCase() === 'AM' && hour24 === 12) {
+    hour24 = 0;
+  }
+  
+  return `${hour24.toString().padStart(2, '0')}:${minutes}`;
+}
+
 // Generate time options in 15-minute intervals
 function generateTimeOptions(): string[] {
   const times: string[] = [];
@@ -382,12 +420,67 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
     retry: false,
   });
 
-  // TODO: Implement form population when existing timesheet is found
-  // useEffect(() => {
-  //   if (existingTimesheetQuery.data && existingTimesheetQuery.data.status === 'submitted') {
-  //     // Populate form logic will go here
-  //   }
-  // }, [existingTimesheetQuery.data]);
+  // Populate form with existing timesheet data when found
+  useEffect(() => {
+    if (existingTimesheetQuery.data && existingTimesheetQuery.data.length > 0) {
+      const timesheet = existingTimesheetQuery.data[0]; // Get the most recent timesheet
+      setCurrentTimesheet(timesheet);
+      
+      // Populate form with existing timesheet data
+      setValue("memberName", timesheet.employeeName || "");
+      setValue("memberNumber", timesheet.employeeNumber || "");
+      setValue("weekEnding", timesheet.weekEnding || "");
+      
+      // Populate daily data
+      setValue("sundayDate", timesheet.sundayDate || "");
+      setValue("sundayTotalHours", parseFloat(timesheet.sundayTotalHours || "0"));
+      setValue("mondayDate", timesheet.mondayDate || "");
+      setValue("mondayTotalHours", parseFloat(timesheet.mondayTotalHours || "0"));
+      setValue("tuesdayDate", timesheet.tuesdayDate || "");
+      setValue("tuesdayTotalHours", parseFloat(timesheet.tuesdayTotalHours || "0"));
+      setValue("wednesdayDate", timesheet.wednesdayDate || "");
+      setValue("wednesdayTotalHours", parseFloat(timesheet.wednesdayTotalHours || "0"));
+      setValue("thursdayDate", timesheet.thursdayDate || "");
+      setValue("thursdayTotalHours", parseFloat(timesheet.thursdayTotalHours || "0"));
+      setValue("fridayDate", timesheet.fridayDate || "");
+      setValue("fridayTotalHours", parseFloat(timesheet.fridayTotalHours || "0"));
+      setValue("saturdayDate", timesheet.saturdayDate || "");
+      setValue("saturdayTotalHours", parseFloat(timesheet.saturdayTotalHours || "0"));
+      
+      setValue("totalWeeklyHours", parseFloat(timesheet.totalWeeklyHours || "0"));
+      
+      // Populate rescue coverage
+      setValue("rescueCoverageMonday", timesheet.rescueCoverageMonday || false);
+      setValue("rescueCoverageTuesday", timesheet.rescueCoverageTuesday || false);
+      setValue("rescueCoverageWednesday", timesheet.rescueCoverageWednesday || false);
+      setValue("rescueCoverageThursday", timesheet.rescueCoverageThursday || false);
+      
+      // If timesheet was submitted, mark as editing previous submission
+      if (timesheet.status === 'submitted' || timesheet.status === 'approved') {
+        setValue("isEditingPreviousSubmission", true);
+        setValue("originalSubmissionDate", timesheet.submittedAt || timesheet.createdAt);
+      }
+      
+      // Set signature data if available
+      if (timesheet.signature) {
+        setSignatureData(timesheet.signature);
+        setValue("signatureData", timesheet.signature);
+      }
+      
+      // Populate shifts if available - convert shift times back to shift objects
+      DAYS_OF_WEEK.forEach(({ key }) => {
+        const shiftTimesField = `${key}ShiftTimes`;
+        const shiftTimes = timesheet[shiftTimesField];
+        if (shiftTimes) {
+          // Parse shift times back into shift objects
+          const shifts = parseShiftTimesToObjects(shiftTimes);
+          setValue(`${key}Shifts` as keyof TimesheetFormData, shifts);
+        }
+      });
+      
+      console.log('📋 Loaded existing timesheet data for employee', timesheet.employeeName);
+    }
+  }, [existingTimesheetQuery.data, setValue]);
 
   // Auto-calculate daily hours when shifts change
   useEffect(() => {
@@ -430,6 +523,12 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
     console.log('🚀 AUTO-POPULATE STARTING for employee', employeeNumber, 'week ending', weekEnding);
     
     if (!employeeNumber || !weekEnding) return;
+    
+    // Don't auto-populate if there's already an existing timesheet
+    if (existingTimesheetQuery.data && existingTimesheetQuery.data.length > 0) {
+      console.log('📋 Existing timesheet found, skipping auto-populate from schedule');
+      return;
+    }
     
     // Show loading state during auto-populate
     setIsLoading(true);
@@ -800,9 +899,22 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
     onSuccess: (data) => {
       setCurrentTimesheet(data);
       toast({
-        title: "Success",
+        title: "Success", 
         description: "Timesheet submitted for supervisor approval!",
       });
+      
+      // Show success confirmation and redirect after a brief delay
+      setTimeout(() => {
+        toast({
+          title: "Submission Confirmed",
+          description: "Your timesheet has been successfully submitted. Redirecting to member selection...",
+        });
+        
+        // Redirect to member selection after showing confirmation
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2000);
+      }, 1000);
     },
     onError: () => {
       toast({
@@ -1436,6 +1548,23 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
 
         <div className="ios-mobile-spacing">
           <h1 className="ios-title-1 text-foreground mb-2">Weekly Timesheet</h1>
+          
+          {/* Show submission date/time for submitted timesheets */}
+          {currentTimesheet && (currentTimesheet.status === 'submitted' || currentTimesheet.status === 'approved') && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <div>
+                  <h3 className="font-semibold text-green-800">Timesheet Submitted</h3>
+                  <p className="text-sm text-green-700">
+                    Last submitted on {new Date(currentTimesheet.submittedAt || currentTimesheet.createdAt).toLocaleDateString()} at{' '}
+                    {new Date(currentTimesheet.submittedAt || currentTimesheet.createdAt).toLocaleTimeString()}
+                    {currentTimesheet.status === 'approved' && ' • Approved by supervisor'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           
           {logout && (
             <div className="flex justify-end">
