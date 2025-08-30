@@ -1578,59 +1578,54 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
 
       {/* iOS-style Main Content */}
       <main className="px-4 py-6 max-w-4xl mx-auto space-y-4">
-        {/* Editing Banner - Show when editing previous submission */}
-        {watchedValues.isEditingPreviousSubmission && (
-          <div className="mb-4 p-4 bg-orange-100 border border-orange-300 rounded-lg">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-orange-600" />
-              <div>
-                <h3 className="font-semibold text-orange-800">Editing Previous Submission</h3>
-                <p className="text-sm text-orange-700">
-                  You are editing a previously submitted timesheet. Changes must be submitted before Saturday at 11:59 PM ET 
-                  and will require supervisor re-approval.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Last Activity Banner - Show most recent activity on submitted timesheets */}
-        {currentTimesheet?.lastActivityInfo && watchedValues.isEditingPreviousSubmission && (
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-blue-600" />
-              <div>
-                <h3 className="font-semibold text-blue-800">Most Recent Activity</h3>
-                <p className="text-sm text-blue-700">
-                  Last {currentTimesheet.lastActivityInfo.type} timecard was {currentTimesheet.lastActivityInfo.type} by {currentTimesheet.lastActivityInfo.by} on{' '}
-                  {formatDateShort(currentTimesheet.lastActivityInfo.timestamp)} at{' '}
-                  {new Date(currentTimesheet.lastActivityInfo.timestamp).toLocaleTimeString('en-US', {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: true
-                  })}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="ios-mobile-spacing">
           <h1 className="ios-title-1 text-foreground mb-2">Weekly Timesheet</h1>
           
-          {/* Show submission date/time for submitted timesheets */}
+          {/* Combined notification for submitted timesheets */}
           {currentTimesheet && (currentTimesheet.status === 'submitted' || currentTimesheet.status === 'approved') && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                <div>
-                  <h3 className="font-semibold text-green-800">Timesheet Submitted</h3>
-                  <p className="text-sm text-green-700">
-                    Last submitted on {formatDateShort(currentTimesheet.submittedAt || currentTimesheet.createdAt)} at{' '}
-                    {new Date(currentTimesheet.submittedAt || currentTimesheet.createdAt).toLocaleTimeString()}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+              <div className="flex items-start gap-3">
+                <div className="flex flex-col items-center gap-1 mt-1">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  {watchedValues.isEditingPreviousSubmission && <AlertCircle className="h-4 w-4 text-orange-600" />}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-amber-800 mb-2">
+                    {watchedValues.isEditingPreviousSubmission ? 'Editing Previous Submission' : 'Timesheet Submitted'}
+                  </h3>
+                  
+                  {/* Submission info */}
+                  <p className="text-sm text-amber-700 mb-2">
+                    Originally submitted on {formatDateShort(currentTimesheet.submittedAt || currentTimesheet.createdAt)} at{' '}
+                    {new Date(currentTimesheet.submittedAt || currentTimesheet.createdAt).toLocaleTimeString('en-US', {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: true
+                    })}
                     {currentTimesheet.status === 'approved' && ' • Approved by supervisor'}
                   </p>
+
+                  {/* Most recent activity if available */}
+                  {currentTimesheet?.lastActivityInfo && (
+                    <p className="text-sm text-amber-700 mb-2">
+                      Most recent activity: {currentTimesheet.lastActivityInfo.type} by {currentTimesheet.lastActivityInfo.by} on{' '}
+                      {formatDateShort(currentTimesheet.lastActivityInfo.timestamp)} at{' '}
+                      {new Date(currentTimesheet.lastActivityInfo.timestamp).toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: true
+                      })}
+                    </p>
+                  )}
+
+                  {/* Editing warning if applicable */}
+                  {watchedValues.isEditingPreviousSubmission && (
+                    <p className="text-sm text-amber-700 font-medium">
+                      Changes must be submitted before Saturday at 11:59 PM ET and will require supervisor re-approval.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
