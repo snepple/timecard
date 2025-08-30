@@ -229,6 +229,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
   const [currentEmployeeEmail, setCurrentEmployeeEmail] = useState("");
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [previewPdfData, setPreviewPdfData] = useState<string | null>(null);
+  const [showSubmissionPreview, setShowSubmissionPreview] = useState(false);
 
   // Auto-close dialogs after 2 seconds
   useEffect(() => {
@@ -1022,6 +1023,141 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
     }
   };
 
+  // New combined submission function
+  const handleSubmit = async () => {
+    const formData = getValues();
+    if (!formData.employeeName || !formData.employeeNumber || !formData.weekEnding) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in employee name, number, and week ending date.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if signature is present
+    if (!signatureData || signatureData.trim() === '') {
+      toast({
+        title: "Signature Required",
+        description: "Please provide a digital signature before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      // Convert form data to PDF format and generate PDF for preview
+      const pdfFormData = convertFormDataForPDF(formData);
+      const pdfDataUrl = await generateTimeSheetPDF({
+        ...pdfFormData,
+        signatureData,
+      });
+      
+      // Store PDF data for preview (strip the data URL prefix since iframe will add it)
+      const base64Data = pdfDataUrl.replace(/^data:application\/pdf;base64,/, '');
+      setPreviewPdfData(base64Data);
+      
+      // Check if we have the employee's email stored
+      const existingEmail = (employeeEmailQuery.data as { email?: string })?.email;
+      if (existingEmail) {
+        setEmployeeEmail(existingEmail);
+      }
+      
+      // Show submission preview dialog
+      setShowSubmissionPreview(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to generate PDF preview.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle print from submission preview
+  const handlePrintFromPreview = async () => {
+    if (!previewPdfData) return;
+    
+    try {
+      // Create blob and trigger download
+      const binaryData = atob(previewPdfData);
+      const bytes = new Uint8Array(binaryData.length);
+      for (let i = 0; i < binaryData.length; i++) {
+        bytes[i] = binaryData.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${getValues().employeeName}_TimeSheet_${getValues().weekEnding.replace(/\//g, '')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Success",
+        description: "PDF downloaded successfully!",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to download PDF.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle save and submit from preview
+  const handleSaveAndSubmit = async () => {
+    // Check if we have email, if not show email dialog
+    const existingEmail = (employeeEmailQuery.data as { email?: string })?.email;
+    
+    if (!existingEmail && !employeeEmail) {
+      setShowSubmissionPreview(false);
+      setShowEmailDialog(true);
+      return;
+    }
+
+    const finalEmail = existingEmail || employeeEmail;
+    const formData = getValues();
+    
+    try {
+      setIsLoading(true);
+      
+      // Submit email with timesheet data
+      await emailTimesheetMutation.mutateAsync({
+        employeeNumber: formData.employeeNumber,
+        employeeEmail: finalEmail,
+        timesheetData: {
+          employeeName: formData.employeeName,
+          weekEnding: formData.weekEnding,
+          pdfBuffer: `data:application/pdf;base64,${previewPdfData}`,
+        },
+      });
+
+      // Close preview dialog
+      setShowSubmissionPreview(false);
+      
+      toast({
+        title: "Success",
+        description: "Timesheet submitted successfully!",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit timesheet. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -1540,23 +1676,12 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             <Button
               type="button"
               className="ios-button ios-button-primary bg-accent hover:bg-accent/90"
-              onClick={handleEmail}
-              disabled={emailTimesheetMutation.isPending}
-              data-testid="button-email"
+              onClick={handleSubmit}
+              disabled={isLoading || emailTimesheetMutation.isPending}
+              data-testid="button-submit"
             >
-              <Mail className="mr-2 h-4 w-4" />
-              Submit by Email
-            </Button>
-            
-            <Button
-              type="button"
-              className="ios-button ios-button-secondary"
-              onClick={handlePrint}
-              disabled={isLoading}
-              data-testid="button-print"
-            >
-              <Printer className="mr-2 h-4 w-4" />
-              Print PDF
+              <Send className="mr-2 h-4 w-4" />
+              Submit
             </Button>
           </div>
         </div>
@@ -1633,11 +1758,15 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
           <AlertDialogFooter>
             <AlertDialogCancel data-testid="button-email-cancel">Cancel</AlertDialogCancel>
             <AlertDialogAction 
-              onClick={handleEmailSubmit}
+              onClick={() => {
+                // Close email dialog and trigger save & submit
+                setShowEmailDialog(false);
+                handleSaveAndSubmit();
+              }}
               disabled={emailTimesheetMutation.isPending}
               data-testid="button-email-submit"
             >
-              {emailTimesheetMutation.isPending ? "Submitting..." : "Submit by Email"}
+              {emailTimesheetMutation.isPending ? "Submitting..." : "Save & Submit"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1682,6 +1811,62 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             >
               <Mail className="mr-2 h-4 w-4" />
               Send by Email
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Submission Preview Dialog */}
+      <AlertDialog open={showSubmissionPreview} onOpenChange={setShowSubmissionPreview}>
+        <AlertDialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Timesheet Preview - Ready to Submit</AlertDialogTitle>
+            <AlertDialogDescription>
+              Review your completed timesheet below. You can print the PDF, go back to edit, or save and submit via email.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex-1 overflow-hidden">
+            {previewPdfData && (
+              <div className="w-full h-96 border rounded-lg">
+                <iframe
+                  src={`data:application/pdf;base64,${previewPdfData}`}
+                  width="100%"
+                  height="100%"
+                  className="border-0 rounded-lg"
+                  title="Timesheet PDF Preview"
+                  data-testid="submission-preview-iframe"
+                />
+              </div>
+            )}
+          </div>
+          <AlertDialogFooter className="gap-2 flex-wrap">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePrintFromPreview}
+              className="ios-button ios-button-secondary"
+              data-testid="button-preview-print"
+            >
+              <Printer className="mr-2 h-4 w-4" />
+              Print PDF
+            </Button>
+            <AlertDialogCancel 
+              onClick={() => {
+                setShowSubmissionPreview(false);
+                setPreviewPdfData(null);
+              }}
+              data-testid="button-preview-cancel-edit"
+            >
+              Cancel & Edit
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleSaveAndSubmit}
+              disabled={isLoading || emailTimesheetMutation.isPending}
+              className="ios-button ios-button-primary bg-accent hover:bg-accent/90"
+              data-testid="button-save-submit"
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {isLoading || emailTimesheetMutation.isPending ? "Submitting..." : "Save & Submit"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
