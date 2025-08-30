@@ -194,9 +194,14 @@ export function RescueCoverageReport() {
     // Calculate the actual date for this day
     const dayOfWeekMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
     const dayOffset = dayOfWeekMap[dayName as keyof typeof dayOfWeekMap];
-    const weekEndingDate = new Date(week.weekEnding);
+    const weekEndingDate = new Date(week.weekEnding + 'T00:00:00'); // Ensure proper parsing as local date
+    
+    // The week ending is Saturday (day 6), so we need to go back to Sunday (day 0)
+    // Saturday minus 6 days = Sunday
     const sundayDate = new Date(weekEndingDate);
-    sundayDate.setDate(weekEndingDate.getDate() - 6); // Go back to Sunday from Saturday
+    sundayDate.setDate(weekEndingDate.getDate() - 6);
+    
+    // Now add the day offset to get the specific day
     const currentDayDate = new Date(sundayDate);
     currentDayDate.setDate(sundayDate.getDate() + dayOffset);
     const dayNumber = currentDayDate.getDate();
