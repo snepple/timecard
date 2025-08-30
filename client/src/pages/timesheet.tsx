@@ -1624,7 +1624,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             </div>
           </div>
 
-          {/* Digital Signature Card - iOS style */}
+          {/* Member Attestation Card - iOS style */}
           <div className="ios-card">
             <div className="p-6">
               <FormField
@@ -1633,8 +1633,11 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                 render={() => (
                   <FormItem>
                     <FormLabel className="ios-headline">
-                      Digital Signature <span className="text-red-500">*</span>
+                      Member Attestation <span className="text-red-500">*</span>
                     </FormLabel>
+                    <FormDescription className="text-sm text-muted-foreground mb-4">
+                      By signing, I attest that the hours submitted are a complete and accurate record of my time worked.
+                    </FormDescription>
                     <FormControl>
                       <SignaturePad
                         onSignatureChange={(signature) => {
