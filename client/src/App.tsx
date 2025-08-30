@@ -54,16 +54,27 @@ function AuthenticatedRouter() {
         </Switch>
       </main>
       
-      {/* Admin link in footer */}
-      <footer className="bg-secondary/20 py-4 px-4 text-center">
-        <Link
-          href="/supervisor"
-          className="ios-button ios-button-secondary px-3 py-2 text-sm inline-flex items-center"
-          data-testid="nav-admin"
-        >
-          <Shield className="h-4 w-4 mr-1" />
-          Admin Login
-        </Link>
+      {/* Footer */}
+      <footer className="bg-secondary/20 py-4 px-4">
+        <div className="flex flex-col space-y-2">
+          {/* Copyright and version information */}
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">© 2024 Oakland Fire-Rescue Department</p>
+            <p className="text-xs text-muted-foreground">Timesheet Application v1.0</p>
+          </div>
+          
+          {/* Admin login button on the right */}
+          <div className="flex justify-end">
+            <Link
+              href="/supervisor"
+              className="ios-button ios-button-secondary px-3 py-2 text-sm inline-flex items-center"
+              data-testid="nav-admin"
+            >
+              <Shield className="h-4 w-4 mr-1" />
+              Admin Login
+            </Link>
+          </div>
+        </div>
       </footer>
     </div>
   );
