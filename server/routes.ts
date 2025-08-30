@@ -1441,19 +1441,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }));
       
-      // Calculate grand totals across all employees
-      const grandTotals = employeeData.reduce((totals, emp) => ({
-        sunday: totals.sunday + emp.monthlyTotals.sunday,
-        monday: totals.monday + emp.monthlyTotals.monday,
-        tuesday: totals.tuesday + emp.monthlyTotals.tuesday,
-        wednesday: totals.wednesday + emp.monthlyTotals.wednesday,
-        thursday: totals.thursday + emp.monthlyTotals.thursday,
-        friday: totals.friday + emp.monthlyTotals.friday,
-        saturday: totals.saturday + emp.monthlyTotals.saturday,
-        total: totals.total + emp.monthlyTotals.total
-      }), {
+      // Calculate actual unique shift totals and track overlaps
+      const shiftDateTracker: Record<string, string[]> = {}; // date -> [employeeNames]
+      const dayOverlaps: Record<string, Record<string, string[]>> = {
+        sunday: {},
+        monday: {},
+        tuesday: {},
+        wednesday: {},
+        thursday: {},
+        friday: {},
+        saturday: {}
+      };
+
+      // Track all shift dates for each day
+      employeeData.forEach(emp => {
+        emp.weeks.forEach(week => {
+          const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+          days.forEach(day => {
+            if (week[day as keyof typeof week] && week.daysInMonth?.[day as keyof typeof week.daysInMonth]) {
+              // Calculate the actual date for this day
+              const dayOfWeekMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+              const dayOffset = dayOfWeekMap[day as keyof typeof dayOfWeekMap];
+              const weekEndingDate = new Date(week.weekEnding + 'T00:00:00');
+              const sundayDate = new Date(weekEndingDate);
+              sundayDate.setDate(weekEndingDate.getDate() - 6);
+              const currentDayDate = new Date(sundayDate);
+              currentDayDate.setDate(sundayDate.getDate() + dayOffset);
+              const dateKey = currentDayDate.toISOString().split('T')[0];
+              
+              if (!shiftDateTracker[dateKey]) {
+                shiftDateTracker[dateKey] = [];
+              }
+              shiftDateTracker[dateKey].push(emp.employeeName);
+              
+              // Track overlaps by day type
+              if (!dayOverlaps[day][dateKey]) {
+                dayOverlaps[day][dateKey] = [];
+              }
+              dayOverlaps[day][dateKey].push(emp.employeeName);
+            }
+          });
+        });
+      });
+
+      // Calculate corrected grand totals (avoiding double counting)
+      const uniqueShiftDates = Object.keys(shiftDateTracker);
+      const grandTotals = {
         sunday: 0, monday: 0, tuesday: 0, wednesday: 0,
         thursday: 0, friday: 0, saturday: 0, total: 0
+      };
+
+      uniqueShiftDates.forEach(dateStr => {
+        const date = new Date(dateStr + 'T00:00:00');
+        const dayOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][date.getDay()];
+        grandTotals[dayOfWeek as keyof typeof grandTotals]++;
+        grandTotals.total++;
       });
 
       
@@ -1467,7 +1509,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         month: parseInt(month),
         monthName: new Date(parseInt(year), parseInt(month) - 1).toLocaleString('default', { month: 'long' }),
         employees: filteredEmployees,
-        grandTotals
+        grandTotals,
+        dayOverlaps
       });
     } catch (error) {
       console.error("Error generating rescue coverage report:", error);
