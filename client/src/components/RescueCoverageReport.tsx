@@ -340,12 +340,6 @@ export function RescueCoverageReport() {
             </div>
           ) : reportData?.employees ? (
             <div className="space-y-6">
-              <Alert>
-                <Shield className="h-4 w-4" />
-                <AlertDescription>
-                  This report shows weekly rescue coverage shifts by member for {reportData.monthName} {reportData.year}. Each row represents one week.
-                </AlertDescription>
-              </Alert>
 
               {/* Summary Table */}
               <div>
@@ -361,7 +355,16 @@ export function RescueCoverageReport() {
                     {reportData.employees.map((employee) => (
                       <TableRow key={employee.employeeNumber}>
                         <TableCell className="font-medium">
-                          {employee.employeeName}
+                          <button
+                            onClick={() => {
+                              const element = document.getElementById(`employee-${employee.employeeNumber}`);
+                              element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }}
+                            className="text-blue-600 hover:text-blue-800 hover:underline font-medium text-left"
+                            data-testid={`link-employee-${employee.employeeNumber}`}
+                          >
+                            {employee.employeeName}
+                          </button>
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline">
@@ -388,8 +391,14 @@ export function RescueCoverageReport() {
               {/* Weekly Breakdown */}
               <div>
                 <h3 className="text-lg font-semibold mb-3">Weekly Breakdown</h3>
+                <Alert className="mb-4">
+                  <Shield className="h-4 w-4" />
+                  <AlertDescription>
+                    This report shows weekly rescue coverage shifts by member for {reportData.monthName} {reportData.year}. Each row represents one week.
+                  </AlertDescription>
+                </Alert>
                 {reportData.employees.map((employee, employeeIndex) => (
-                <div key={`${employee.employeeName}-${employee.employeeNumber}`} className="space-y-2">
+                <div key={`${employee.employeeName}-${employee.employeeNumber}`} className="space-y-2" id={`employee-${employee.employeeNumber}`}>
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold">{employee.employeeName}</h3>
                   </div>
