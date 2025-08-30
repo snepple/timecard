@@ -647,16 +647,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
               
               const shiftDate = new Date(shift.startTime);
-              const dayName = shiftDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+              const dayName = shiftDate.toLocaleDateString('en-US', { 
+                weekday: 'long',
+                timeZone: 'America/New_York'
+              }).toLowerCase();
               if (dailyHours.hasOwnProperty(dayName)) {
                 dailyHours[dayName as keyof typeof dailyHours] += shift.duration || 0;
                 
-                // Format shift times
+                // Format shift times (convert from UTC to Eastern Time)
                 const startTime = new Date(shift.startTime).toLocaleTimeString('en-US', { 
-                  hour: 'numeric', minute: '2-digit', hour12: true 
+                  hour: 'numeric', minute: '2-digit', hour12: true,
+                  timeZone: 'America/New_York'
                 });
                 const endTime = new Date(shift.endTime).toLocaleTimeString('en-US', { 
-                  hour: 'numeric', minute: '2-digit', hour12: true 
+                  hour: 'numeric', minute: '2-digit', hour12: true,
+                  timeZone: 'America/New_York'
                 });
                 shiftTimes[dayName as keyof typeof shiftTimes].push(`${startTime} - ${endTime}`);
               }
