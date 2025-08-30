@@ -12,7 +12,7 @@ import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import type { TimesheetFormData } from "@shared/schema";
-import { Loader2, Calendar, Clock } from "lucide-react";
+import { Loader2, Calendar, Clock, Plus, Trash2 } from "lucide-react";
 
 const supervisorEditSchema = z.object({
   employeeName: z.string().min(1, "Employee name is required"),
@@ -246,6 +246,62 @@ export function SupervisorEditTimecardForm({
     editMutation.mutate(data);
   };
 
+  // Helper function to calculate hours from time inputs
+  const calculateHours = (startTime: string, endTime: string): number => {
+    if (!startTime || !endTime) return 0;
+    
+    const start = new Date(`2000-01-01T${startTime}:00`);
+    const end = new Date(`2000-01-01T${endTime}:00`);
+    
+    // Handle overnight shifts
+    if (end < start) {
+      end.setDate(end.getDate() + 1);
+    }
+    
+    const diffMs = end.getTime() - start.getTime();
+    const hours = diffMs / (1000 * 60 * 60);
+    
+    return Math.round(hours * 100) / 100; // Round to 2 decimal places
+  };
+
+  // Helper function to update total hours for a day
+  const updateDayTotalHours = (day: string, shifts: any[]) => {
+    const totalHours = shifts.reduce((sum, shift) => sum + (shift.hours || 0), 0);
+    form.setValue(`${day}TotalHours` as any, totalHours);
+  };
+
+  // Helper function to add a shift to a day
+  const addShift = (day: string) => {
+    const currentShifts = form.getValues(`${day}Shifts` as any) || [];
+    const newShift = { startTime: "", endTime: "", hours: 0 };
+    const updatedShifts = [...currentShifts, newShift];
+    form.setValue(`${day}Shifts` as any, updatedShifts);
+  };
+
+  // Helper function to remove a shift from a day
+  const removeShift = (day: string, index: number) => {
+    const currentShifts = form.getValues(`${day}Shifts` as any) || [];
+    const updatedShifts = currentShifts.filter((_: any, i: number) => i !== index);
+    form.setValue(`${day}Shifts` as any, updatedShifts);
+    updateDayTotalHours(day, updatedShifts);
+  };
+
+  // Helper function to update shift times and recalculate hours
+  const updateShiftTime = (day: string, shiftIndex: number, field: 'startTime' | 'endTime', value: string) => {
+    const currentShifts = form.getValues(`${day}Shifts` as any) || [];
+    const updatedShifts = [...currentShifts];
+    updatedShifts[shiftIndex] = { ...updatedShifts[shiftIndex], [field]: value };
+    
+    // Recalculate hours for this shift
+    const shift = updatedShifts[shiftIndex];
+    if (shift.startTime && shift.endTime) {
+      shift.hours = calculateHours(shift.startTime, shift.endTime);
+    }
+    
+    form.setValue(`${day}Shifts` as any, updatedShifts);
+    updateDayTotalHours(day, updatedShifts);
+  };
+
   if (isLoadingTimesheet) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -311,31 +367,96 @@ export function SupervisorEditTimecardForm({
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Clock className="h-5 w-5" />
-                Daily Hours
+                Daily Hours & Shifts
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].map((day) => (
-                <div key={day} className="space-y-2">
-                  <Label htmlFor={`${day}TotalHours`} className="capitalize font-medium">
-                    {day}
-                  </Label>
-                  <Input
-                    id={`${day}TotalHours`}
-                    type="number"
-                    step="0.25"
-                    min="0"
-                    max="24"
-                    {...form.register(`${day}TotalHours` as any)}
-                    placeholder="0"
-                  />
-                  {form.formState.errors[`${day}TotalHours` as keyof typeof form.formState.errors] && (
-                    <p className="text-sm text-red-600">
-                      {form.formState.errors[`${day}TotalHours` as keyof typeof form.formState.errors]?.message}
-                    </p>
-                  )}
-                </div>
-              ))}
+            <CardContent className="space-y-6">
+              {['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].map((day) => {
+                const dayShifts = form.watch(`${day}Shifts` as any) || [];
+                const totalHours = form.watch(`${day}TotalHours` as any) || 0;
+                
+                return (
+                  <div key={day} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <Label className="capitalize font-medium text-base">
+                          {day}
+                        </Label>
+                        <div className="text-sm text-gray-600">
+                          Total: {totalHours} hours
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addShift(day)}
+                        className="text-xs"
+                        data-testid={`button-add-shift-${day}`}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add Shift
+                      </Button>
+                    </div>
+                    
+                    {/* Show shifts */}
+                    {dayShifts.length === 0 ? (
+                      <div className="text-center py-4 text-gray-500 bg-gray-50 rounded-md">
+                        No shifts added. Click "Add Shift" to get started.
+                      </div>
+                    ) : (
+                      dayShifts.map((shift: any, index: number) => (
+                        <div key={index} className="grid grid-cols-12 gap-2 items-center py-2 bg-gray-50 rounded mb-2 p-3">
+                          <div className="col-span-4">
+                            <Label className="text-xs text-gray-600">Start Time</Label>
+                            <Input
+                              type="time"
+                              value={shift.startTime || ''}
+                              onChange={(e) => updateShiftTime(day, index, 'startTime', e.target.value)}
+                              className="text-sm"
+                              data-testid={`input-start-time-${day}-${index}`}
+                            />
+                          </div>
+                          <div className="col-span-4">
+                            <Label className="text-xs text-gray-600">End Time</Label>
+                            <Input
+                              type="time"
+                              value={shift.endTime || ''}
+                              onChange={(e) => updateShiftTime(day, index, 'endTime', e.target.value)}
+                              className="text-sm"
+                              data-testid={`input-end-time-${day}-${index}`}
+                            />
+                          </div>
+                          <div className="col-span-3">
+                            <Label className="text-xs text-gray-600">Hours</Label>
+                            <div className="text-sm font-medium text-center py-2">
+                              {shift.hours || 0}
+                            </div>
+                          </div>
+                          <div className="col-span-1 flex justify-center">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeShift(day, index)}
+                              className="text-red-600 hover:text-red-700 p-1"
+                              data-testid={`button-remove-shift-${day}-${index}`}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                    
+                    {/* Hidden input for form validation */}
+                    <Input
+                      type="hidden"
+                      {...form.register(`${day}TotalHours` as any)}
+                    />
+                  </div>
+                );
+              })}
             </CardContent>
           </Card>
 
@@ -399,13 +520,13 @@ export function SupervisorEditTimecardForm({
               <div className="text-center">
                 <span className="text-lg font-semibold">
                   Total Weekly Hours: {
-                    (form.watch('sundayTotalHours') || 0) + 
-                    (form.watch('mondayTotalHours') || 0) + 
-                    (form.watch('tuesdayTotalHours') || 0) + 
-                    (form.watch('wednesdayTotalHours') || 0) + 
-                    (form.watch('thursdayTotalHours') || 0) + 
-                    (form.watch('fridayTotalHours') || 0) + 
-                    (form.watch('saturdayTotalHours') || 0)
+                    (parseFloat(form.watch('sundayTotalHours') as string) || 0) + 
+                    (parseFloat(form.watch('mondayTotalHours') as string) || 0) + 
+                    (parseFloat(form.watch('tuesdayTotalHours') as string) || 0) + 
+                    (parseFloat(form.watch('wednesdayTotalHours') as string) || 0) + 
+                    (parseFloat(form.watch('thursdayTotalHours') as string) || 0) + 
+                    (parseFloat(form.watch('fridayTotalHours') as string) || 0) + 
+                    (parseFloat(form.watch('saturdayTotalHours') as string) || 0)
                   }
                 </span>
               </div>
