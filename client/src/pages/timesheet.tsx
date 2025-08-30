@@ -1030,7 +1030,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
               <div className="ios-card">
                 <div className="p-6">
                 <h2 className="ios-headline mb-4" data-testid="heading-employee-selection">
-                  Select Employee
+                  Select Member
                 </h2>
                 
                 {/* Employee Selection Dropdown */}
