@@ -295,6 +295,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
   const [employeeIdInput, setEmployeeIdInput] = useState("");
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [employeeEmail, setEmployeeEmail] = useState("");
+  const [showChangeMemberDialog, setShowChangeMemberDialog] = useState(false);
   const [currentEmployeeEmail, setCurrentEmployeeEmail] = useState("");
   const [showPdfPreview, setShowPdfPreview] = useState(false);
   const [previewPdfData, setPreviewPdfData] = useState<string | null>(null);
@@ -1773,11 +1774,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    setSelectedEmployeeNumber('');
-                    setCurrentEmployeeEmail('');
-                    form.setValue('employeeNumber', '');
-                  }}
+                  onClick={() => setShowChangeMemberDialog(true)}
                   className="text-sm"
                   data-testid="change-member-button"
                 >
@@ -2446,6 +2443,32 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             >
               <Save className="mr-2 h-4 w-4" />
               {isLoading || emailTimesheetMutation.isPending ? "Submitting..." : "Save & Submit"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Change Member Confirmation Dialog */}
+      <AlertDialog open={showChangeMemberDialog} onOpenChange={setShowChangeMemberDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change Member?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your timecard is not saved or submitted. Any changes you've made will be lost if you select a different member.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                setSelectedEmployeeNumber('');
+                setCurrentEmployeeEmail('');
+                form.setValue('employeeNumber', '');
+                setShowChangeMemberDialog(false);
+              }}
+              data-testid="confirm-change-member"
+            >
+              Yes, Change Member
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
