@@ -64,16 +64,26 @@ export function DailyShiftEditDialog({
     }
     
     return shiftStrings.map(shiftString => {
-      // Parse "7:00 AM - 3:00 PM (8.0 hours)" format
-      const match = shiftString.match(/(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)\s*\((.+?)\s*hours?\)/i);
+      // Try format with hours: "7:00 AM - 3:00 PM (8.0 hours)"
+      let match = shiftString.match(/(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)\s*\((.+?)\s*hours?\)/i);
       if (match) {
         const [, startTime, endTime, hoursStr] = match;
-        // Convert to 24-hour format for input
         const start24 = convertTo24Hour(startTime.trim());
         const end24 = convertTo24Hour(endTime.trim());
         const hours = parseFloat(hoursStr) || 0;
         return { startTime: start24, endTime: end24, hours };
       }
+      
+      // Try format without hours: "7:00 AM - 3:00 PM"
+      match = shiftString.match(/(\d{1,2}:\d{2}\s*[AP]M)\s*-\s*(\d{1,2}:\d{2}\s*[AP]M)/i);
+      if (match) {
+        const [, startTime, endTime] = match;
+        const start24 = convertTo24Hour(startTime.trim());
+        const end24 = convertTo24Hour(endTime.trim());
+        const hours = calculateHours(start24, end24);
+        return { startTime: start24, endTime: end24, hours };
+      }
+      
       return { startTime: "", endTime: "", hours: 0 };
     });
   };
