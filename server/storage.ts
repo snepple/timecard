@@ -47,6 +47,10 @@ export interface IStorage {
   getActivityLogByEmployeeWeek(employeeNumber: string, weekEnding: string): Promise<TimecardActivityLog[]>;
   getActivityLogByEmployeeMonth(employeeNumber: string, year: number, month: number): Promise<TimecardActivityLog[]>;
   getAllActivityLog(): Promise<TimecardActivityLog[]>;
+  
+  // Schedule data operations
+  getScheduleData(): Promise<any>;
+  getScheduledEmployeesForWeek(weekEnding: string): Promise<any[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -549,6 +553,18 @@ Oakland Fire-Rescue Timesheet System`;
     return await db.select()
       .from(timecardActivityLog)
       .orderBy(desc(timecardActivityLog.performedAt));
+  }
+
+  async getScheduleData(): Promise<any> {
+    // Return empty schedule data for now
+    // This would typically fetch from an external scheduling system
+    return { employees: [] };
+  }
+
+  async getScheduledEmployeesForWeek(weekEnding: string): Promise<any[]> {
+    // Return empty array for now
+    // This would typically fetch scheduled employees for the given week
+    return [];
   }
 }
 

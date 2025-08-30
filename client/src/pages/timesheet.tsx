@@ -1893,8 +1893,6 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
               </div>
             </div>
           )}
-
-          </div>
           
           {/* Week Selection Section */}
           <div id="section-week">
@@ -1953,10 +1951,8 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                   compact={false}
                 />
 
-          </div>
-          
-          {/* Time Entry Section */}
-          <div id="section-timeentry">
+                {/* Time Entry Section */}
+                <div id="section-timeentry">
                   {/* Time Entry Card - iOS style */}
                   <div className="ios-card">
                     <div className="p-6">
@@ -2391,10 +2387,10 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
               </Button>
             </div>
           </div>
-        </div>
         )}
-        </form>
-        </Form>
+      </div>
+    </form>
+  </Form>
       </main>
 
 

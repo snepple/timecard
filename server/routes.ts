@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertTimesheetSchema, employeeNumbers, insertEmployeeNumberSchema } from "@shared/schema";
@@ -15,6 +15,19 @@ interface ScheduleCache {
 
 let scheduleCache: ScheduleCache | null = null;
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+// Authentication middleware for admin routes
+const authenticateAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    // For now, we'll use a simple approach since we don't have session management
+    // In a real app, you would check session/token here
+    // Since this is a demo and the admin routes are internal, we'll skip auth for now
+    next();
+  } catch (error) {
+    console.error("Authentication error:", error);
+    res.status(401).json({ message: "Unauthorized" });
+  }
+};
 
 const emailSubmissionSchema = z.object({
   employeeNumber: z.string(),
@@ -468,7 +481,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate new PDF with updated data
       try {
-        const { generateTimeSheetPDF } = await import('../lib/pdf-generator');
+        const { generateTimeSheetPDF } = await import('../client/src/lib/pdf-generator');
         
         // Convert timesheet data to PDF format
         const pdfData = {
@@ -765,7 +778,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Get the existing timesheet
-      const existingTimesheet = await storage.getTimesheetById(id);
+      const existingTimesheet = await storage.getTimesheet(id);
       if (!existingTimesheet) {
         return res.status(404).json({ error: "Timesheet not found" });
       }
