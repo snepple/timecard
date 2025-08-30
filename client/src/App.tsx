@@ -55,11 +55,11 @@ function AuthenticatedRouter() {
       </main>
       
       {/* Footer */}
-      <footer className="bg-secondary/20 py-4 px-4">
+      <footer className="bg-secondary/20 py-2 px-4">
         <div className="flex justify-end">
           <Link
             href="/supervisor"
-            className="ios-button ios-button-secondary px-3 py-2 text-sm inline-flex items-center"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-2 text-sm inline-flex items-center rounded-md font-medium transition-colors"
             data-testid="nav-admin"
           >
             <Shield className="h-4 w-4 mr-1" />
