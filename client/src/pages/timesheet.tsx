@@ -743,6 +743,18 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       return;
     }
 
+    const formData = getValues();
+    
+    // Check if acknowledgment is checked
+    if (!formData.acknowledgmentChecked) {
+      toast({
+        title: "Acknowledgment Required",
+        description: "Please check the acknowledgment box to confirm you have reviewed all times and totals for accuracy.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Check if signature is present
     if (!signatureData || signatureData.trim() === '') {
       toast({
@@ -945,6 +957,16 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       return;
     }
 
+    // Check if acknowledgment is checked
+    if (!formData.acknowledgmentChecked) {
+      toast({
+        title: "Acknowledgment Required",
+        description: "Please check the acknowledgment box to confirm you have reviewed all times and totals for accuracy.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Check if signature is present
     if (!signatureData || signatureData.trim() === '') {
       toast({
@@ -1003,6 +1025,16 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       toast({
         title: "Validation Error",
         description: "Please fill in employee name, number, and week ending date.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if acknowledgment is checked
+    if (!formData.acknowledgmentChecked) {
+      toast({
+        title: "Acknowledgment Required",
+        description: "Please check the acknowledgment box to confirm you have reviewed all times and totals for accuracy.",
         variant: "destructive",
       });
       return;
