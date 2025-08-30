@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { AlertCircle, Plus, Edit2, Trash2, Users, Mail, Lock, Settings, FileText, LogOut } from "lucide-react";
+import { AlertCircle, Plus, Edit2, Trash2, Users, Mail, Lock, Settings, FileText, LogOut, Shield } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TimecardSummaryReport } from "@/components/TimecardSummaryReport";
+import { RescueCoverageReport } from "@/components/RescueCoverageReport";
 import EmployeeManagement from "@/components/EmployeeManagement";
 
 interface EmployeeNumber {
@@ -513,7 +514,7 @@ export default function SupervisorDashboard() {
 
         {/* Tabs for different admin sections */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="timecard-summary" className="flex items-center space-x-2">
               <FileText className="w-4 h-4" />
               <span>Timecard Summary</span>
@@ -521,6 +522,10 @@ export default function SupervisorDashboard() {
             <TabsTrigger value="employee-management" className="flex items-center space-x-2">
               <Users className="w-4 h-4" />
               <span>Employee Management</span>
+            </TabsTrigger>
+            <TabsTrigger value="rescue-coverage" className="flex items-center space-x-2">
+              <Shield className="w-4 h-4" />
+              <span>Rescue Coverage</span>
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center space-x-2">
               <Settings className="w-4 h-4" />
@@ -536,6 +541,11 @@ export default function SupervisorDashboard() {
           {/* Employee Management Tab */}
           <TabsContent value="employee-management" className="mt-6">
             <EmployeeManagement />
+          </TabsContent>
+
+          {/* Rescue Coverage Report Tab */}
+          <TabsContent value="rescue-coverage" className="mt-6">
+            <RescueCoverageReport />
           </TabsContent>
 
           {/* Settings Tab */}

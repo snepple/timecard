@@ -1116,6 +1116,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Rescue coverage report endpoint
+  app.get("/api/admin/rescue-coverage-report/:year/:month", async (req, res) => {
+    try {
+      const { year, month } = req.params;
+      
+      // Calculate the start and end dates for the month
+      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const endDate = new Date(parseInt(year), parseInt(month), 0); // Last day of month
+      
+      // Get all timesheets for the specified month
+      const timesheets = await storage.getAllTimesheets();
+      
+      // Filter timesheets by month/year and only include submitted ones
+      const monthlyTimesheets = timesheets.filter(timesheet => {
+        if (timesheet.status !== 'submitted') return false;
+        
+        const weekEndingDate = new Date(timesheet.weekEnding);
+        // Check if any day of the week falls within the target month
+        for (let i = 0; i < 7; i++) {
+          const dayDate = new Date(weekEndingDate);
+          dayDate.setDate(weekEndingDate.getDate() - i);
+          
+          if (dayDate >= startDate && dayDate <= endDate) {
+            return true;
+          }
+        }
+        return false;
+      });
+      
+      // Group by employee and count rescue coverage shifts
+      const employeeStats: Record<string, {
+        employeeName: string;
+        employeeNumber: string;
+        monday: number;
+        tuesday: number;
+        wednesday: number;
+        thursday: number;
+        total: number;
+      }> = {};
+      
+      monthlyTimesheets.forEach(timesheet => {
+        const key = `${timesheet.employeeName}-${timesheet.employeeNumber}`;
+        
+        if (!employeeStats[key]) {
+          employeeStats[key] = {
+            employeeName: timesheet.employeeName,
+            employeeNumber: timesheet.employeeNumber,
+            monday: 0,
+            tuesday: 0,
+            wednesday: 0,
+            thursday: 0,
+            total: 0
+          };
+        }
+        
+        const stats = employeeStats[key];
+        const weekEndingDate = new Date(timesheet.weekEnding);
+        
+        // Check each weekday and count rescue coverage shifts that fall within the target month
+        const weekdayFields = [
+          { field: 'rescueCoverageMonday', day: 'monday', offset: 1 },
+          { field: 'rescueCoverageTuesday', day: 'tuesday', offset: 2 },
+          { field: 'rescueCoverageWednesday', day: 'wednesday', offset: 3 },
+          { field: 'rescueCoverageThursday', day: 'thursday', offset: 4 }
+        ];
+        
+        weekdayFields.forEach(({ field, day, offset }) => {
+          if (timesheet[field as keyof typeof timesheet]) {
+            // Calculate the actual date of this weekday
+            const dayDate = new Date(weekEndingDate);
+            dayDate.setDate(weekEndingDate.getDate() - (6 - offset));
+            
+            // Only count if the day falls within the target month
+            if (dayDate >= startDate && dayDate <= endDate) {
+              stats[day as keyof typeof stats] += 1;
+              stats.total += 1;
+            }
+          }
+        });
+      });
+      
+      // Convert to array and sort by employee name
+      const reportData = Object.values(employeeStats).sort((a, b) => 
+        a.employeeName.localeCompare(b.employeeName)
+      );
+      
+      res.json({
+        year: parseInt(year),
+        month: parseInt(month),
+        monthName: new Date(parseInt(year), parseInt(month) - 1).toLocaleString('default', { month: 'long' }),
+        employees: reportData
+      });
+    } catch (error) {
+      console.error("Error generating rescue coverage report:", error);
+      res.status(500).json({ message: "Failed to generate rescue coverage report" });
+    }
+  });
+
   // Helper functions for schedule deviation comparison
   function normalizeShiftTimes(shifts: string[]): string[] {
     return shifts.map(shift => {
