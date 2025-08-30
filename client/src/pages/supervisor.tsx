@@ -35,6 +35,8 @@ export default function SupervisorDashboard() {
   // Password management state
   const [showPasswordSettings, setShowPasswordSettings] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
+  const [appPassword, setAppPassword] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
   const [newAppPassword, setNewAppPassword] = useState("");
   const [confirmAppPassword, setConfirmAppPassword] = useState("");
   const [newAdminPassword, setNewAdminPassword] = useState("");
