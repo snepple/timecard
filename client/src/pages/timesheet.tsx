@@ -18,6 +18,7 @@ import { generateTimeSheetPDF } from "@/lib/pdf-generator";
 import { apiRequest } from "@/lib/queryClient";
 import SignaturePad from "@/components/ui/signature-pad";
 import { getCurrentWeekEndingDate, isSaturday, getNextSaturday, getPreviousSaturday, formatDateShort } from "@/lib/date-utils";
+import { SubmissionReadinessIndicator } from "@/components/SubmissionReadinessIndicator";
 
 // Check if timecard editing is allowed (before Saturday 11:59 PM ET of current week)
 const isTimecardEditingAllowed = (weekEnding: string): boolean => {
@@ -1879,6 +1880,32 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             {/* Show rest of form only when both employee and week are selected */}
             {selectedEmployeeNumber && watchedValues.weekEnding && (
               <div className="space-y-4">
+                {/* Submission Readiness Indicator */}
+                <SubmissionReadinessIndicator
+                  hasEmployee={!!(watchedValues.memberName && watchedValues.memberNumber)}
+                  hasWeekEnding={!!watchedValues.weekEnding}
+                  hasTimeEntries={(() => {
+                    const totalHours = (watchedValues.sundayTotalHours || 0) +
+                                      (watchedValues.mondayTotalHours || 0) +
+                                      (watchedValues.tuesdayTotalHours || 0) +
+                                      (watchedValues.wednesdayTotalHours || 0) +
+                                      (watchedValues.thursdayTotalHours || 0) +
+                                      (watchedValues.fridayTotalHours || 0) +
+                                      (watchedValues.saturdayTotalHours || 0);
+                    return totalHours > 0;
+                  })()}
+                  hasAcknowledgment={!!watchedValues.acknowledgmentChecked}
+                  hasSignature={!!(signatureData && signatureData.trim() !== '')}
+                  totalHours={(() => {
+                    return (watchedValues.sundayTotalHours || 0) +
+                           (watchedValues.mondayTotalHours || 0) +
+                           (watchedValues.tuesdayTotalHours || 0) +
+                           (watchedValues.wednesdayTotalHours || 0) +
+                           (watchedValues.thursdayTotalHours || 0) +
+                           (watchedValues.fridayTotalHours || 0) +
+                           (watchedValues.saturdayTotalHours || 0);
+                  })()}
+                />
 
                   {/* Time Entry Card - iOS style */}
                   <div className="ios-card">
