@@ -721,7 +721,7 @@ export function RescueCoverageReport() {
                                     variant="outline"
                                     size="sm"
                                     className="text-xs h-6 px-2 flex items-center space-x-1 text-blue-600 hover:text-blue-700 border-blue-200 hover:border-blue-300"
-                                    onClick={() => setEditingEmployee({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
+                                    onClick={() => setEditingEmployee({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber, weekEnding: week.weekEnding })}
                                     data-testid={`button-edit-${employee.employeeNumber}-week-${week.weekNumber}`}
                                   >
                                     <Edit className="w-3 h-3" />
