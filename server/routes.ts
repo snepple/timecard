@@ -648,6 +648,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Weekly activity log for specific employee and week
+  app.get("/api/timecards/activity-log/week/:employeeNumber/:weekEnding", async (req, res) => {
+    try {
+      const { employeeNumber, weekEnding } = req.params;
+      const activityLog = await storage.getActivityLogByEmployeeWeek(employeeNumber, weekEnding);
+      res.json(activityLog);
+    } catch (error) {
+      console.error("Error fetching weekly activity log:", error);
+      res.status(500).json({ error: "Failed to fetch weekly activity log" });
+    }
+  });
+
+  // Monthly activity log for specific employee
+  app.get("/api/timecards/activity-log/employee-month/:employeeNumber/:year/:month", async (req, res) => {
+    try {
+      const { employeeNumber, year, month } = req.params;
+      const activityLog = await storage.getActivityLogByEmployeeMonth(employeeNumber, parseInt(year), parseInt(month));
+      res.json(activityLog);
+    } catch (error) {
+      console.error("Error fetching monthly activity log:", error);
+      res.status(500).json({ error: "Failed to fetch monthly activity log" });
+    }
+  });
+
   // Get existing timesheet by employee and week
   app.get("/api/timesheets/employee/:employeeNumber/:weekEnding", async (req, res) => {
     try {

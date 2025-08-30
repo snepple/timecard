@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { SupervisorTimecardForm } from "@/components/SupervisorTimecardForm";
-import { ActivityLog } from "@/components/ActivityLog";
+import { EmployeeMonthActivityDialog } from "@/components/EmployeeMonthActivityDialog";
 
 interface RescueCoverageEmployee {
   employeeName: string;
@@ -42,7 +42,7 @@ export function RescueCoverageReport() {
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
   const [editingEmployee, setEditingEmployee] = useState<{ employeeName: string; employeeNumber: string } | null>(null);
-  const [showActivityLog, setShowActivityLog] = useState<string | null>(null);
+  const [showActivityLog, setShowActivityLog] = useState<{ employeeName: string; employeeNumber: string } | null>(null);
   const queryClient = useQueryClient();
 
   const { data: reportData, isLoading, error } = useQuery<RescueCoverageReportData>({
@@ -385,7 +385,7 @@ export function RescueCoverageReport() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => setShowActivityLog(employee.employeeNumber)}
+                                    onClick={() => setShowActivityLog({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
                                     data-testid={`button-activity-${employee.employeeNumber}`}
                                   >
                                     <Eye className="h-4 w-4" />
@@ -465,18 +465,21 @@ export function RescueCoverageReport() {
         </Dialog>
       )}
 
-      {/* Activity Log Dialog */}
+      {/* Employee Monthly Activity Log Dialog */}
       {showActivityLog && (
-        <Dialog open={!!showActivityLog} onOpenChange={() => setShowActivityLog(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                Activity Log - Employee #{showActivityLog}
-              </DialogTitle>
-            </DialogHeader>
-            <ActivityLog employeeNumber={showActivityLog} />
-          </DialogContent>
-        </Dialog>
+        <EmployeeMonthActivityDialog
+          employeeName={showActivityLog.employeeName}
+          employeeNumber={showActivityLog.employeeNumber}
+          year={selectedYear}
+          month={selectedMonth}
+          monthName={reportData?.monthName || ''}
+          open={!!showActivityLog}
+          onOpenChange={(open) => {
+            if (!open) {
+              setShowActivityLog(null);
+            }
+          }}
+        />
       )}
     </div>
   );

@@ -44,6 +44,8 @@ export interface IStorage {
   createActivityLog(activityLog: InsertActivityLog): Promise<TimecardActivityLog>;
   getActivityLogByTimesheet(timesheetId: string): Promise<TimecardActivityLog[]>;
   getActivityLogByEmployee(employeeName: string, weekEnding?: string): Promise<TimecardActivityLog[]>;
+  getActivityLogByEmployeeWeek(employeeNumber: string, weekEnding: string): Promise<TimecardActivityLog[]>;
+  getActivityLogByEmployeeMonth(employeeNumber: string, year: number, month: number): Promise<TimecardActivityLog[]>;
   getAllActivityLog(): Promise<TimecardActivityLog[]>;
 }
 
@@ -262,6 +264,14 @@ export class MemStorage implements IStorage {
   }
 
   async getActivityLogByEmployee(employeeName: string, weekEnding?: string): Promise<TimecardActivityLog[]> {
+    return [];
+  }
+
+  async getActivityLogByEmployeeWeek(employeeNumber: string, weekEnding: string): Promise<TimecardActivityLog[]> {
+    return [];
+  }
+
+  async getActivityLogByEmployeeMonth(employeeNumber: string, year: number, month: number): Promise<TimecardActivityLog[]> {
     return [];
   }
 
@@ -486,6 +496,53 @@ Oakland Fire-Rescue Timesheet System`;
         .where(eq(timecardActivityLog.employeeName, employeeName))
         .orderBy(timecardActivityLog.performedAt);
     }
+  }
+
+  async getActivityLogByEmployeeWeek(employeeNumber: string, weekEnding: string): Promise<TimecardActivityLog[]> {
+    // First find all timesheets for this employee and week
+    const timesheets = await db.select()
+      .from(timesheetsTable)
+      .where(and(
+        eq(timesheetsTable.employeeNumber, employeeNumber),
+        eq(timesheetsTable.weekEnding, weekEnding)
+      ));
+
+    if (timesheets.length === 0) {
+      return [];
+    }
+
+    // Get activity logs for these timesheets
+    const timesheetIds = timesheets.map(ts => ts.id);
+    return await db.select()
+      .from(timecardActivityLog)
+      .where(inArray(timecardActivityLog.timesheetId, timesheetIds))
+      .orderBy(desc(timecardActivityLog.performedAt));
+  }
+
+  async getActivityLogByEmployeeMonth(employeeNumber: string, year: number, month: number): Promise<TimecardActivityLog[]> {
+    // Calculate date range for the month
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0);
+    
+    // Find all timesheets for this employee in the month
+    const timesheets = await db.select()
+      .from(timesheetsTable)
+      .where(and(
+        eq(timesheetsTable.employeeNumber, employeeNumber),
+        gte(timesheetsTable.weekEnding, startDate.toISOString().split('T')[0]),
+        lte(timesheetsTable.weekEnding, endDate.toISOString().split('T')[0])
+      ));
+
+    if (timesheets.length === 0) {
+      return [];
+    }
+
+    // Get activity logs for these timesheets
+    const timesheetIds = timesheets.map(ts => ts.id);
+    return await db.select()
+      .from(timecardActivityLog)
+      .where(inArray(timecardActivityLog.timesheetId, timesheetIds))
+      .orderBy(desc(timecardActivityLog.performedAt));
   }
 
   async getAllActivityLog(): Promise<TimecardActivityLog[]> {
