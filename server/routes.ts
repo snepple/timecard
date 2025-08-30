@@ -1259,11 +1259,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Check if this week intersects with our month
         if (saturday >= startDate && sunday <= endDate) {
           const weekEndingStr = saturday.toISOString().split('T')[0];
+          const startMonth = sunday.getMonth() + 1;
+          const startDay = sunday.getDate();
+          const endMonth = saturday.getMonth() + 1;
+          const endDay = saturday.getDate();
+          const dateLabel = `${startMonth}/${startDay}-${endMonth}/${endDay}`;
+          
           weeks.push({
             weekNumber: weekNum,
             sunday: new Date(sunday),
             saturday: new Date(saturday),
             weekLabel: `Week ${weekNum}`,
+            dateLabel: dateLabel,
             weekEnding: weekEndingStr
           });
           weekNum++;
@@ -1330,11 +1337,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return {
             weekNumber: week.weekNumber,
             weekLabel: week.weekLabel,
+            dateLabel: week.dateLabel,
             weekEnding: week.weekEnding,
             ...rescueCounts,
             totalShifts: Object.values(rescueCounts).reduce((a, b) => a + b, 0),
             hasTimecard: !!timesheet,
-            timecardStatus
+            timecardStatus,
+            dataSource: timesheet ? 'timecard' : 'schedule'
           };
         }));
         

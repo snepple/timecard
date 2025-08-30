@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Download, Shield, Edit, Calendar, FileText, Eye, AlertTriangle, CheckCircle, Clock, BarChart3 } from "lucide-react";
+import { Loader2, Download, Shield, Edit, Calendar, FileText, Eye, AlertTriangle, CheckCircle, Clock, BarChart3, UserPlus } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -15,6 +15,7 @@ import { EmployeeMonthActivityDialog } from "@/components/EmployeeMonthActivityD
 interface WeeklyRescueData {
   weekNumber: number;
   weekLabel: string;
+  dateLabel: string;
   weekEnding: string;
   sunday: number;
   monday: number;
@@ -26,6 +27,7 @@ interface WeeklyRescueData {
   totalShifts: number;
   hasTimecard: boolean;
   timecardStatus: 'complete' | 'missing' | 'pending';
+  dataSource: 'timecard' | 'schedule';
 }
 
 interface RescueCoverageEmployee {
@@ -101,38 +103,66 @@ export function RescueCoverageReport() {
     { value: 12, label: 'December' }
   ];
 
-  const handleExportCSV = () => {
+  const handleExportExcel = async () => {
     if (!reportData?.employees) return;
 
-    const headers = ['Employee Name', 'Employee #', 'Week', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Total Shifts'];
-    const csvData = [
-      headers.join(','),
-      ...reportData.employees.flatMap(emp => 
-        emp.weeks?.map(week => [
-          emp.employeeName, 
-          emp.employeeNumber, 
-          week.weekLabel,
-          week.sunday,
-          week.monday, 
-          week.tuesday, 
-          week.wednesday, 
-          week.thursday,
-          week.friday,
-          week.saturday,
-          week.totalShifts
-        ].join(',')) || []
-      )
-    ].join('\n');
-
-    const blob = new Blob([csvData], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `rescue-coverage-weekly-${reportData.monthName}-${reportData.year}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    try {
+      const XLSX = await import('xlsx');
+      const workbook = XLSX.utils.book_new();
+      
+      // Create worksheet data
+      const worksheetData = [];
+      
+      // Add headers
+      worksheetData.push(['Employee Name', 'Employee #', 'Week', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Total Shifts', 'Source']);
+      
+      // Add data rows
+      reportData.employees.forEach(emp => {
+        emp.weeks?.forEach(week => {
+          worksheetData.push([
+            emp.employeeName,
+            emp.employeeNumber,
+            week.weekLabel,
+            week.sunday || 0,
+            week.monday || 0,
+            week.tuesday || 0,
+            week.wednesday || 0,
+            week.thursday || 0,
+            week.friday || 0,
+            week.saturday || 0,
+            week.totalShifts,
+            week.hasTimecard ? 'Timecard' : 'Schedule'
+          ]);
+        });
+        
+        // Add employee totals row
+        worksheetData.push([
+          `${emp.employeeName} - TOTALS`,
+          '',
+          '',
+          emp.monthlyTotals?.sunday || 0,
+          emp.monthlyTotals?.monday || 0,
+          emp.monthlyTotals?.tuesday || 0,
+          emp.monthlyTotals?.wednesday || 0,
+          emp.monthlyTotals?.thursday || 0,
+          emp.monthlyTotals?.friday || 0,
+          emp.monthlyTotals?.saturday || 0,
+          emp.monthlyTotals?.total || 0,
+          ''
+        ]);
+        
+        // Add empty row for separation
+        worksheetData.push([]);
+      });
+      
+      const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Rescue Coverage');
+      
+      // Download the file
+      XLSX.writeFile(workbook, `rescue-coverage-${reportData.monthName}-${reportData.year}.xlsx`);
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+    }
   };
 
   const handleTimecardSaved = () => {
@@ -142,23 +172,6 @@ export function RescueCoverageReport() {
   };
 
 
-  const getTimecardButtonText = (status: 'complete' | 'missing' | 'pending') => {
-    switch (status) {
-      case 'complete': return 'Complete';
-      case 'missing': return 'Create';
-      case 'pending': return 'View';
-      default: return 'Edit';
-    }
-  };
-
-  const getTimecardButtonVariant = (status: 'complete' | 'missing' | 'pending') => {
-    switch (status) {
-      case 'complete': return 'default' as const;
-      case 'missing': return 'outline' as const;
-      case 'pending': return 'secondary' as const;
-      default: return 'outline' as const;
-    }
-  };
 
   if (error) {
     return (
@@ -206,14 +219,14 @@ export function RescueCoverageReport() {
 
           {reportData && (
             <Button
-              onClick={handleExportCSV}
+              onClick={handleExportExcel}
               variant="outline"
               size="sm"
               className="flex items-center space-x-1"
               data-testid="button-export-csv"
             >
               <Download className="h-4 w-4" />
-              <span>Export CSV</span>
+              <span>Export Excel</span>
             </Button>
           )}
         </div>
@@ -258,13 +271,13 @@ export function RescueCoverageReport() {
                     <TableHeader>
                       <TableRow className="bg-gray-50">
                         <TableHead className="font-semibold w-32">Week</TableHead>
-                        <TableHead className="font-semibold text-center w-20">Sunday</TableHead>
-                        <TableHead className="font-semibold text-center w-20">Monday</TableHead>
-                        <TableHead className="font-semibold text-center w-20">Tuesday</TableHead>
-                        <TableHead className="font-semibold text-center w-20">Wednesday</TableHead>
-                        <TableHead className="font-semibold text-center w-20">Thursday</TableHead>
-                        <TableHead className="font-semibold text-center w-20">Friday</TableHead>
-                        <TableHead className="font-semibold text-center w-20">Saturday</TableHead>
+                        <TableHead className="font-semibold text-center w-16">Sun</TableHead>
+                        <TableHead className="font-semibold text-center w-16">Mon</TableHead>
+                        <TableHead className="font-semibold text-center w-16">Tue</TableHead>
+                        <TableHead className="font-semibold text-center w-16">Wed</TableHead>
+                        <TableHead className="font-semibold text-center w-16">Thu</TableHead>
+                        <TableHead className="font-semibold text-center w-16">Fri</TableHead>
+                        <TableHead className="font-semibold text-center w-16">Sat</TableHead>
                         <TableHead className="font-semibold text-center w-24">Total Shifts</TableHead>
                         <TableHead className="font-semibold text-center w-32">PDF Timesheet</TableHead>
                       </TableRow>
@@ -273,28 +286,155 @@ export function RescueCoverageReport() {
                       {employee.weeks?.map((week, weekIndex) => (
                         <TableRow key={`${employee.employeeNumber}-week-${week.weekNumber}`}>
                           <TableCell className="font-medium text-sm">
-                            {week.weekLabel}
+                            <div>{week.weekLabel}</div>
+                            <div className="text-xs text-muted-foreground">({week.dateLabel})</div>
                           </TableCell>
                           <TableCell className="text-center">
-                            {week.sunday > 0 ? week.sunday : ''}
+                            <div className="flex items-center justify-center space-x-1">
+                              {week.sunday > 0 && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      {week.dataSource === 'timecard' ? (
+                                        <FileText className="h-3 w-3 text-green-600" />
+                                      ) : (
+                                        <Calendar className="h-3 w-3 text-blue-500" />
+                                      )}
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{week.dataSource === 'timecard' ? 'From submitted timecard' : 'From schedule'}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                              <span>{week.sunday > 0 ? week.sunday : ''}</span>
+                            </div>
                           </TableCell>
                           <TableCell className="text-center">
-                            {week.monday > 0 ? week.monday : ''}
+                            <div className="flex items-center justify-center space-x-1">
+                              {week.monday > 0 && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      {week.dataSource === 'timecard' ? (
+                                        <FileText className="h-3 w-3 text-green-600" />
+                                      ) : (
+                                        <Calendar className="h-3 w-3 text-blue-500" />
+                                      )}
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{week.dataSource === 'timecard' ? 'From submitted timecard' : 'From schedule'}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                              <span>{week.monday > 0 ? week.monday : ''}</span>
+                            </div>
                           </TableCell>
                           <TableCell className="text-center">
-                            {week.tuesday > 0 ? week.tuesday : ''}
+                            <div className="flex items-center justify-center space-x-1">
+                              {week.tuesday > 0 && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      {week.dataSource === 'timecard' ? (
+                                        <FileText className="h-3 w-3 text-green-600" />
+                                      ) : (
+                                        <Calendar className="h-3 w-3 text-blue-500" />
+                                      )}
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{week.dataSource === 'timecard' ? 'From submitted timecard' : 'From schedule'}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                              <span>{week.tuesday > 0 ? week.tuesday : ''}</span>
+                            </div>
                           </TableCell>
                           <TableCell className="text-center">
-                            {week.wednesday > 0 ? week.wednesday : ''}
+                            <div className="flex items-center justify-center space-x-1">
+                              {week.wednesday > 0 && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      {week.dataSource === 'timecard' ? (
+                                        <FileText className="h-3 w-3 text-green-600" />
+                                      ) : (
+                                        <Calendar className="h-3 w-3 text-blue-500" />
+                                      )}
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{week.dataSource === 'timecard' ? 'From submitted timecard' : 'From schedule'}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                              <span>{week.wednesday > 0 ? week.wednesday : ''}</span>
+                            </div>
                           </TableCell>
                           <TableCell className="text-center">
-                            {week.thursday > 0 ? week.thursday : ''}
+                            <div className="flex items-center justify-center space-x-1">
+                              {week.thursday > 0 && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      {week.dataSource === 'timecard' ? (
+                                        <FileText className="h-3 w-3 text-green-600" />
+                                      ) : (
+                                        <Calendar className="h-3 w-3 text-blue-500" />
+                                      )}
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{week.dataSource === 'timecard' ? 'From submitted timecard' : 'From schedule'}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                              <span>{week.thursday > 0 ? week.thursday : ''}</span>
+                            </div>
                           </TableCell>
                           <TableCell className="text-center">
-                            {week.friday > 0 ? week.friday : ''}
+                            <div className="flex items-center justify-center space-x-1">
+                              {week.friday > 0 && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      {week.dataSource === 'timecard' ? (
+                                        <FileText className="h-3 w-3 text-green-600" />
+                                      ) : (
+                                        <Calendar className="h-3 w-3 text-blue-500" />
+                                      )}
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{week.dataSource === 'timecard' ? 'From submitted timecard' : 'From schedule'}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                              <span>{week.friday > 0 ? week.friday : ''}</span>
+                            </div>
                           </TableCell>
                           <TableCell className="text-center">
-                            {week.saturday > 0 ? week.saturday : ''}
+                            <div className="flex items-center justify-center space-x-1">
+                              {week.saturday > 0 && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger>
+                                      {week.dataSource === 'timecard' ? (
+                                        <FileText className="h-3 w-3 text-green-600" />
+                                      ) : (
+                                        <Calendar className="h-3 w-3 text-blue-500" />
+                                      )}
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{week.dataSource === 'timecard' ? 'From submitted timecard' : 'From schedule'}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                              <span>{week.saturday > 0 ? week.saturday : ''}</span>
+                            </div>
                           </TableCell>
                           <TableCell className="text-center">
                             <Badge variant="outline" className="text-xs">
@@ -303,57 +443,50 @@ export function RescueCoverageReport() {
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="flex flex-col space-y-1">
-                              <Button
-                                variant={getTimecardButtonVariant(week.timecardStatus)}
-                                size="sm"
-                                className="text-xs h-6"
-                                onClick={() => setEditingEmployee({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
-                                data-testid={`button-timecard-${employee.employeeNumber}-week-${week.weekNumber}`}
-                              >
-                                {getTimecardButtonText(week.timecardStatus)}
-                              </Button>
-                              <div className="flex space-x-1">
+                              {week.hasTimecard ? (
+                                <div className="flex flex-wrap gap-1 justify-center">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs h-6 px-2 flex items-center space-x-1 text-blue-600 hover:text-blue-700 border-blue-200 hover:border-blue-300"
+                                    onClick={() => setEditingEmployee({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
+                                    data-testid={`button-view-pdf-${employee.employeeNumber}-week-${week.weekNumber}`}
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                    <span>View PDF</span>
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs h-6 px-2 flex items-center space-x-1 text-blue-600 hover:text-blue-700 border-blue-200 hover:border-blue-300"
+                                    onClick={() => setEditingEmployee({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
+                                    data-testid={`button-edit-${employee.employeeNumber}-week-${week.weekNumber}`}
+                                  >
+                                    <Edit className="w-3 h-3" />
+                                    <span>Edit</span>
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-xs h-6 px-2"
+                                    onClick={() => setShowActivityLog({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
+                                    data-testid={`button-activity-${employee.employeeNumber}-week-${week.weekNumber}`}
+                                  >
+                                    Activity
+                                  </Button>
+                                </div>
+                              ) : (
                                 <Button
-                                  variant="ghost"
+                                  variant="outline"
                                   size="sm"
-                                  className="text-xs h-5 px-1"
+                                  className="text-xs h-6 px-2 flex items-center space-x-1 text-orange-600 hover:text-orange-700 border-orange-200 hover:border-orange-300"
                                   onClick={() => setEditingEmployee({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
+                                  data-testid={`button-complete-behalf-${employee.employeeNumber}-week-${week.weekNumber}`}
                                 >
-                                  View
+                                  <UserPlus className="w-3 h-3" />
+                                  <span>Complete on behalf</span>
                                 </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-xs h-5 px-1"
-                                  onClick={() => setEditingEmployee({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
-                                >
-                                  Edited
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-xs h-5 px-1"
-                                  onClick={() => setEditingEmployee({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
-                                >
-                                  Original
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-xs h-5 px-1"
-                                  onClick={() => setEditingEmployee({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
-                                >
-                                  Edit
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-xs h-5 px-1"
-                                  onClick={() => setShowActivityLog({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
-                                >
-                                  Activity
-                                </Button>
-                              </div>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
