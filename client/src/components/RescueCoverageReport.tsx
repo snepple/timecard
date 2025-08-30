@@ -28,6 +28,8 @@ interface WeeklyRescueData {
   hasTimecard: boolean;
   timecardStatus: 'complete' | 'missing' | 'pending';
   dataSource: 'timecard' | 'schedule';
+  isEdited?: boolean;
+  timesheetId?: string;
   scheduledRescueCounts?: {
     sunday: number;
     monday: number;
@@ -184,6 +186,185 @@ export function RescueCoverageReport() {
     }
   };
 
+  const handleViewPDF = async (employeeNumber: string, weekEnding: string, employeeName: string) => {
+    try {
+      // Find the timesheet for this employee and week
+      const response = await fetch(`/api/timesheets`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch timesheets');
+      }
+      
+      const timesheets = await response.json();
+      const timesheet = timesheets.find((ts: any) => 
+        (ts.employeeNumber === employeeNumber || ts.employeeName === employeeName) && 
+        ts.weekEnding === weekEnding
+      );
+      
+      if (!timesheet) {
+        console.error('Timesheet not found');
+        return;
+      }
+      
+      // Import the PDF generator
+      const { generateTimeSheetPDF } = await import('../lib/pdf-generator');
+      
+      // Convert timesheet data to PDF format
+      const pdfData = {
+        employeeName: timesheet.employeeName,
+        employeeNumber: timesheet.employeeNumber,
+        weekEnding: timesheet.weekEnding,
+        
+        sundayDate: timesheet.sundayDate,
+        sundayTotalHours: parseFloat(timesheet.sundayTotalHours || '0'),
+        
+        mondayDate: timesheet.mondayDate,
+        mondayTotalHours: parseFloat(timesheet.mondayTotalHours || '0'),
+        
+        tuesdayDate: timesheet.tuesdayDate,
+        tuesdayTotalHours: parseFloat(timesheet.tuesdayTotalHours || '0'),
+        
+        wednesdayDate: timesheet.wednesdayDate,
+        wednesdayTotalHours: parseFloat(timesheet.wednesdayTotalHours || '0'),
+        
+        thursdayDate: timesheet.thursdayDate,
+        thursdayTotalHours: parseFloat(timesheet.thursdayTotalHours || '0'),
+        
+        fridayDate: timesheet.fridayDate,
+        fridayTotalHours: parseFloat(timesheet.fridayTotalHours || '0'),
+        
+        saturdayDate: timesheet.saturdayDate,
+        saturdayTotalHours: parseFloat(timesheet.saturdayTotalHours || '0'),
+        
+        totalWeeklyHours: parseFloat(timesheet.totalWeeklyHours || '0'),
+        
+        rescueCoverageMonday: timesheet.rescueCoverageMonday,
+        rescueCoverageTuesday: timesheet.rescueCoverageTuesday,
+        rescueCoverageWednesday: timesheet.rescueCoverageWednesday,
+        rescueCoverageThursday: timesheet.rescueCoverageThursday,
+        
+        signatureData: timesheet.signatureData,
+        completedBy: timesheet.completedBy || 'employee',
+      };
+
+      // Generate PDF
+      const pdfDataUrl = await generateTimeSheetPDF(pdfData);
+      
+      // Convert to blob and open
+      const base64Data = pdfDataUrl.replace(/^data:application\/pdf;base64,/, '');
+      const binaryData = atob(base64Data);
+      const bytes = new Uint8Array(binaryData.length);
+      for (let i = 0; i < binaryData.length; i++) {
+        bytes[i] = binaryData.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      
+      // Clean up URL after a delay
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    }
+  };
+
+  const handleViewOriginalPDF = async (employeeNumber: string, weekEnding: string, employeeName: string) => {
+    try {
+      // Find the timesheet for this employee and week
+      const response = await fetch(`/api/timesheets`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch timesheets');
+      }
+      
+      const timesheets = await response.json();
+      const timesheet = timesheets.find((ts: any) => 
+        (ts.employeeNumber === employeeNumber || ts.employeeName === employeeName) && 
+        ts.weekEnding === weekEnding
+      );
+      
+      if (!timesheet) {
+        console.error('Timesheet not found');
+        return;
+      }
+      
+      // Parse original timesheet data from JSON backup
+      let originalData;
+      try {
+        originalData = JSON.parse(timesheet.originalTimesheetData || '{}');
+      } catch {
+        console.error('Failed to parse original timesheet data');
+        return;
+      }
+      
+      // Import the PDF generator
+      const { generateTimeSheetPDF } = await import('../lib/pdf-generator');
+      
+      // Convert original timesheet data to PDF format
+      const pdfData = {
+        employeeName: originalData.employeeName,
+        employeeNumber: originalData.employeeNumber,
+        weekEnding: originalData.weekEnding,
+        
+        sundayDate: originalData.sundayDate,
+        sundayTotalHours: parseFloat(originalData.sundayTotalHours || '0'),
+        
+        mondayDate: originalData.mondayDate,
+        mondayTotalHours: parseFloat(originalData.mondayTotalHours || '0'),
+        
+        tuesdayDate: originalData.tuesdayDate,
+        tuesdayTotalHours: parseFloat(originalData.tuesdayTotalHours || '0'),
+        
+        wednesdayDate: originalData.wednesdayDate,
+        wednesdayTotalHours: parseFloat(originalData.wednesdayTotalHours || '0'),
+        
+        thursdayDate: originalData.thursdayDate,
+        thursdayTotalHours: parseFloat(originalData.thursdayTotalHours || '0'),
+        
+        fridayDate: originalData.fridayDate,
+        fridayTotalHours: parseFloat(originalData.fridayTotalHours || '0'),
+        
+        saturdayDate: originalData.saturdayDate,
+        saturdayTotalHours: parseFloat(originalData.saturdayTotalHours || '0'),
+        
+        totalWeeklyHours: parseFloat(originalData.totalWeeklyHours || '0'),
+        
+        rescueCoverageMonday: originalData.rescueCoverageMonday,
+        rescueCoverageTuesday: originalData.rescueCoverageTuesday,
+        rescueCoverageWednesday: originalData.rescueCoverageWednesday,
+        rescueCoverageThursday: originalData.rescueCoverageThursday,
+        
+        signatureData: originalData.signatureData,
+        completedBy: originalData.completedBy || 'employee',
+        
+        // Mark as original version
+        isOriginal: true,
+      };
+
+      // Generate PDF
+      const pdfDataUrl = await generateTimeSheetPDF(pdfData);
+      
+      // Convert to blob and open
+      const base64Data = pdfDataUrl.replace(/^data:application\/pdf;base64,/, '');
+      const binaryData = atob(base64Data);
+      const bytes = new Uint8Array(binaryData.length);
+      for (let i = 0; i < binaryData.length; i++) {
+        bytes[i] = binaryData.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      
+      // Clean up URL after a delay
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error generating original PDF:', error);
+    }
+  };
 
   const renderDayCell = (week: WeeklyRescueData, day: keyof WeeklyRescueData, dayName: string) => {
     const dayValue = week[day] as number;
@@ -439,18 +620,43 @@ export function RescueCoverageReport() {
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="flex flex-col space-y-1">
-                              {week.hasTimecard ? (
+                              {week.hasTimecard && week.timesheetId ? (
                                 <div className="flex flex-wrap gap-1 justify-center">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="text-xs h-6 px-2 flex items-center space-x-1 text-blue-600 hover:text-blue-700 border-blue-200 hover:border-blue-300"
-                                    onClick={() => setEditingEmployee({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
-                                    data-testid={`button-view-pdf-${employee.employeeNumber}-week-${week.weekNumber}`}
-                                  >
-                                    <Eye className="w-3 h-3" />
-                                    <span>View PDF</span>
-                                  </Button>
+                                  {week.isEdited ? (
+                                    <>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleViewPDF(employee.employeeNumber, week.weekEnding, employee.employeeName)}
+                                        className="text-xs h-6 px-2 flex items-center space-x-1 text-green-600 hover:text-green-700 border-green-200 hover:border-green-300"
+                                        data-testid={`button-view-edited-pdf-${employee.employeeNumber}-week-${week.weekNumber}`}
+                                      >
+                                        <Eye className="w-3 h-3" />
+                                        <span>View Edited</span>
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleViewOriginalPDF(employee.employeeNumber, week.weekEnding, employee.employeeName)}
+                                        className="text-xs h-6 px-2 flex items-center space-x-1 text-gray-600 hover:text-gray-700 border-gray-200 hover:border-gray-300"
+                                        data-testid={`button-view-original-pdf-${employee.employeeNumber}-week-${week.weekNumber}`}
+                                      >
+                                        <Eye className="w-3 h-3" />
+                                        <span>View Original</span>
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleViewPDF(employee.employeeNumber, week.weekEnding, employee.employeeName)}
+                                      className="text-xs h-6 px-2 flex items-center space-x-1"
+                                      data-testid={`button-view-pdf-${employee.employeeNumber}-week-${week.weekNumber}`}
+                                    >
+                                      <Eye className="w-3 h-3" />
+                                      <span>View PDF</span>
+                                    </Button>
+                                  )}
                                   <Button
                                     variant="outline"
                                     size="sm"

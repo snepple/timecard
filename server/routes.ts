@@ -1400,6 +1400,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             hasTimecard: !!timesheet,
             timecardStatus,
             dataSource: timesheet ? 'timecard' : 'schedule',
+            isEdited: timesheet ? !!timesheet.originalTimesheetData : false,
+            timesheetId: timesheet?.id,
             scheduledRescueCounts,
             rescueDeviations,
             daysInMonth: week.daysInMonth
