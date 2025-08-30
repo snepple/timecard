@@ -89,9 +89,34 @@ export function getUpcomingSaturdays(): string[] {
  */
 export function formatDateForDisplay(dateString: string): string {
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const year = date.getFullYear().toString().slice(-2);
+  return `${month}/${day}/${year}`;
+}
+
+// Standardized date formatting function for m/d/yy format
+export function formatDateShort(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const month = d.getMonth() + 1;
+  const day = d.getDate();
+  const year = d.getFullYear().toString().slice(-2);
+  return `${month}/${day}/${year}`;
+}
+
+// Helper for YYYY-MM-DD format dates to avoid timezone issues
+export function formatDateShortFromYMD(dateStr: string): string {
+  if (!dateStr) return "";
+  try {
+    // Handle YYYY-MM-DD format to avoid timezone issues
+    if (dateStr.includes('-') && dateStr.length === 10) {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const yearShort = year.toString().slice(-2);
+      return `${month}/${day}/${yearShort}`;
+    }
+    // Fallback to regular formatting
+    return formatDateShort(dateStr);
+  } catch (error) {
+    return dateStr;
+  }
 }

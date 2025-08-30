@@ -104,11 +104,16 @@ export function WeekPicker({ value, onChange, placeholder = "Select week ending 
     const endDate = weekDates[6];    // Saturday
     
     const formatDate = (date: Date) => {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      return `${month}/${day}`;
     };
     
     const formatDateWithYear = (date: Date) => {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      const year = date.getFullYear().toString().slice(-2);
+      return `${month}/${day}/${year}`;
     };
     
     // Show year if dates span different years, or always show year on end date
@@ -210,10 +215,21 @@ export function WeekPicker({ value, onChange, placeholder = "Select week ending 
           {(selectedDate || hoveredDate) && (
             <div className="p-3 border-t text-sm text-center text-muted-foreground">
               {hoveredDate && !selectedDate && (
-                <>Week ending {new Date(getWeekEndingDate(hoveredDate)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</>
+                <>Week ending {(() => {
+                  const date = new Date(getWeekEndingDate(hoveredDate));
+                  const month = date.getMonth() + 1;
+                  const day = date.getDate();
+                  const year = date.getFullYear().toString().slice(-2);
+                  return `${month}/${day}/${year}`;
+                })()}</>
               )}
               {selectedDate && (
-                <>Selected: Week ending {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</>
+                <>Selected: Week ending {(() => {
+                  const month = selectedDate.getMonth() + 1;
+                  const day = selectedDate.getDate();
+                  const year = selectedDate.getFullYear().toString().slice(-2);
+                  return `${month}/${day}/${year}`;
+                })()}</>
               )}
             </div>
           )}

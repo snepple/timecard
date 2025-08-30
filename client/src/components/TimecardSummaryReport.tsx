@@ -12,6 +12,7 @@ import { SupervisorTimecardForm } from "./SupervisorTimecardForm";
 import { SupervisorEditTimecardForm } from "./SupervisorEditTimecardForm";
 import { TimecardWeekActivityDialog } from "./TimecardWeekActivityDialog";
 import { DailyShiftEditDialog } from "./DailyShiftEditDialog";
+import { formatDateShortFromYMD } from "@/lib/date-utils";
 
 interface TimecardSummaryData {
   employeeName: string;
@@ -689,7 +690,7 @@ export function TimecardSummaryReport() {
           <CardHeader>
             <div className="flex justify-between items-start">
               <div>
-                <CardTitle>Week Ending {new Date(summaryQuery.data.weekEnding).toLocaleDateString()}</CardTitle>
+                <CardTitle>Week Ending {formatDateShortFromYMD(summaryQuery.data.weekEnding)}</CardTitle>
                 <CardDescription>
                   Timecard summary for all employees scheduled during this week
                 </CardDescription>

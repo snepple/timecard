@@ -17,7 +17,7 @@ import { calculateHours, populateWeekDates } from "@/lib/time-calculations";
 import { generateTimeSheetPDF } from "@/lib/pdf-generator";
 import { apiRequest } from "@/lib/queryClient";
 import SignaturePad from "@/components/ui/signature-pad";
-import { getCurrentWeekEndingDate, isSaturday, getNextSaturday, getPreviousSaturday } from "@/lib/date-utils";
+import { getCurrentWeekEndingDate, isSaturday, getNextSaturday, getPreviousSaturday, formatDateShort } from "@/lib/date-utils";
 
 // Check if timecard editing is allowed (before Saturday 11:59 PM ET of current week)
 const isTimecardEditingAllowed = (weekEnding: string): boolean => {
@@ -465,7 +465,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         // Show toast indicating we loaded existing submitted timesheet
         toast({
           title: "Existing Timesheet Loaded", 
-          description: `Loaded previously submitted timesheet from ${new Date(timesheet.submittedAt || timesheet.createdAt).toLocaleDateString()}. You can now edit this submission.`,
+          description: `Loaded previously submitted timesheet from ${formatDateShort(timesheet.submittedAt || timesheet.createdAt)}. You can now edit this submission.`,
           duration: 4000,
         });
       } else {
@@ -1573,7 +1573,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                 <div>
                   <h3 className="font-semibold text-green-800">Timesheet Submitted</h3>
                   <p className="text-sm text-green-700">
-                    Last submitted on {new Date(currentTimesheet.submittedAt || currentTimesheet.createdAt).toLocaleDateString()} at{' '}
+                    Last submitted on {formatDateShort(currentTimesheet.submittedAt || currentTimesheet.createdAt)} at{' '}
                     {new Date(currentTimesheet.submittedAt || currentTimesheet.createdAt).toLocaleTimeString()}
                     {currentTimesheet.status === 'approved' && ' • Approved by supervisor'}
                   </p>

@@ -113,7 +113,13 @@ An employee has edited their previously submitted timesheet and requires re-appr
 Employee: ${editedTimesheet.employeeName}
 Employee Number: ${editedTimesheet.employeeNumber}
 Week Ending: ${editedTimesheet.weekEnding}
-Edit Date: ${new Date().toLocaleDateString()}
+Edit Date: ${(() => {
+        const d = new Date();
+        const month = d.getMonth() + 1;
+        const day = d.getDate();
+        const year = d.getFullYear().toString().slice(-2);
+        return `${month}/${day}/${year}`;
+      })()}
 
 === EMPLOYEE EDIT COMMENTS ===
 ${editComments}
@@ -214,7 +220,14 @@ async function sendEditNotificationEmail(editedTimesheet: any, originalTimesheet
       <h3>Edit Details:</h3>
       <p><strong>Reason for Edit:</strong> ${editReason}</p>
       <p><strong>Edited by:</strong> ${editedTimesheet.editedBy}</p>
-      <p><strong>Edit Date:</strong> ${new Date(editedTimesheet.editedAt).toLocaleString()}</p>
+      <p><strong>Edit Date:</strong> ${(() => {
+        const d = new Date(editedTimesheet.editedAt);
+        const month = d.getMonth() + 1;
+        const day = d.getDate();
+        const year = d.getFullYear().toString().slice(-2);
+        const time = d.toLocaleTimeString();
+        return `${month}/${day}/${year} at ${time}`;
+      })()}</p>
       
       <h3>Updated Hours:</h3>
       <ul>
