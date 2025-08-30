@@ -1,7 +1,7 @@
-import { type Timesheet, type InsertTimesheet, type EmployeeNumber, type InsertEmployeeNumber, type Setting, type InsertSetting, timesheets, employeeNumbers, settings } from "@shared/schema";
+import { type Timesheet, type InsertTimesheet, type EmployeeNumber, type InsertEmployeeNumber, type Setting, type InsertSetting, type TimecardActivityLog, type InsertActivityLog, timesheets, employeeNumbers, settings, timecardActivityLog } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<any | undefined>;
@@ -38,6 +38,11 @@ export interface IStorage {
   getSetting(key: string): Promise<string | undefined>;
   setSetting(key: string, value: string): Promise<void>;
   initializeDefaultSettings(): Promise<void>;
+  
+  // Activity log operations
+  createActivityLog(activityLog: InsertActivityLog): Promise<TimecardActivityLog>;
+  getActivityLogByTimesheet(timesheetId: string): Promise<TimecardActivityLog[]>;
+  getActivityLogByEmployee(employeeName: string, weekEnding?: string): Promise<TimecardActivityLog[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -217,6 +222,26 @@ export class MemStorage implements IStorage {
 
   async initializeDefaultSettings(): Promise<void> {
     return;
+  }
+
+  // Activity log operations
+  async createActivityLog(activityLog: InsertActivityLog): Promise<TimecardActivityLog> {
+    const id = randomUUID();
+    const log: TimecardActivityLog = {
+      ...activityLog,
+      id,
+      performedAt: new Date(),
+      details: activityLog.details || null,
+    };
+    return log;
+  }
+
+  async getActivityLogByTimesheet(timesheetId: string): Promise<TimecardActivityLog[]> {
+    return [];
+  }
+
+  async getActivityLogByEmployee(employeeName: string, weekEnding?: string): Promise<TimecardActivityLog[]> {
+    return [];
   }
 }
 
@@ -401,6 +426,36 @@ Please review the hours and approve or provide feedback as needed.
 Best regards,
 Oakland Fire-Rescue Timesheet System`;
       await this.setSetting('timesheet_email_template', defaultTemplate);
+    }
+  }
+
+  // Activity log operations
+  async createActivityLog(activityLog: InsertActivityLog): Promise<TimecardActivityLog> {
+    const [log] = await db.insert(timecardActivityLog).values(activityLog).returning();
+    return log;
+  }
+
+  async getActivityLogByTimesheet(timesheetId: string): Promise<TimecardActivityLog[]> {
+    return await db.select()
+      .from(timecardActivityLog)
+      .where(eq(timecardActivityLog.timesheetId, timesheetId))
+      .orderBy(timecardActivityLog.performedAt);
+  }
+
+  async getActivityLogByEmployee(employeeName: string, weekEnding?: string): Promise<TimecardActivityLog[]> {
+    if (weekEnding) {
+      return await db.select()
+        .from(timecardActivityLog)
+        .where(and(
+          eq(timecardActivityLog.employeeName, employeeName),
+          eq(timecardActivityLog.weekEnding, weekEnding)
+        ))
+        .orderBy(timecardActivityLog.performedAt);
+    } else {
+      return await db.select()
+        .from(timecardActivityLog)
+        .where(eq(timecardActivityLog.employeeName, employeeName))
+        .orderBy(timecardActivityLog.performedAt);
     }
   }
 }

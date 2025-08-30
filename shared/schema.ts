@@ -66,13 +66,32 @@ export const timesheets = pgTable("timesheets", {
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
+// Activity log for tracking timecard events
+export const timecardActivityLog = pgTable("timecard_activity_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  timesheetId: varchar("timesheet_id").notNull().references(() => timesheets.id),
+  activityType: text("activity_type").notNull(), // "submitted", "edited", "completed_by_supervisor"
+  performedBy: text("performed_by").notNull(), // name of person who performed the action
+  performedAt: timestamp("performed_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  details: text("details"), // additional details about the action
+  employeeName: text("employee_name").notNull(), // for easy filtering
+  weekEnding: text("week_ending").notNull(), // for easy filtering
+});
+
 export const insertTimesheetSchema = createInsertSchema(timesheets).omit({
   id: true,
   createdAt: true,
 });
 
+export const insertActivityLogSchema = createInsertSchema(timecardActivityLog).omit({
+  id: true,
+  performedAt: true,
+});
+
 export type InsertTimesheet = z.infer<typeof insertTimesheetSchema>;
 export type Timesheet = typeof timesheets.$inferSelect;
+export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
+export type TimecardActivityLog = typeof timecardActivityLog.$inferSelect;
 
 // Type for individual shift entries within a day
 export interface DayShift {

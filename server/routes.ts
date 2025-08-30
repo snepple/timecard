@@ -153,6 +153,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertTimesheetSchema.parse(req.body);
       const timesheet = await storage.createTimesheet(validatedData);
+      
+      // Log activity based on who completed the timecard
+      try {
+        if (timesheet.completedBy === 'supervisor') {
+          await storage.createActivityLog({
+            timesheetId: timesheet.id,
+            activityType: "completed_by_supervisor",
+            performedBy: "Fire Chief", // Default supervisor name
+            employeeName: timesheet.employeeName,
+            weekEnding: timesheet.weekEnding,
+            details: "Supervisor completed timecard on behalf of employee"
+          });
+        } else {
+          await storage.createActivityLog({
+            timesheetId: timesheet.id,
+            activityType: "submitted",
+            performedBy: timesheet.employeeName,
+            employeeName: timesheet.employeeName,
+            weekEnding: timesheet.weekEnding,
+            details: "Employee created and submitted timecard"
+          });
+        }
+      } catch (logError) {
+        console.error("Failed to log timesheet creation activity:", logError);
+      }
+      
       res.json(timesheet);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -241,6 +267,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
+      // Log edit activity
+      try {
+        await storage.createActivityLog({
+          timesheetId: editedTimesheet.id,
+          activityType: "edited",
+          performedBy: supervisorName,
+          employeeName: editedTimesheet.employeeName,
+          weekEnding: editedTimesheet.weekEnding,
+          details: `Supervisor edited timecard. Reason: ${editReason}`
+        });
+      } catch (logError) {
+        console.error("Failed to log edit activity:", logError);
+      }
+
       // Send email notification to employee
       try {
         await sendEditNotificationEmail(editedTimesheet, originalTimesheet, editReason);
@@ -264,6 +304,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(404).json({ message: "Timesheet not found" });
         return;
       }
+      
+      // Log submission activity
+      try {
+        await storage.createActivityLog({
+          timesheetId: timesheet.id,
+          activityType: "submitted",
+          performedBy: timesheet.employeeName,
+          employeeName: timesheet.employeeName,
+          weekEnding: timesheet.weekEnding,
+          details: "Employee submitted timecard for approval"
+        });
+      } catch (logError) {
+        console.error("Failed to log submission activity:", logError);
+      }
+      
       res.json(timesheet);
     } catch (error) {
       res.status(500).json({ message: "Failed to submit timesheet" });
@@ -325,6 +380,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(timesheets);
     } catch (error) {
       res.status(500).json({ message: "Failed to retrieve timesheets by status" });
+    }
+  });
+
+  // Activity log endpoint
+  app.get("/api/timecards/:timesheetId/activity-log", async (req, res) => {
+    try {
+      const { timesheetId } = req.params;
+      const activityLog = await storage.getActivityLogByTimesheet(timesheetId);
+      res.json(activityLog);
+    } catch (error) {
+      console.error("Error fetching activity log:", error);
+      res.status(500).json({ error: "Failed to fetch activity log" });
     }
   });
 
