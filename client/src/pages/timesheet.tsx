@@ -12,8 +12,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TimePicker } from "@/components/ui/time-picker";
 import { WeekPicker } from "@/components/ui/week-picker";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from "@/components/ui/form";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { calculateHours, populateWeekDates } from "@/lib/time-calculations";
 import { generateTimeSheetPDF } from "@/lib/pdf-generator";
@@ -36,8 +34,9 @@ const isTimecardEditingAllowed = (weekEnding: string): boolean => {
   
   return easternNow <= saturdayDeadline;
 };
-import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle, Check, ChevronsUpDown, RotateCcw, LogOut, Plus, Trash2, Download } from "lucide-react";
+import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle, Check, RotateCcw, LogOut, Plus, Trash2, Download } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const dayShiftSchema = z.object({
   startTime: z.string().min(1, "Start time is required"),
@@ -250,7 +249,8 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedEmployeeNumber, setSelectedEmployeeNumber] = useState<string>("");
   const [currentTimesheet, setCurrentTimesheet] = useState<any>(null);
-  const [employeeSearchOpen, setEmployeeSearchOpen] = useState(false);
+  const [memberDialogOpen, setMemberDialogOpen] = useState(false);
+  const [memberSearchQuery, setMemberSearchQuery] = useState('');
   const [showEmployeeIdPrompt, setShowEmployeeIdPrompt] = useState(false);
   const [tempEmployeeData, setTempEmployeeData] = useState<{ id: string; name: string } | null>(null);
   const [employeeIdInput, setEmployeeIdInput] = useState("");
@@ -700,7 +700,8 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
     setSelectedEmployeeNumber("");
     setSignatureData("");
     setCurrentTimesheet(null);
-    setEmployeeSearchOpen(false);
+    setMemberDialogOpen(false);
+    setMemberSearchQuery('');
     
     toast({
       title: "Cleared",
@@ -1401,13 +1402,11 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                       <Users className="text-primary mr-2 h-4 w-4" />
                       Select Your Name
                     </Label>
-                <Popover open={employeeSearchOpen} onOpenChange={setEmployeeSearchOpen}>
-                  <PopoverTrigger asChild>
+                <Dialog open={memberDialogOpen} onOpenChange={setMemberDialogOpen}>
+                  <DialogTrigger asChild>
                     <Button
                       variant="outline"
-                      role="combobox"
-                      aria-expanded={employeeSearchOpen}
-                      className="w-full justify-between ios-input h-12 text-left"
+                      className="w-full justify-between ios-input h-14 text-left"
                       disabled={scheduleQuery.isLoading || !scheduleQuery.data?.employees?.length}
                       data-testid="select-employee"
                     >
@@ -1416,48 +1415,98 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                           ? scheduleQuery.data?.employees?.find((employee) => employee.employeeNumber === selectedEmployeeNumber)?.fullName
                           : "Choose your name from the list"}
                       </span>
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      <Users className="ml-2 h-5 w-5 shrink-0 opacity-50" />
                     </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput placeholder="Search employees..." />
-                      <CommandList>
-                        <CommandEmpty>No employee found.</CommandEmpty>
-                        <CommandGroup>
-                          {scheduleQuery.data?.employees
-                            ?.filter((employee) => {
-                              // Filter out inactive employees
-                              const dbEmployee = employeeNumbersQuery.data?.find(emp => emp.employeeNumber === employee.employeeNumber);
-                              return !dbEmployee || dbEmployee.active !== false;
-                            })
-                            ?.sort((a, b) => {
-                              const lastNameA = a.lastName || a.fullName.split(' ').pop() || '';
-                              const lastNameB = b.lastName || b.fullName.split(' ').pop() || '';
-                              return lastNameA.localeCompare(lastNameB);
-                            })
-                            ?.map((employee) => (
-                              <CommandItem
-                                key={employee.employeeNumber}
-                                value={`${employee.fullName} ${employee.employeeNumber}`}
-                                onSelect={() => {
-                                  handleEmployeeSelect(employee.employeeNumber);
-                                  setEmployeeSearchOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={`mr-2 h-4 w-4 ${
-                                    selectedEmployeeNumber === employee.employeeNumber ? "opacity-100" : "opacity-0"
-                                  }`}
-                                />
-                                {`${employee.lastName || employee.fullName.split(' ').pop()}, ${employee.firstName || employee.fullName.split(' ').slice(0, -1).join(' ')}`}
-                              </CommandItem>
-                            ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                  </DialogTrigger>
+                  <DialogContent className="w-full max-w-md mx-auto max-h-[90vh] overflow-hidden flex flex-col">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center">
+                        <Users className="mr-2 h-5 w-5" />
+                        Select Your Name
+                      </DialogTitle>
+                      <DialogDescription>
+                        Choose your name from the list below. You can search to find it quickly.
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    {/* Search Input */}
+                    <div className="px-1 pb-4">
+                      <Input
+                        placeholder="Search by name..."
+                        value={memberSearchQuery}
+                        onChange={(e) => setMemberSearchQuery(e.target.value)}
+                        className="h-12 text-base"
+                        autoFocus
+                      />
+                    </div>
+                    
+                    {/* Member List */}
+                    <div className="flex-1 overflow-y-auto px-1">
+                      <div className="space-y-2">
+                        {scheduleQuery.data?.employees
+                          ?.filter((employee) => {
+                            // Filter out inactive employees
+                            const dbEmployee = employeeNumbersQuery.data?.find(emp => emp.employeeNumber === employee.employeeNumber);
+                            const isActive = !dbEmployee || dbEmployee.active !== false;
+                            
+                            // Search filter
+                            const searchLower = memberSearchQuery.toLowerCase();
+                            const matchesSearch = searchLower === '' || 
+                              employee.fullName.toLowerCase().includes(searchLower) ||
+                              employee.employeeNumber.toLowerCase().includes(searchLower);
+                            
+                            return isActive && matchesSearch;
+                          })
+                          ?.sort((a, b) => {
+                            const lastNameA = a.lastName || a.fullName.split(' ').pop() || '';
+                            const lastNameB = b.lastName || b.fullName.split(' ').pop() || '';
+                            return lastNameA.localeCompare(lastNameB);
+                          })
+                          ?.map((employee) => (
+                            <Button
+                              key={employee.employeeNumber}
+                              variant={selectedEmployeeNumber === employee.employeeNumber ? "default" : "ghost"}
+                              className="w-full h-16 flex items-center justify-start p-4 text-left"
+                              onClick={() => {
+                                handleEmployeeSelect(employee.employeeNumber);
+                                setMemberDialogOpen(false);
+                                setMemberSearchQuery('');
+                              }}
+                            >
+                              <div className="flex items-center w-full">
+                                <div className="flex-1">
+                                  <div className="font-medium text-base">
+                                    {`${employee.lastName || employee.fullName.split(' ').pop()}, ${employee.firstName || employee.fullName.split(' ').slice(0, -1).join(' ')}`}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">
+                                    Member #{employee.employeeNumber}
+                                  </div>
+                                </div>
+                                {selectedEmployeeNumber === employee.employeeNumber && (
+                                  <Check className="ml-2 h-5 w-5 text-primary" />
+                                )}
+                              </div>
+                            </Button>
+                          ))}
+                        
+                        {scheduleQuery.data?.employees
+                          ?.filter((employee) => {
+                            const dbEmployee = employeeNumbersQuery.data?.find(emp => emp.employeeNumber === employee.employeeNumber);
+                            const isActive = !dbEmployee || dbEmployee.active !== false;
+                            const searchLower = memberSearchQuery.toLowerCase();
+                            const matchesSearch = searchLower === '' || 
+                              employee.fullName.toLowerCase().includes(searchLower) ||
+                              employee.employeeNumber.toLowerCase().includes(searchLower);
+                            return isActive && matchesSearch;
+                          }).length === 0 && (
+                          <div className="text-center py-8 text-muted-foreground">
+                            {memberSearchQuery ? 'No members found matching your search.' : 'No active members found.'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
                 {scheduleQuery.error && (
                   <p className="text-sm text-destructive mt-1">
                     Failed to load employee schedule.
