@@ -158,8 +158,18 @@ export default function SignaturePad({
     const context = canvas.getContext("2d");
     if (!context) return;
 
+    // Get the actual canvas dimensions
+    const rect = canvas.getBoundingClientRect();
+    const displayWidth = rect.width;
+    const displayHeight = rect.height;
+
+    // Clear the entire canvas
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Fill with white background
     context.fillStyle = "#fff";
-    context.fillRect(0, 0, width, height);
+    context.fillRect(0, 0, displayWidth, displayHeight);
+    
     setHasSignature(false);
     onSignatureChange("");
   };
@@ -197,12 +207,15 @@ export default function SignaturePad({
       <div className="flex justify-center">
         <Button
           type="button"
-          variant="outline"
+          variant="destructive"
+          size="lg"
           onClick={clearSignature}
+          disabled={!hasSignature}
+          className="bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-2"
           data-testid="button-clear-signature"
         >
-          <Eraser className="mr-2 h-4 w-4" />
-          Clear
+          <Eraser className="mr-2 h-5 w-5" />
+          Clear Signature
         </Button>
       </div>
     </div>
