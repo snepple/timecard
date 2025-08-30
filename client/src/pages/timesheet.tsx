@@ -1025,7 +1025,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         
         <Form {...form}>
           <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
-            {/* Employee Selection or Selected Employee Display */}
+            {/* Employee Selection or Selected Member Display */}
             {!selectedEmployeeNumber ? (
               <div className="ios-card">
                 <div className="p-6">
@@ -1106,7 +1106,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             </div>
           </div>
           ) : (
-            /* Selected Employee Display - Clickable to change */
+            /* Selected Member Display - Clickable to change */
             <div 
               className="ios-card bg-primary/5 border-l-4 border-primary cursor-pointer hover:bg-primary/10 transition-colors"
               onClick={() => {
@@ -1120,7 +1120,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center">
                     <User className="text-primary mr-2 h-5 w-5" />
-                    <span className="ios-callout text-foreground">Selected Employee</span>
+                    <span className="ios-callout text-foreground">Selected Member</span>
                   </div>
                   <span className="ios-caption text-muted-foreground">Click to change</span>
                 </div>
