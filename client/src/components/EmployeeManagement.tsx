@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Users, Plus, Pencil, Trash2, Mail, Search, UserCheck, RefreshCw } from 'lucide-react';
+import { Users, Plus, Pencil, Trash2, Mail, Search, UserCheck, RefreshCw, Activity } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { EmployeeNumber, InsertEmployeeNumber } from '@shared/schema';
 
@@ -151,8 +151,34 @@ export default function EmployeeManagement() {
     },
     onError: (error) => {
       toast({
-        title: 'Error deleting employee',
-        description: error instanceof Error ? error.message : 'Failed to delete employee',
+        title: 'Sync failed',
+        description: error instanceof Error ? error.message : 'Failed to sync employees',
+        variant: 'destructive',
+      });
+    }
+  });
+
+  // Employee activity analysis mutation
+  const analyzeActivityMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/employee-numbers/analyze-activity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error('Failed to analyze employee activity');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/employee-numbers'] });
+      toast({
+        title: 'Activity analysis completed',
+        description: `${data.message || 'Employee active/inactive status has been updated based on scheduling patterns.'}`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Analysis failed',
+        description: error instanceof Error ? error.message : 'Failed to analyze employee activity',
         variant: 'destructive',
       });
     }
@@ -242,6 +268,16 @@ export default function EmployeeManagement() {
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${syncEmployeesMutation.isPending ? 'animate-spin' : ''}`} />
               {syncEmployeesMutation.isPending ? 'Syncing...' : 'Sync Schedule'}
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => analyzeActivityMutation.mutate()}
+              disabled={analyzeActivityMutation.isPending}
+              className="flex items-center" 
+              data-testid="button-analyze-activity"
+            >
+              <Activity className={`w-4 h-4 mr-2 ${analyzeActivityMutation.isPending ? 'animate-spin' : ''}`} />
+              {analyzeActivityMutation.isPending ? 'Analyzing...' : 'Analyze Activity'}
             </Button>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>

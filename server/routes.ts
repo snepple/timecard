@@ -334,6 +334,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Employee activity analysis endpoint
+  app.post("/api/employee-numbers/analyze-activity", async (req, res) => {
+    try {
+      console.log('🔍 Starting employee activity analysis...');
+      
+      // Calculate date ranges
+      const now = new Date();
+      const oneWeekAhead = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
+      const threeMonthsAgo = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
+      
+      console.log(`📅 Analysis period: ${threeMonthsAgo.toISOString().split('T')[0]} to ${oneWeekAhead.toISOString().split('T')[0]}`);
+      
+      // Get all employees from database
+      const employees = await storage.getEmployeeNumbers();
+      
+      // Get historical schedule data by fetching calendar with extended range
+      const icsUrl = "https://calendar.google.com/calendar/ical/a8849ae98edd64f3a91a66f2c0efc31ab7b867e0637db7f1386ea74e61cdd406%40group.calendar.google.com/public/basic.ics";
+      const response = await fetch(icsUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch calendar: ${response.status}`);
+      }
+      
+      const icsData = await response.text();
+      const scheduleData = parseICSDataOnServer(icsData);
+      
+      // Filter shifts to our analysis period (3 months ago to 1 week ahead)
+      const relevantShifts = scheduleData.shifts.filter(shift => {
+        const shiftDate = new Date(shift.date);
+        return shiftDate >= threeMonthsAgo && shiftDate <= oneWeekAhead;
+      });
+      
+      // Analyze each employee's activity
+      let activatedCount = 0;
+      let deactivatedCount = 0;
+      
+      for (const employee of employees) {
+        const employeeShifts = relevantShifts.filter(shift => 
+          shift.employeeNumber === employee.employeeNumber ||
+          shift.employeeName === employee.employeeName
+        );
+        
+        // Check for shifts in the next week
+        const nextWeekShifts = employeeShifts.filter(shift => {
+          const shiftDate = new Date(shift.date);
+          return shiftDate >= now && shiftDate <= oneWeekAhead;
+        });
+        
+        // Check for shifts in the last 3 months
+        const historicalShifts = employeeShifts.filter(shift => {
+          const shiftDate = new Date(shift.date);
+          return shiftDate >= threeMonthsAgo && shiftDate < now;
+        });
+        
+        const hasRecentActivity = historicalShifts.length > 0;
+        const hasUpcomingShifts = nextWeekShifts.length > 0;
+        const shouldBeActive = hasRecentActivity || hasUpcomingShifts;
+        
+        console.log(`👤 ${employee.employeeName} (${employee.employeeNumber}): Historical=${historicalShifts.length}, Upcoming=${nextWeekShifts.length}, Should be active=${shouldBeActive}, Currently active=${employee.active}`);
+        
+        // Update employee status if needed
+        if (shouldBeActive && employee.active === false) {
+          // Reactivate employee
+          await db
+            .update(employeeNumbers)
+            .set({ 
+              active: true,
+              updatedAt: new Date()
+            })
+            .where(eq(employeeNumbers.id, employee.id));
+          activatedCount++;
+          console.log(`✅ Activated ${employee.employeeName} - has upcoming or recent shifts`);
+        } else if (!shouldBeActive && employee.active !== false) {
+          // Deactivate employee
+          await db
+            .update(employeeNumbers)
+            .set({ 
+              active: false,
+              updatedAt: new Date()
+            })
+            .where(eq(employeeNumbers.id, employee.id));
+          deactivatedCount++;
+          console.log(`❌ Deactivated ${employee.employeeName} - no shifts in last 3 months or next week`);
+        }
+      }
+      
+      const message = `Employee activity analysis completed. ${activatedCount} employees activated, ${deactivatedCount} employees deactivated based on scheduling patterns.`;
+      console.log(`✅ ${message}`);
+      
+      res.json({ 
+        message,
+        analysisParams: {
+          startDate: threeMonthsAgo.toISOString().split('T')[0],
+          endDate: oneWeekAhead.toISOString().split('T')[0],
+          totalEmployees: employees.length,
+          relevantShifts: relevantShifts.length
+        },
+        results: {
+          activatedCount,
+          deactivatedCount
+        }
+      });
+    } catch (error) {
+      console.error('❌ Error during employee activity analysis:', error);
+      res.status(500).json({ message: "Failed to analyze employee activity" });
+    }
+  });
+
   // Sync employee database with schedule data
   app.post("/api/employee-numbers/sync", async (req, res) => {
     try {
