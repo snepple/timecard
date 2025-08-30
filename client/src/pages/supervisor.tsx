@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { AlertCircle, Plus, Edit2, Trash2, Users, Mail, Lock, Settings, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
@@ -33,8 +34,11 @@ export default function SupervisorDashboard() {
   
   // Password management state
   const [showPasswordSettings, setShowPasswordSettings] = useState(false);
-  const [appPassword, setAppPassword] = useState("");
-  const [adminPassword, setAdminPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newAppPassword, setNewAppPassword] = useState("");
+  const [confirmAppPassword, setConfirmAppPassword] = useState("");
+  const [newAdminPassword, setNewAdminPassword] = useState("");
+  const [confirmAdminPassword, setConfirmAdminPassword] = useState("");
   
   // Email settings state
   const [showEmailSettings, setShowEmailSettings] = useState(false);
@@ -230,6 +234,11 @@ export default function SupervisorDashboard() {
         description: "Security settings have been successfully updated.",
       });
       setShowPasswordSettings(false);
+      setCurrentPassword("");
+      setNewAppPassword("");
+      setConfirmAppPassword("");
+      setNewAdminPassword("");
+      setConfirmAdminPassword("");
     },
     onError: () => {
       toast({
@@ -291,17 +300,48 @@ export default function SupervisorDashboard() {
   });
 
   const handlePasswordUpdate = () => {
-    if (!appPassword.trim() || !adminPassword.trim()) {
+    // Validate current password is provided
+    if (!currentPassword.trim()) {
       toast({
         title: "Validation Error",
-        description: "Please fill in both passwords.",
+        description: "Current admin password is required for verification.",
         variant: "destructive",
       });
       return;
     }
 
-    // Validate app password is numbers only
-    if (!/^\d+$/.test(appPassword)) {
+    // Validate at least one new password is provided
+    if (!newAppPassword.trim() && !newAdminPassword.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please provide at least one new password to update.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate app password confirmation if provided
+    if (newAppPassword.trim() && newAppPassword !== confirmAppPassword) {
+      toast({
+        title: "Validation Error",
+        description: "App password confirmation does not match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate admin password confirmation if provided
+    if (newAdminPassword.trim() && newAdminPassword !== confirmAdminPassword) {
+      toast({
+        title: "Validation Error",
+        description: "Admin password confirmation does not match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate app password is numbers only if provided
+    if (newAppPassword.trim() && !/^\d+$/.test(newAppPassword)) {
       toast({
         title: "Validation Error",
         description: "App password must contain only numbers.",
@@ -310,10 +350,19 @@ export default function SupervisorDashboard() {
       return;
     }
 
-    updatePasswordsMutation.mutate({
-      app_password: appPassword,
-      admin_password: adminPassword,
-    });
+    const updateData: any = {
+      current_password: currentPassword,
+    };
+
+    if (newAppPassword.trim()) {
+      updateData.app_password = newAppPassword;
+    }
+
+    if (newAdminPassword.trim()) {
+      updateData.admin_password = newAdminPassword;
+    }
+
+    updatePasswordsMutation.mutate(updateData);
   };
 
   const handleEmailSettingsUpdate = () => {
@@ -509,30 +558,72 @@ export default function SupervisorDashboard() {
                 <>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="app-password" className="text-sm font-medium">
-                        App Password (Numbers only)
+                      <Label htmlFor="current-password" className="text-sm font-medium text-red-600">
+                        Current Admin Password (Required) *
                       </Label>
-                      <Input
-                        id="app-password"
-                        type="password"
-                        value={appPassword}
-                        onChange={(e) => setAppPassword(e.target.value)}
-                        placeholder="Enter app password"
+                      <PasswordInput
+                        id="current-password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder="Enter current admin password to verify"
                         className="mt-1"
+                        data-testid="input-current-password"
                       />
                     </div>
                     
                     <div>
-                      <Label htmlFor="admin-password" className="text-sm font-medium">
-                        Admin Password
+                      <Label htmlFor="new-app-password" className="text-sm font-medium">
+                        New App Password (Numbers only)
                       </Label>
-                      <Input
-                        id="admin-password"
-                        type="password"
-                        value={adminPassword}
-                        onChange={(e) => setAdminPassword(e.target.value)}
-                        placeholder="Enter admin password"
+                      <PasswordInput
+                        id="new-app-password"
+                        value={newAppPassword}
+                        onChange={(e) => setNewAppPassword(e.target.value)}
+                        placeholder="Enter new app password"
                         className="mt-1"
+                        data-testid="input-new-app-password"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="confirm-app-password" className="text-sm font-medium">
+                        Confirm App Password
+                      </Label>
+                      <PasswordInput
+                        id="confirm-app-password"
+                        value={confirmAppPassword}
+                        onChange={(e) => setConfirmAppPassword(e.target.value)}
+                        placeholder="Confirm new app password"
+                        className="mt-1"
+                        data-testid="input-confirm-app-password"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="new-admin-password" className="text-sm font-medium">
+                        New Admin Password
+                      </Label>
+                      <PasswordInput
+                        id="new-admin-password"
+                        value={newAdminPassword}
+                        onChange={(e) => setNewAdminPassword(e.target.value)}
+                        placeholder="Enter new admin password"
+                        className="mt-1"
+                        data-testid="input-new-admin-password"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="confirm-admin-password" className="text-sm font-medium">
+                        Confirm Admin Password
+                      </Label>
+                      <PasswordInput
+                        id="confirm-admin-password"
+                        value={confirmAdminPassword}
+                        onChange={(e) => setConfirmAdminPassword(e.target.value)}
+                        placeholder="Confirm new admin password"
+                        className="mt-1"
+                        data-testid="input-confirm-admin-password"
                       />
                     </div>
                   </div>
@@ -542,15 +633,18 @@ export default function SupervisorDashboard() {
                       variant="outline" 
                       onClick={() => {
                         setShowPasswordSettings(false);
-                        setAppPassword("");
-                        setAdminPassword("");
+                        setCurrentPassword("");
+                        setNewAppPassword("");
+                        setConfirmAppPassword("");
+                        setNewAdminPassword("");
+                        setConfirmAdminPassword("");
                       }}
                     >
                       Cancel
                     </Button>
                     <Button 
                       onClick={handlePasswordUpdate}
-                      disabled={updatePasswordsMutation.isPending}
+                      disabled={updatePasswordsMutation.isPending || !currentPassword || (newAppPassword && newAppPassword !== confirmAppPassword) || (newAdminPassword && newAdminPassword !== confirmAdminPassword)}
                     >
                       {updatePasswordsMutation.isPending ? 'Updating...' : 'Update Passwords'}
                     </Button>

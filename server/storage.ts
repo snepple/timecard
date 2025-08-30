@@ -18,6 +18,7 @@ export interface IStorage {
   // Employee number operations
   getEmployeeNumbers(): Promise<EmployeeNumber[]>;
   getEmployeeNumber(id: string): Promise<EmployeeNumber | undefined>;
+  getEmployeeByNumber(employeeNumber: string): Promise<EmployeeNumber | undefined>;
   createEmployeeNumber(employee: InsertEmployeeNumber): Promise<EmployeeNumber>;
   updateEmployeeNumber(id: string, employee: Partial<InsertEmployeeNumber>): Promise<EmployeeNumber | undefined>;
   getEmployeeEmail(employeeNumber: string): Promise<string | undefined>;
@@ -169,6 +170,10 @@ export class MemStorage implements IStorage {
     return undefined;
   }
 
+  async getEmployeeByNumber(employeeNumber: string): Promise<EmployeeNumber | undefined> {
+    return undefined;
+  }
+
   async createEmployeeNumber(employee: InsertEmployeeNumber): Promise<EmployeeNumber> {
     const id = randomUUID();
     const newEmployee: EmployeeNumber = {
@@ -176,6 +181,7 @@ export class MemStorage implements IStorage {
       id,
       employeeNumber: employee.employeeNumber || "",
       email: employee.email || null,
+      active: employee.active ?? true,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -257,6 +263,11 @@ export class DatabaseStorage implements IStorage {
 
   async getEmployeeNumber(id: string): Promise<EmployeeNumber | undefined> {
     const [employee] = await db.select().from(employeeNumbers).where(eq(employeeNumbers.id, id));
+    return employee;
+  }
+
+  async getEmployeeByNumber(employeeNumber: string): Promise<EmployeeNumber | undefined> {
+    const [employee] = await db.select().from(employeeNumbers).where(eq(employeeNumbers.employeeNumber, employeeNumber));
     return employee;
   }
 

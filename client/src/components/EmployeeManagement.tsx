@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Users, Plus, Pencil, Trash2, Mail, Search, UserCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { EmployeeNumber, InsertEmployeeNumber } from '@shared/schema';
@@ -16,6 +17,7 @@ interface EmployeeFormData {
   employeeName: string;
   employeeNumber: string;
   email: string;
+  active: boolean;
 }
 
 export default function EmployeeManagement() {
@@ -32,7 +34,8 @@ export default function EmployeeManagement() {
   const [formData, setFormData] = useState<EmployeeFormData>({
     employeeName: '',
     employeeNumber: '',
-    email: ''
+    email: '',
+    active: true
   });
 
   // Fetch employees
@@ -134,7 +137,8 @@ export default function EmployeeManagement() {
     setFormData({
       employeeName: '',
       employeeNumber: '',
-      email: ''
+      email: '',
+      active: true
     });
   };
 
@@ -148,7 +152,8 @@ export default function EmployeeManagement() {
     setFormData({
       employeeName: employee.employeeName,
       employeeNumber: employee.employeeNumber,
-      email: employee.email || ''
+      email: employee.email || '',
+      active: employee.active ?? true
     });
     setIsEditDialogOpen(true);
   };
@@ -169,7 +174,8 @@ export default function EmployeeManagement() {
     const submitData: InsertEmployeeNumber = {
       employeeName: formData.employeeName.trim(),
       employeeNumber: formData.employeeNumber.trim(),
-      email: formData.email.trim() || null
+      email: formData.email.trim() || null,
+      active: formData.active
     };
 
     if (editingEmployee) {
@@ -244,6 +250,17 @@ export default function EmployeeManagement() {
                     placeholder="Enter email address (optional)"
                     data-testid="input-employee-email"
                   />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="active"
+                    checked={formData.active}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, active: checked }))}
+                    data-testid="switch-employee-active"
+                  />
+                  <Label htmlFor="active" className="text-sm">
+                    Active (show in employee dropdown and timecard summary)
+                  </Label>
                 </div>
                 <div className="flex justify-end space-x-2 pt-4">
                   <Button 
@@ -337,6 +354,7 @@ export default function EmployeeManagement() {
                   <TableHead>Employee Number</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Visibility</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -362,6 +380,11 @@ export default function EmployeeManagement() {
                     <TableCell>
                       <Badge variant="secondary" className="bg-green-100 text-green-800">
                         Active
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={employee.active ? "secondary" : "outline"} className={employee.active ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-600"}>
+                        {employee.active ? 'Visible' : 'Hidden'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -421,6 +444,17 @@ export default function EmployeeManagement() {
                                   placeholder="Enter email address (optional)"
                                   data-testid="input-edit-employee-email"
                                 />
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <Switch
+                                  id="editActive"
+                                  checked={formData.active}
+                                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, active: checked }))}
+                                  data-testid="switch-edit-employee-active"
+                                />
+                                <Label htmlFor="editActive" className="text-sm">
+                                  Active (show in employee dropdown and timecard summary)
+                                </Label>
                               </div>
                               <div className="flex justify-end space-x-2 pt-4">
                                 <Button 

@@ -237,7 +237,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
   });
 
   // Fetch employee numbers from database
-  const employeeNumbersQuery = useQuery<Array<{ id: string; employeeName: string; employeeNumber: string }>>({
+  const employeeNumbersQuery = useQuery<Array<{ id: string; employeeName: string; employeeNumber: string; active: boolean }>>({
     queryKey: ['/api/employee-numbers'],
     staleTime: 0, // Always fetch fresh data
     refetchOnMount: true,
@@ -1065,6 +1065,11 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                         <CommandEmpty>No employee found.</CommandEmpty>
                         <CommandGroup>
                           {scheduleQuery.data?.employees
+                            ?.filter((employee) => {
+                              // Filter out inactive employees
+                              const dbEmployee = employeeNumbersQuery.data?.find(emp => emp.employeeNumber === employee.employeeNumber);
+                              return !dbEmployee || dbEmployee.active !== false;
+                            })
                             ?.sort((a, b) => {
                               const lastNameA = a.lastName || a.fullName.split(' ').pop() || '';
                               const lastNameB = b.lastName || b.fullName.split(' ').pop() || '';

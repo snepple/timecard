@@ -93,6 +93,7 @@ export const employeeNumbers = pgTable("employee_numbers", {
   employeeName: varchar("employee_name").notNull(),
   employeeNumber: varchar("employee_number").notNull().default(""),
   email: varchar("email"),
+  active: boolean("active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
