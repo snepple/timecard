@@ -19,6 +19,8 @@ import { apiRequest } from "@/lib/queryClient";
 import SignaturePad from "@/components/ui/signature-pad";
 import { getCurrentWeekEndingDate, isSaturday, getNextSaturday, getPreviousSaturday, formatDateShort } from "@/lib/date-utils";
 import { SubmissionReadinessIndicator } from "@/components/SubmissionReadinessIndicator";
+import { TimesheetSidebar, generateTimesheetSections } from "@/components/TimesheetSidebar";
+import { ValidityFooter } from "@/components/ValidityFooter";
 
 // Check if timecard editing is allowed (before Saturday 11:59 PM ET of current week)
 const isTimecardEditingAllowed = (weekEnding: string): boolean => {
@@ -302,6 +304,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
   const [previewPdfData, setPreviewPdfData] = useState<string | null>(null);
   const [showSubmissionPreview, setShowSubmissionPreview] = useState(false);
   const [autoSubmitCountdown, setAutoSubmitCountdown] = useState<number | null>(null);
+  const [activeSection, setActiveSection] = useState<string>('employee');
 
   // Auto-submit countdown timer for submission preview
   useEffect(() => {
@@ -1577,8 +1580,34 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
   };
 
 
+  const totalHours = (watchedValues.sundayTotalHours || 0) +
+                    (watchedValues.mondayTotalHours || 0) +
+                    (watchedValues.tuesdayTotalHours || 0) +
+                    (watchedValues.wednesdayTotalHours || 0) +
+                    (watchedValues.thursdayTotalHours || 0) +
+                    (watchedValues.fridayTotalHours || 0) +
+                    (watchedValues.saturdayTotalHours || 0);
+
+  const sections = generateTimesheetSections({
+    hasEmployee: !!(watchedValues.memberName && watchedValues.memberNumber),
+    hasWeekEnding: !!watchedValues.weekEnding,
+    hasTimeEntries: totalHours > 0,
+    hasRescueCoverage: true, // Rescue coverage is optional, so always true
+    hasAcknowledgment: !!watchedValues.acknowledgmentChecked,
+    hasSignature: !!(signatureData && signatureData.trim() !== ''),
+  });
+
+  const handleSectionClick = (sectionId: string) => {
+    setActiveSection(sectionId);
+    // Scroll to the section
+    const element = document.getElementById(`section-${sectionId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50 flex">
       {/* iOS-style Loading Overlay */}
       {(isLoading || emailTimesheetMutation.isPending) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1589,10 +1618,19 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
         </div>
       )}
 
+      {/* Sidebar Navigation */}
+      <TimesheetSidebar
+        sections={sections}
+        onSectionClick={handleSectionClick}
+        activeSection={activeSection}
+      />
 
-      {/* iOS-style Main Content */}
-      <main className="px-4 py-6 max-w-4xl mx-auto space-y-4">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        <main className="flex-1 p-6 overflow-auto pb-20">
         <div className="ios-mobile-spacing">
+          {/* Employee Info Section */}
+          <div id="section-employee">
           <h1 className="ios-title-1 text-foreground mb-2">Weekly Timesheet</h1>
           
           {/* Combined notification for submitted timesheets */}
@@ -1644,6 +1682,10 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
               </div>
             </div>
           )}
+          </div>
+          
+          {/* Digital Signature Section */}
+          <div id="section-signature">
           
           {logout && !selectedEmployeeNumber && (
             <div className="flex justify-end">
@@ -1853,6 +1895,10 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             </div>
           )}
 
+          </div>
+          
+          {/* Week Selection Section */}
+          <div id="section-week">
             {/* Week Selection Card - Only show when employee is selected */}
             {selectedEmployeeNumber && (
               <div className="ios-card">
@@ -1908,6 +1954,10 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                   compact={false}
                 />
 
+          </div>
+          
+          {/* Time Entry Section */}
+          <div id="section-timeentry">
                   {/* Time Entry Card - iOS style */}
                   <div className="ios-card">
                     <div className="p-6">
@@ -2085,6 +2135,10 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             </div>
           </div>
 
+          </div>
+          
+          {/* Rescue Coverage Section */}
+          <div id="section-rescue">
           {/* Compact Readiness Indicator - Before Rescue Coverage */}
           <SubmissionReadinessIndicator
             hasEmployee={!!(watchedValues.memberName && watchedValues.memberNumber)}
@@ -2188,6 +2242,10 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             </div>
           )}
 
+          </div>
+          
+          {/* Acknowledgment and Signature Section */}
+          <div id="section-acknowledgment">
           {/* Compact Readiness Indicator - Before Signature */}
           <SubmissionReadinessIndicator
             hasEmployee={!!(watchedValues.memberName && watchedValues.memberNumber)}
@@ -2569,6 +2627,20 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+          </div>
+        </div>
+        </main>
+      </div>
+
+      {/* Validity Footer */}
+      <ValidityFooter
+        hasEmployee={!!(watchedValues.memberName && watchedValues.memberNumber)}
+        hasWeekEnding={!!watchedValues.weekEnding}
+        hasTimeEntries={totalHours > 0}
+        hasAcknowledgment={!!watchedValues.acknowledgmentChecked}
+        hasSignature={!!(signatureData && signatureData.trim() !== '')}
+        totalHours={totalHours}
+      />
     </div>
   );
 }
