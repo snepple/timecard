@@ -84,6 +84,7 @@ export default function SupervisorDashboard() {
       toast({
         title: "Employees synced",
         description: "Employee names have been synced from the schedule.",
+        duration: 2000,
       });
     },
     onError: () => {
@@ -91,6 +92,7 @@ export default function SupervisorDashboard() {
         title: "Error",
         description: "Failed to sync employees. Please try again.",
         variant: "destructive",
+        duration: 2000,
       });
     },
   });
@@ -108,6 +110,7 @@ export default function SupervisorDashboard() {
       toast({
         title: "Employee number added",
         description: "The employee number has been successfully saved.",
+        duration: 2000,
       });
     },
     onError: () => {
@@ -115,6 +118,7 @@ export default function SupervisorDashboard() {
         title: "Error",
         description: "Failed to add employee number. Please try again.",
         variant: "destructive",
+        duration: 2000,
       });
     },
   });
@@ -134,6 +138,7 @@ export default function SupervisorDashboard() {
       toast({
         title: "Employee number updated",
         description: "The employee number has been successfully updated.",
+        duration: 2000,
       });
     },
     onError: () => {
@@ -141,6 +146,7 @@ export default function SupervisorDashboard() {
         title: "Error",
         description: "Failed to update employee number. Please try again.",
         variant: "destructive",
+        duration: 2000,
       });
     },
   });
@@ -155,6 +161,7 @@ export default function SupervisorDashboard() {
       toast({
         title: "Employee number deleted",
         description: "The employee number has been successfully deleted.",
+        duration: 2000,
       });
     },
     onError: () => {
@@ -162,6 +169,7 @@ export default function SupervisorDashboard() {
         title: "Error",
         description: "Failed to delete employee number. Please try again.",
         variant: "destructive",
+        duration: 2000,
       });
     },
   });
@@ -173,6 +181,7 @@ export default function SupervisorDashboard() {
         title: "Validation Error",
         description: "Please fill in both employee name and number.",
         variant: "destructive",
+        duration: 2000,
       });
       return;
     }
@@ -197,6 +206,7 @@ export default function SupervisorDashboard() {
         title: "Validation Error",
         description: "Please fill in both employee name and number.",
         variant: "destructive",
+        duration: 2000,
       });
       return;
     }
@@ -234,6 +244,7 @@ export default function SupervisorDashboard() {
       toast({
         title: "Passwords updated",
         description: "Security settings have been successfully updated.",
+        duration: 2000,
       });
       setShowPasswordSettings(false);
       setCurrentPassword("");
@@ -247,6 +258,7 @@ export default function SupervisorDashboard() {
         title: "Error",
         description: "Failed to update passwords. Please try again.",
         variant: "destructive",
+        duration: 2000,
       });
     },
   });
@@ -261,6 +273,7 @@ export default function SupervisorDashboard() {
       toast({
         title: "Email settings updated",
         description: "Email configuration has been updated successfully.",
+        duration: 2000,
       });
       setShowEmailSettings(false);
       // Reset form fields
@@ -273,6 +286,7 @@ export default function SupervisorDashboard() {
         title: "Error",
         description: "Failed to update email settings. Please try again.",
         variant: "destructive",
+        duration: 2000,
       });
     },
   });
@@ -288,6 +302,7 @@ export default function SupervisorDashboard() {
       toast({
         title: "Overtime settings updated",
         description: "Overtime threshold has been updated successfully.",
+        duration: 2000,
       });
       setShowOvertimeSettings(false);
     },
@@ -297,6 +312,7 @@ export default function SupervisorDashboard() {
         title: "Error",
         description: "Failed to update overtime settings. Please try again.",
         variant: "destructive",
+        duration: 2000,
       });
     },
   });
@@ -308,6 +324,7 @@ export default function SupervisorDashboard() {
         title: "Validation Error",
         description: "Current admin password is required for verification.",
         variant: "destructive",
+        duration: 2000,
       });
       return;
     }
@@ -318,6 +335,7 @@ export default function SupervisorDashboard() {
         title: "Validation Error",
         description: "Please provide at least one new password to update.",
         variant: "destructive",
+        duration: 2000,
       });
       return;
     }
@@ -328,6 +346,7 @@ export default function SupervisorDashboard() {
         title: "Validation Error",
         description: "App password confirmation does not match.",
         variant: "destructive",
+        duration: 2000,
       });
       return;
     }
@@ -338,6 +357,7 @@ export default function SupervisorDashboard() {
         title: "Validation Error",
         description: "Admin password confirmation does not match.",
         variant: "destructive",
+        duration: 2000,
       });
       return;
     }
@@ -348,6 +368,7 @@ export default function SupervisorDashboard() {
         title: "Validation Error",
         description: "App password must contain only numbers.",
         variant: "destructive",
+        duration: 2000,
       });
       return;
     }
@@ -373,6 +394,7 @@ export default function SupervisorDashboard() {
         title: "Validation Error",
         description: "Please fill in both the recipient email and email template.",
         variant: "destructive",
+        duration: 2000,
       });
       return;
     }
@@ -384,6 +406,7 @@ export default function SupervisorDashboard() {
         title: "Validation Error",
         description: "Please enter a valid email address.",
         variant: "destructive",
+        duration: 2000,
       });
       return;
     }
@@ -443,6 +466,7 @@ export default function SupervisorDashboard() {
         title: "Validation Error",
         description: "Overtime threshold must be between 1 and 80 hours.",
         variant: "destructive",
+        duration: 2000,
       });
       return;
     }
