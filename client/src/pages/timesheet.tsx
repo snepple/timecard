@@ -1631,7 +1631,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             </div>
           )}
           
-          {logout && (
+          {logout && !selectedEmployeeNumber && (
             <div className="flex justify-end">
               <Button
                 variant="ghost"
@@ -1763,23 +1763,51 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
               </div>
             </div>
           ) : (
-            /* Selected Member Display - Clickable to change */
+            <div>
+              {/* Header with Change Member button */}
+              <div className="flex justify-between items-center mb-4">
+              <h2 className="ios-headline" data-testid="heading-selected-member">
+                Selected Member
+              </h2>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedEmployeeNumber('');
+                    setCurrentEmployeeEmail('');
+                    form.setValue('employeeNumber', '');
+                  }}
+                  className="text-sm"
+                  data-testid="change-member-button"
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  Select Different Member
+                </Button>
+                {logout && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={logout}
+                    className="ios-button text-ios-blue"
+                    data-testid="logout-button"
+                  >
+                    <LogOut className="mr-1 h-4 w-4" />
+                    Sign Out
+                  </Button>
+                )}
+              </div>
+            </div>
+            
+            {/* Selected Member Display */}
             <div 
-              className="ios-card bg-primary/5 border-l-4 border-primary cursor-pointer hover:bg-primary/10 transition-colors"
-              onClick={() => {
-                setSelectedEmployeeNumber('');
-                setCurrentEmployeeEmail('');
-                form.setValue('employeeNumber', '');
-              }}
+              className="ios-card bg-primary/5 border-l-4 border-primary"
               data-testid="selected-employee-card"
             >
               <div className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center">
-                    <User className="text-primary mr-2 h-5 w-5" />
-                    <span className="ios-callout text-foreground">Selected Member</span>
-                  </div>
-                  <span className="ios-caption text-muted-foreground">Click to change</span>
+                <div className="flex items-center mb-2">
+                  <User className="text-primary mr-2 h-5 w-5" />
+                  <span className="ios-callout text-foreground">Member Information</span>
                 </div>
                 <div>
                   <p className="ios-body font-medium text-foreground">
@@ -1811,6 +1839,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                   ) : null}
                 </div>
               </div>
+            </div>
             </div>
           )}
 
