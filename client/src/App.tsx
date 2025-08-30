@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import TimesheetPage from "@/pages/timesheet";
 import SupervisorDashboard from "@/pages/supervisor";
+import AdminDashboard from "@/pages/AdminDashboard";
 import LoginScreen from "@/components/LoginScreen";
 import { Button } from "@/components/ui/button";
 import { LogOut, Shield } from "lucide-react";
@@ -40,7 +41,7 @@ function AuthenticatedRouter() {
         />
       );
     }
-    return <SupervisorDashboard />;
+    return <AdminDashboard />;
   };
 
   return (
@@ -50,6 +51,8 @@ function AuthenticatedRouter() {
         <Switch>
           <Route path="/" component={() => <TimesheetPage logout={logout} />} />
           <Route path="/supervisor" component={SupervisorRoute} />
+          <Route path="/admin" component={SupervisorRoute} />
+          <Route path="/admin/:rest*" component={SupervisorRoute} />
           <Route component={NotFound} />
         </Switch>
       </main>
@@ -58,7 +61,7 @@ function AuthenticatedRouter() {
       <footer className="bg-secondary/20 py-2 px-4">
         <div className="flex justify-end">
           <Link
-            href="/supervisor"
+            href="/admin"
             className="bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-2 text-sm inline-flex items-center rounded-md font-medium transition-colors"
             data-testid="nav-admin"
           >

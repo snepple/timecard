@@ -1892,7 +1892,6 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                 </div>
               </div>
             </div>
-            </div>
           )}
 
           </div>

@@ -2258,6 +2258,56 @@ Submission Date: {submissionDate}`
     }
   });
 
+  // Admin Dashboard Statistics
+  app.get('/api/admin/dashboard-stats', authenticateAdmin, async (req, res) => {
+    try {
+      // Get current week ending date (this Saturday)
+      const now = new Date();
+      const currentSaturday = new Date(now);
+      currentSaturday.setDate(now.getDate() + (6 - now.getDay())); // Get this Saturday
+      currentSaturday.setHours(0, 0, 0, 0);
+      const weekEnding = currentSaturday.toISOString().split('T')[0];
+
+      // Get all employees from schedule
+      const scheduleData = await storage.getScheduleData();
+      const totalEmployees = scheduleData?.employees?.length || 0;
+
+      // Get scheduled employees for current week
+      const scheduledEmployees = await storage.getScheduledEmployeesForWeek(weekEnding);
+      const scheduledCount = scheduledEmployees.length;
+
+      // Get submitted timecards for current week
+      const allTimecards = await storage.getAllTimesheets();
+      const currentWeekTimecards = allTimecards.filter(t => t.weekEnding === weekEnding);
+      const submittedCount = currentWeekTimecards.filter(t => t.status === 'submitted' || t.status === 'approved').length;
+
+      // Get pending approvals (submitted but not approved)
+      const pendingCount = allTimecards.filter(t => t.status === 'submitted').length;
+
+      // Calculate average hours per week (from all approved timecards)
+      const approvedTimecards = allTimecards.filter(t => t.status === 'approved');
+      const totalHours = approvedTimecards.reduce((sum, t) => sum + (parseFloat(t.totalWeeklyHours as string) || 0), 0);
+      const avgHours = approvedTimecards.length > 0 ? totalHours / approvedTimecards.length : 0;
+
+      const stats = {
+        currentWeek: {
+          submitted: submittedCount,
+          scheduled: scheduledCount,
+          weekEnding: weekEnding
+        },
+        pending: pendingCount,
+        approved: allTimecards.filter(t => t.status === 'approved').length,
+        totalEmployees,
+        avgHoursPerWeek: avgHours
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      res.status(500).json({ error: 'Failed to fetch dashboard statistics' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
