@@ -423,10 +423,12 @@ export function TimecardSummaryReport() {
     
     if (!shiftTimes || shiftTimes.length === 0) {
       if (isClickable) {
+        // Get the actual shift data for this day from the timecard
+        const dayShifts = employee?.shiftTimes?.[day as keyof typeof employee.shiftTimes] || [];
         return (
           <span 
             className="cursor-pointer hover:bg-blue-100 hover:text-blue-700 px-1 py-0.5 rounded transition-colors"
-            onClick={() => handleDailyEdit(employee!, day, [])}
+            onClick={() => handleDailyEdit(employee!, day, dayShifts)}
             data-testid={`hours-${day}-${employee?.employeeNumber}`}
           >
             {hours}
