@@ -23,6 +23,34 @@ const emailSubmissionSchema = z.object({
     employeeName: z.string(),
     weekEnding: z.string(),
     pdfBuffer: z.string(), // base64 encoded PDF
+    // Add all timesheet fields for database storage
+    sundayDate: z.string().optional(),
+    sundayTotalHours: z.number().optional(),
+    mondayDate: z.string().optional(),
+    mondayTotalHours: z.number().optional(),
+    tuesdayDate: z.string().optional(),
+    tuesdayTotalHours: z.number().optional(),
+    wednesdayDate: z.string().optional(),
+    wednesdayTotalHours: z.number().optional(),
+    thursdayDate: z.string().optional(),
+    thursdayTotalHours: z.number().optional(),
+    fridayDate: z.string().optional(),
+    fridayTotalHours: z.number().optional(),
+    saturdayDate: z.string().optional(),
+    saturdayTotalHours: z.number().optional(),
+    totalWeeklyHours: z.number().optional(),
+    rescueCoverageMonday: z.boolean().optional(),
+    rescueCoverageTuesday: z.boolean().optional(),
+    rescueCoverageWednesday: z.boolean().optional(),
+    rescueCoverageThursday: z.boolean().optional(),
+    signatureData: z.string().optional(),
+    sundayShifts: z.string().optional(),
+    mondayShifts: z.string().optional(),
+    tuesdayShifts: z.string().optional(),
+    wednesdayShifts: z.string().optional(),
+    thursdayShifts: z.string().optional(),
+    fridayShifts: z.string().optional(),
+    saturdayShifts: z.string().optional(),
   }),
 });
 
@@ -1253,6 +1281,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .update(employeeNumbers)
         .set({ email: employeeEmail, updatedAt: new Date() })
         .where(eq(employeeNumbers.employeeNumber, employeeNumber));
+
+      // Save timesheet to database so it appears in summary reports
+      try {
+        const timesheetDataForDB = {
+          employeeName: timesheetData.employeeName,
+          employeeNumber: employeeNumber,
+          weekEnding: timesheetData.weekEnding,
+          status: 'submitted',
+          submittedAt: new Date().toISOString(),
+          completedBy: 'employee',
+          
+          // Daily data
+          sundayDate: timesheetData.sundayDate,
+          sundayTotalHours: timesheetData.sundayTotalHours?.toString() || '0',
+          sundayShifts: timesheetData.sundayShifts || '[]',
+          
+          mondayDate: timesheetData.mondayDate,
+          mondayTotalHours: timesheetData.mondayTotalHours?.toString() || '0',
+          mondayShifts: timesheetData.mondayShifts || '[]',
+          
+          tuesdayDate: timesheetData.tuesdayDate,
+          tuesdayTotalHours: timesheetData.tuesdayTotalHours?.toString() || '0',
+          tuesdayShifts: timesheetData.tuesdayShifts || '[]',
+          
+          wednesdayDate: timesheetData.wednesdayDate,
+          wednesdayTotalHours: timesheetData.wednesdayTotalHours?.toString() || '0',
+          wednesdayShifts: timesheetData.wednesdayShifts || '[]',
+          
+          thursdayDate: timesheetData.thursdayDate,
+          thursdayTotalHours: timesheetData.thursdayTotalHours?.toString() || '0',
+          thursdayShifts: timesheetData.thursdayShifts || '[]',
+          
+          fridayDate: timesheetData.fridayDate,
+          fridayTotalHours: timesheetData.fridayTotalHours?.toString() || '0',
+          fridayShifts: timesheetData.fridayShifts || '[]',
+          
+          saturdayDate: timesheetData.saturdayDate,
+          saturdayTotalHours: timesheetData.saturdayTotalHours?.toString() || '0',
+          saturdayShifts: timesheetData.saturdayShifts || '[]',
+          
+          totalWeeklyHours: timesheetData.totalWeeklyHours?.toString() || '0',
+          
+          rescueCoverageMonday: timesheetData.rescueCoverageMonday || false,
+          rescueCoverageTuesday: timesheetData.rescueCoverageTuesday || false,
+          rescueCoverageWednesday: timesheetData.rescueCoverageWednesday || false,
+          rescueCoverageThursday: timesheetData.rescueCoverageThursday || false,
+          
+          signatureData: timesheetData.signatureData,
+        };
+
+        // Check if timesheet already exists for this employee and week
+        const existingTimesheet = await storage.getTimesheetByEmployeeAndWeek(employeeNumber, timesheetData.weekEnding);
+        
+        if (existingTimesheet) {
+          // Update existing timesheet
+          await storage.updateTimesheet(existingTimesheet.id, timesheetDataForDB);
+          console.log(`Updated existing timesheet for ${timesheetData.employeeName} for week ${timesheetData.weekEnding}`);
+        } else {
+          // Create new timesheet
+          const newTimesheet = await storage.createTimesheet(timesheetDataForDB);
+          console.log(`Created new timesheet for ${timesheetData.employeeName} for week ${timesheetData.weekEnding}`);
+          
+          // Log the submission activity
+          try {
+            await storage.createActivityLog({
+              timesheetId: newTimesheet.id,
+              activityType: "submitted",
+              performedBy: timesheetData.employeeName,
+              employeeName: timesheetData.employeeName,
+              weekEnding: timesheetData.weekEnding,
+              details: "Employee submitted timesheet via email"
+            });
+          } catch (logError) {
+            console.error("Failed to log timesheet submission activity:", logError);
+          }
+        }
+      } catch (dbError) {
+        console.error("Error saving timesheet to database:", dbError);
+        // Continue with email sending even if database save fails
+      }
 
       // Get email configuration
       const recipientEmail = await storage.getSetting('timesheet_recipient_email') || 'supervisor@oaklandfire.gov';

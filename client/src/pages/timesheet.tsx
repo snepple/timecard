@@ -1019,6 +1019,43 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
           employeeName: formData.memberName,
           weekEnding: formData.weekEnding,
           pdfBuffer: `data:application/pdf;base64,${previewPdfData}`, // Convert base64 back to data URL
+          // Include all timesheet data for database storage
+          sundayDate: formData.sundayDate,
+          sundayTotalHours: formData.sundayTotalHours || 0,
+          sundayShifts: JSON.stringify(formData.sundayShifts || []),
+          
+          mondayDate: formData.mondayDate,
+          mondayTotalHours: formData.mondayTotalHours || 0,
+          mondayShifts: JSON.stringify(formData.mondayShifts || []),
+          
+          tuesdayDate: formData.tuesdayDate,
+          tuesdayTotalHours: formData.tuesdayTotalHours || 0,
+          tuesdayShifts: JSON.stringify(formData.tuesdayShifts || []),
+          
+          wednesdayDate: formData.wednesdayDate,
+          wednesdayTotalHours: formData.wednesdayTotalHours || 0,
+          wednesdayShifts: JSON.stringify(formData.wednesdayShifts || []),
+          
+          thursdayDate: formData.thursdayDate,
+          thursdayTotalHours: formData.thursdayTotalHours || 0,
+          thursdayShifts: JSON.stringify(formData.thursdayShifts || []),
+          
+          fridayDate: formData.fridayDate,
+          fridayTotalHours: formData.fridayTotalHours || 0,
+          fridayShifts: JSON.stringify(formData.fridayShifts || []),
+          
+          saturdayDate: formData.saturdayDate,
+          saturdayTotalHours: formData.saturdayTotalHours || 0,
+          saturdayShifts: JSON.stringify(formData.saturdayShifts || []),
+          
+          totalWeeklyHours: calculateTotalHours(formData),
+          
+          rescueCoverageMonday: formData.rescueCoverageMonday || false,
+          rescueCoverageTuesday: formData.rescueCoverageTuesday || false,
+          rescueCoverageWednesday: formData.rescueCoverageWednesday || false,
+          rescueCoverageThursday: formData.rescueCoverageThursday || false,
+          
+          signatureData: signatureData,
         },
       });
     } catch (error) {
@@ -1302,6 +1339,43 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
             employeeName: formData.memberName,
             weekEnding: formData.weekEnding,
             pdfBuffer: `data:application/pdf;base64,${previewPdfData}`,
+            // Include all timesheet data for database storage
+            sundayDate: formData.sundayDate,
+            sundayTotalHours: formData.sundayTotalHours || 0,
+            sundayShifts: JSON.stringify(formData.sundayShifts || []),
+            
+            mondayDate: formData.mondayDate,
+            mondayTotalHours: formData.mondayTotalHours || 0,
+            mondayShifts: JSON.stringify(formData.mondayShifts || []),
+            
+            tuesdayDate: formData.tuesdayDate,
+            tuesdayTotalHours: formData.tuesdayTotalHours || 0,
+            tuesdayShifts: JSON.stringify(formData.tuesdayShifts || []),
+            
+            wednesdayDate: formData.wednesdayDate,
+            wednesdayTotalHours: formData.wednesdayTotalHours || 0,
+            wednesdayShifts: JSON.stringify(formData.wednesdayShifts || []),
+            
+            thursdayDate: formData.thursdayDate,
+            thursdayTotalHours: formData.thursdayTotalHours || 0,
+            thursdayShifts: JSON.stringify(formData.thursdayShifts || []),
+            
+            fridayDate: formData.fridayDate,
+            fridayTotalHours: formData.fridayTotalHours || 0,
+            fridayShifts: JSON.stringify(formData.fridayShifts || []),
+            
+            saturdayDate: formData.saturdayDate,
+            saturdayTotalHours: formData.saturdayTotalHours || 0,
+            saturdayShifts: JSON.stringify(formData.saturdayShifts || []),
+            
+            totalWeeklyHours: calculateTotalHours(formData),
+            
+            rescueCoverageMonday: formData.rescueCoverageMonday || false,
+            rescueCoverageTuesday: formData.rescueCoverageTuesday || false,
+            rescueCoverageWednesday: formData.rescueCoverageWednesday || false,
+            rescueCoverageThursday: formData.rescueCoverageThursday || false,
+            
+            signatureData: signatureData,
           },
         });
         
