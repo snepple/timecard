@@ -6,14 +6,16 @@ import { WeekPicker } from "@/components/ui/week-picker";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { FileText, Calendar, AlertCircle, CheckCircle2, Eye, Download } from "lucide-react";
+import { FileText, Calendar, AlertCircle, CheckCircle2, Eye, Download, UserPlus } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { SupervisorTimecardForm } from "./SupervisorTimecardForm";
 
 interface TimecardSummaryData {
   employeeName: string;
   employeeNumber: string;
   hasTimesheet: boolean;
   timesheetId?: string;
+  completedBy?: string; // "employee", "supervisor", or null
   sunday: number;
   monday: number;
   tuesday: number;
@@ -52,6 +54,11 @@ function getCurrentWeekEnding(): string {
 
 export function TimecardSummaryReport() {
   const [selectedWeekEnding, setSelectedWeekEnding] = useState<string>("");
+  const [supervisorFormOpen, setSupervisorFormOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<{
+    employeeName: string;
+    employeeNumber: string;
+  } | null>(null);
   
   // Set default week ending to current week on component mount
   useEffect(() => {
@@ -67,10 +74,82 @@ export function TimecardSummaryReport() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  const handleViewPDF = (timesheetId: string, employeeName: string) => {
-    // Generate PDF for the specific timesheet
-    const pdfUrl = `/api/timesheet/${timesheetId}/pdf`;
-    window.open(pdfUrl, '_blank');
+  const handleViewPDF = async (timesheetId: string, employeeName: string) => {
+    try {
+      // Fetch timesheet data
+      const response = await fetch(`/api/timesheets/${timesheetId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch timesheet data');
+      }
+      
+      const timesheet = await response.json();
+      
+      // Import the PDF generator
+      const { generateTimeSheetPDF } = await import('../lib/pdf-generator');
+      
+      // Convert timesheet data to PDF format
+      const pdfData = {
+        employeeName: timesheet.employeeName,
+        employeeNumber: timesheet.employeeNumber,
+        weekEnding: timesheet.weekEnding,
+        
+        sundayDate: timesheet.sundayDate,
+        sundayTotalHours: parseFloat(timesheet.sundayTotalHours || '0'),
+        
+        mondayDate: timesheet.mondayDate,
+        mondayTotalHours: parseFloat(timesheet.mondayTotalHours || '0'),
+        
+        tuesdayDate: timesheet.tuesdayDate,
+        tuesdayTotalHours: parseFloat(timesheet.tuesdayTotalHours || '0'),
+        
+        wednesdayDate: timesheet.wednesdayDate,
+        wednesdayTotalHours: parseFloat(timesheet.wednesdayTotalHours || '0'),
+        
+        thursdayDate: timesheet.thursdayDate,
+        thursdayTotalHours: parseFloat(timesheet.thursdayTotalHours || '0'),
+        
+        fridayDate: timesheet.fridayDate,
+        fridayTotalHours: parseFloat(timesheet.fridayTotalHours || '0'),
+        
+        saturdayDate: timesheet.saturdayDate,
+        saturdayTotalHours: parseFloat(timesheet.saturdayTotalHours || '0'),
+        
+        totalWeeklyHours: parseFloat(timesheet.totalWeeklyHours || '0'),
+        
+        rescueCoverageMonday: timesheet.rescueCoverageMonday,
+        rescueCoverageTuesday: timesheet.rescueCoverageTuesday,
+        rescueCoverageWednesday: timesheet.rescueCoverageWednesday,
+        rescueCoverageThursday: timesheet.rescueCoverageThursday,
+        
+        signatureData: timesheet.signatureData,
+        completedBy: timesheet.completedBy || 'employee',
+      };
+
+      // Generate PDF
+      const pdfDataUrl = await generateTimeSheetPDF(pdfData);
+      
+      // Convert to blob and open
+      const base64Data = pdfDataUrl.replace(/^data:application\/pdf;base64,/, '');
+      const binaryData = atob(base64Data);
+      const bytes = new Uint8Array(binaryData.length);
+      for (let i = 0; i < binaryData.length; i++) {
+        bytes[i] = binaryData.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      
+      // Clean up URL after a delay
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      // Fallback to original approach if available
+      const pdfUrl = `/api/timesheet/${timesheetId}/pdf`;
+      window.open(pdfUrl, '_blank');
+    }
   };
 
   const handleExportExcel = () => {
@@ -80,6 +159,14 @@ export function TimecardSummaryReport() {
     // Download Excel file
     const exportUrl = `/api/admin/timecard-summary/${selectedWeekEnding}/export`;
     window.open(exportUrl, '_blank');
+  };
+
+  const handleCompleteOnBehalf = (employee: TimecardSummaryData) => {
+    setSelectedEmployee({
+      employeeName: employee.employeeName,
+      employeeNumber: employee.employeeNumber,
+    });
+    setSupervisorFormOpen(true);
   };
 
   // Function to generate day headers with dates
@@ -143,14 +230,23 @@ export function TimecardSummaryReport() {
     return hasTimesheet ? "" : "bg-orange-50 dark:bg-orange-900/20";
   };
 
-  const getStatusBadge = (hasTimesheet: boolean) => {
+  const getStatusBadge = (hasTimesheet: boolean, completedBy?: string) => {
     if (hasTimesheet) {
-      return (
-        <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">
-          <CheckCircle2 className="w-3 h-3 mr-1" />
-          Submitted
-        </Badge>
-      );
+      if (completedBy === 'supervisor') {
+        return (
+          <Badge variant="default" className="bg-blue-100 text-blue-800 hover:bg-blue-200">
+            <UserPlus className="w-3 h-3 mr-1" />
+            Completed by Supervisor
+          </Badge>
+        );
+      } else {
+        return (
+          <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">
+            <CheckCircle2 className="w-3 h-3 mr-1" />
+            Submitted
+          </Badge>
+        );
+      }
     } else {
       return (
         <Badge variant="secondary" className="bg-orange-100 text-orange-800 hover:bg-orange-200">
@@ -249,6 +345,13 @@ export function TimecardSummaryReport() {
                 <span className="text-sm">Employee completed timesheet</span>
               </div>
               <div className="flex items-center space-x-2">
+                <Badge variant="default" className="bg-blue-100 text-blue-800">
+                  <UserPlus className="w-3 h-3 mr-1" />
+                  Completed by Supervisor
+                </Badge>
+                <span className="text-sm">Supervisor completed on behalf of employee</span>
+              </div>
+              <div className="flex items-center space-x-2">
                 <Badge variant="secondary" className="bg-orange-100 text-orange-800">
                   <AlertCircle className="w-3 h-3 mr-1" />
                   Scheduled
@@ -334,7 +437,7 @@ export function TimecardSummaryReport() {
                           {employee.employeeName}
                         </TableCell>
                         <TableCell className="text-center">
-                          {getStatusBadge(employee.hasTimesheet)}
+                          {getStatusBadge(employee.hasTimesheet, employee.completedBy)}
                         </TableCell>
                         <TableCell className="text-center">
                           {renderHoursWithTooltip(employee.sunday, employee.shiftTimes?.sunday, 'sunday')}
@@ -374,12 +477,22 @@ export function TimecardSummaryReport() {
                               size="sm"
                               onClick={() => handleViewPDF(employee.timesheetId!, employee.employeeName)}
                               className="flex items-center space-x-1"
+                              data-testid={`button-view-pdf-${employee.employeeNumber}`}
                             >
                               <Eye className="w-3 h-3" />
                               <span>View PDF</span>
                             </Button>
                           ) : (
-                            <span className="text-muted-foreground text-sm">Not Available</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleCompleteOnBehalf(employee)}
+                              className="flex items-center space-x-1 text-orange-600 hover:text-orange-700 border-orange-200 hover:border-orange-300"
+                              data-testid={`button-complete-behalf-${employee.employeeNumber}`}
+                            >
+                              <UserPlus className="w-3 h-3" />
+                              <span>Complete on behalf</span>
+                            </Button>
                           )}
                         </TableCell>
                       </TableRow>
@@ -404,6 +517,20 @@ export function TimecardSummaryReport() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Supervisor Timecard Form */}
+      {selectedEmployee && (
+        <SupervisorTimecardForm
+          open={supervisorFormOpen}
+          onOpenChange={setSupervisorFormOpen}
+          employee={selectedEmployee}
+          weekEnding={selectedWeekEnding}
+          onSuccess={() => {
+            // Refresh the summary data
+            summaryQuery.refetch();
+          }}
+        />
       )}
     </div>
   );

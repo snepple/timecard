@@ -602,6 +602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             employeeNumber: employee.employeeNumber,
             hasTimesheet: true,
             timesheetId: submittedTimesheet.id,
+            completedBy: submittedTimesheet.completedBy || 'employee',
             sunday: submittedTimesheet.sundayTotalHours || 0,
             monday: submittedTimesheet.mondayTotalHours || 0,
             tuesday: submittedTimesheet.tuesdayTotalHours || 0,

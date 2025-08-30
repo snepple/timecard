@@ -55,6 +55,7 @@ export const timesheets = pgTable("timesheets", {
   supervisorComments: text("supervisor_comments"),
   approvedBy: text("approved_by"), // supervisor name/id
   approvedAt: timestamp("approved_at"),
+  completedBy: text("completed_by"), // "employee" or "supervisor" - indicates who completed the timecard
   
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });

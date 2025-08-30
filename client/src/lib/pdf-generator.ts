@@ -48,6 +48,7 @@ interface TimesheetData {
   rescueCoverageThursday?: boolean;
   
   signatureData?: string;
+  completedBy?: string; // "employee", "supervisor", or null
 }
 
 function formatTimeForPDF(time?: string): string {
@@ -272,6 +273,28 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
       checkBox(fieldName, checked || false);
     });
     
+    // Add supervisor completion notice if applicable
+    if (data.completedBy === 'supervisor') {
+      try {
+        const pages = pdfDoc.getPages();
+        const firstPage = pages[0];
+        const pageHeight = firstPage.getSize().height;
+        
+        // Add supervisor completion text
+        firstPage.drawText(
+          'COMPLETED BY FIRE CHIEF/SUPERVISOR - Employee did not submit timecard', 
+          {
+            x: 50,
+            y: pageHeight - 250, // Position above signature area
+            size: 10,
+          }
+        );
+        console.log('Added supervisor completion notice');
+      } catch (error) {
+        console.warn("Could not add supervisor completion notice:", error);
+      }
+    }
+
     // Add signature as image overlay (since signature field is not fillable)
     if (data.signatureData) {
       try {
