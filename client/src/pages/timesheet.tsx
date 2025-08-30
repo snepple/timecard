@@ -552,6 +552,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
       toast({
         title: "Schedule loaded", 
         description: `Populated timecard from ${shifts.length} scheduled shifts.`,
+        duration: 2000, // Auto-dismiss after 2 seconds
       });
     } catch (error) {
       console.error("Error auto-populating from schedule:", error);
