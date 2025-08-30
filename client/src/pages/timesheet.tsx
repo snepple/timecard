@@ -1457,6 +1457,18 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
   const handleSaveAndSubmit = async () => {
     // Stop countdown when manually triggered
     stopAutoSubmitCountdown();
+    
+    // Check if signature is present - MANDATORY validation
+    if (!signatureData || signatureData.trim() === '') {
+      toast({
+        title: "Signature Required",
+        description: "Please provide a digital signature before submitting.",
+        variant: "destructive",
+      });
+      setShowSubmissionPreview(false);
+      return;
+    }
+    
     // Check if we have email, if not show email dialog
     const existingEmail = (employeeEmailQuery.data as { email?: string })?.email;
     
