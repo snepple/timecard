@@ -86,7 +86,7 @@ export function RescueCoverageReport() {
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
-  const [editingEmployee, setEditingEmployee] = useState<{ employeeName: string; employeeNumber: string } | null>(null);
+  const [editingEmployee, setEditingEmployee] = useState<{ employeeName: string; employeeNumber: string; weekEnding: string } | null>(null);
   const [showActivityLog, setShowActivityLog] = useState<{ employeeName: string; employeeNumber: string } | null>(null);
   const queryClient = useQueryClient();
 
@@ -184,11 +184,6 @@ export function RescueCoverageReport() {
     }
   };
 
-  const handleTimecardSaved = () => {
-    // Refresh the report data after timecard changes
-    queryClient.invalidateQueries({ queryKey: ['/api/admin/rescue-coverage-report'] });
-    setEditingEmployee(null);
-  };
 
   const renderDayCell = (week: WeeklyRescueData, day: keyof WeeklyRescueData, dayName: string) => {
     const dayValue = week[day] as number;
@@ -453,7 +448,7 @@ export function RescueCoverageReport() {
                                   variant="outline"
                                   size="sm"
                                   className="text-xs h-6 px-2 flex items-center space-x-1 text-orange-600 hover:text-orange-700 border-orange-200 hover:border-orange-300"
-                                  onClick={() => setEditingEmployee({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber })}
+                                  onClick={() => setEditingEmployee({ employeeName: employee.employeeName, employeeNumber: employee.employeeNumber, weekEnding: week.weekEnding })}
                                   data-testid={`button-complete-behalf-${employee.employeeNumber}-week-${week.weekNumber}`}
                                 >
                                   <UserPlus className="w-3 h-3" />
@@ -528,21 +523,24 @@ export function RescueCoverageReport() {
 
       {/* Timecard Edit Dialog */}
       {editingEmployee && (
-        <Dialog open={!!editingEmployee} onOpenChange={() => setEditingEmployee(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                Edit Timecard - {editingEmployee.employeeName} (#{editingEmployee.employeeNumber})
-              </DialogTitle>
-            </DialogHeader>
-            <SupervisorTimecardForm
-              employeeName={editingEmployee.employeeName}
-              employeeNumber={editingEmployee.employeeNumber}
-              onSave={handleTimecardSaved}
-              onCancel={() => setEditingEmployee(null)}
-            />
-          </DialogContent>
-        </Dialog>
+        <SupervisorTimecardForm
+          open={!!editingEmployee}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingEmployee(null);
+            }
+          }}
+          employee={{
+            employeeName: editingEmployee.employeeName,
+            employeeNumber: editingEmployee.employeeNumber,
+          }}
+          weekEnding={editingEmployee.weekEnding}
+          onSuccess={() => {
+            // Refresh the report data
+            queryClient.invalidateQueries({ queryKey: ['/api/admin/rescue-coverage-report'] });
+            setEditingEmployee(null);
+          }}
+        />
       )}
 
       {/* Employee Monthly Activity Log Dialog */}
