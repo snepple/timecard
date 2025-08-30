@@ -415,6 +415,43 @@ export default function SupervisorDashboard() {
     }
   }, [showOvertimeSettings, overtimeSettingsQuery.data]);
 
+  // Auto-close dialogs after 2 seconds
+  useEffect(() => {
+    if (editDialogOpen) {
+      const timer = setTimeout(() => {
+        setEditDialogOpen(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [editDialogOpen]);
+
+  useEffect(() => {
+    if (showPasswordSettings) {
+      const timer = setTimeout(() => {
+        setShowPasswordSettings(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [showPasswordSettings]);
+
+  useEffect(() => {
+    if (showEmailSettings) {
+      const timer = setTimeout(() => {
+        setShowEmailSettings(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [showEmailSettings]);
+
+  useEffect(() => {
+    if (showOvertimeSettings) {
+      const timer = setTimeout(() => {
+        setShowOvertimeSettings(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [showOvertimeSettings]);
+
   const handleOvertimeUpdate = () => {
     if (overtimeThreshold < 1 || overtimeThreshold > 80) {
       toast({

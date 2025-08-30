@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,26 @@ export default function EmployeeManagement() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<EmployeeNumber | null>(null);
+
+  // Auto-close dialogs after 2 seconds
+  useEffect(() => {
+    if (isAddDialogOpen) {
+      const timer = setTimeout(() => {
+        setIsAddDialogOpen(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isAddDialogOpen]);
+
+  useEffect(() => {
+    if (isEditDialogOpen) {
+      const timer = setTimeout(() => {
+        setIsEditDialogOpen(false);
+        setEditingEmployee(null);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isEditDialogOpen]);
   const [searchTerm, setSearchTerm] = useState('');
   
   // Form state
