@@ -420,6 +420,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
     retry: false,
   });
 
+
   // Populate form with existing timesheet data when found
   useEffect(() => {
     if (existingTimesheetQuery.data && typeof existingTimesheetQuery.data === 'object' && existingTimesheetQuery.data.id) {
@@ -731,10 +732,12 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
   const handleEmployeeSelect = async (employeeNumber: string) => {
     setSelectedEmployeeNumber(employeeNumber);
     setValue("selectedEmployee", employeeNumber);
+    setValue("memberNumber", employeeNumber); // This is critical for existing timesheet query!
     
     const employee = scheduleQuery.data?.employees?.find((emp) => emp.employeeNumber === employeeNumber);
     if (employee) {
       setValue("employeeName", employee.fullName);
+      setValue("memberName", employee.fullName); // Also set memberName for consistency
       
       // Check if this employee exists in the database and has an employee number
       const dbEmployee = employeeNumbersQuery.data?.find(emp => emp.employeeName === employee.fullName);
