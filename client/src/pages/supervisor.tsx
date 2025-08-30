@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TimecardSummaryReport } from "@/components/TimecardSummaryReport";
+import EmployeeManagement from "@/components/EmployeeManagement";
 
 interface EmployeeNumber {
   id: string;
@@ -439,19 +440,7 @@ export default function SupervisorDashboard() {
 
           {/* Employee Management Tab */}
           <TabsContent value="employee-management" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Users className="text-primary mr-2 h-5 w-5" />
-                  Employee Management
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-gray-500">
-                  Employee management functionality will be available in a future update.
-                </div>
-              </CardContent>
-            </Card>
+            <EmployeeManagement />
           </TabsContent>
 
           {/* Settings Tab */}
