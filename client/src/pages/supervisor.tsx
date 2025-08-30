@@ -427,23 +427,6 @@ export default function SupervisorDashboard() {
     }
   }, [editDialogOpen]);
 
-  useEffect(() => {
-    if (showPasswordSettings) {
-      const timer = setTimeout(() => {
-        setShowPasswordSettings(false);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [showPasswordSettings]);
-
-  useEffect(() => {
-    if (showEmailSettings) {
-      const timer = setTimeout(() => {
-        setShowEmailSettings(false);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [showEmailSettings]);
 
   useEffect(() => {
     if (showOvertimeSettings) {
