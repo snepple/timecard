@@ -2122,73 +2122,74 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
           {/* Member Attestation Card - iOS style */}
           <div className="ios-card">
             <div className="p-6">
-              <FormField
-                control={form.control}
-                name="signatureData"
-                render={() => (
-                  <FormItem>
-                    <FormLabel className="ios-headline">
-                      Member Attestation <span className="text-red-500">*</span>
-                    </FormLabel>
-                    <FormDescription className="text-sm text-muted-foreground mb-4">
-                      By signing, I attest that the hours submitted are a complete and accurate record of my time worked.
-                    </FormDescription>
-                    <FormControl>
-                      <SignaturePad
-                        onSignatureChange={(signature) => {
-                          setSignatureData(signature);
-                          form.setValue("signatureData", signature);
-                        }}
-                        data-testid="signature-pad"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
+              <div className="space-y-6">
+                {/* Title */}
+                <h3 className="ios-headline">
+                  Member Attestation <span className="text-red-500">*</span>
+                </h3>
 
-          {/* Acknowledgment Card - iOS style */}
-          <div className="ios-card">
-            <div className="p-6">
-              <FormField
-                control={form.control}
-                name="acknowledgmentChecked"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value === true}
-                        onCheckedChange={field.onChange}
-                        className="!w-6 !h-6 !aspect-square !min-w-6 !min-h-6 !max-w-6 !max-h-6"
-                        data-testid="checkbox-acknowledgment"
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel className="text-sm font-medium text-secondary">
-                        {watchedValues.isEditingPreviousSubmission ? 'Updated Acknowledgment' : 'Acknowledgment'} <span className="text-red-500">*</span>
-                      </FormLabel>
-                      <FormDescription className="text-sm text-muted-foreground">
-                        {watchedValues.isEditingPreviousSubmission ? (
-                          <>
-                            I acknowledge that I have re-reviewed all times and totals for accuracy after making my edits. 
-                            I understand that editing this timesheet will require my supervisor to re-approve it, and 
-                            I must submit these changes before Saturday at 11:59 PM ET.
-                          </>
-                        ) : (
-                          <>
-                            I acknowledge that I have reviewed all times and totals for accuracy. 
-                            Times imported from the schedule should be verified and updated if they 
-                            differ from actual worked hours.
-                          </>
-                        )}
+                {/* Acknowledgment checkbox */}
+                <FormField
+                  control={form.control}
+                  name="acknowledgmentChecked"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value === true}
+                          onCheckedChange={field.onChange}
+                          className="!w-6 !h-6 !aspect-square !min-w-6 !min-h-6 !max-w-6 !max-h-6"
+                          data-testid="checkbox-acknowledgment"
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="text-sm font-medium text-secondary">
+                          {watchedValues.isEditingPreviousSubmission ? 'Updated Acknowledgment' : 'Acknowledgment'} <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <FormDescription className="text-sm text-muted-foreground">
+                          {watchedValues.isEditingPreviousSubmission ? (
+                            <>
+                              I acknowledge that I have re-reviewed all times and totals for accuracy after making my edits. 
+                              I understand that editing this timesheet will require my supervisor to re-approve it, and 
+                              I must submit these changes before Saturday at 11:59 PM ET.
+                            </>
+                          ) : (
+                            <>
+                              I acknowledge that I have reviewed all times and totals for accuracy. 
+                              Times imported from the schedule should be verified and updated if they 
+                              differ from actual worked hours.
+                            </>
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Signature section */}
+                <FormField
+                  control={form.control}
+                  name="signatureData"
+                  render={() => (
+                    <FormItem>
+                      <FormDescription className="text-sm text-muted-foreground mb-4">
+                        By signing, I attest that the hours submitted are a complete and accurate record of my time worked.
                       </FormDescription>
+                      <FormControl>
+                        <SignaturePad
+                          onSignatureChange={(signature) => {
+                            setSignatureData(signature);
+                            form.setValue("signatureData", signature);
+                          }}
+                          data-testid="signature-pad"
+                        />
+                      </FormControl>
                       <FormMessage />
-                    </div>
-                  </FormItem>
-                )}
-              />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
           </div>
 
