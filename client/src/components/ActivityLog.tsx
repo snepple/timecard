@@ -86,7 +86,7 @@ export function ActivityLog({ timesheetId, employeeName, trigger }: ActivityLogP
   const getActivityDescription = (entry: ActivityLogEntry) => {
     switch (entry.activityType) {
       case 'submitted':
-        return `${entry.performedBy} submitted this timecard`;
+        return `Member Submitted Timecard`;
       case 'edited':
         return `${entry.performedBy} edited this timecard`;
       case 'completed_by_supervisor':
