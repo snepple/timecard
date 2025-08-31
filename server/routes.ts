@@ -2285,30 +2285,25 @@ Submission Date: {submissionDate}`
       currentSaturday.setHours(0, 0, 0, 0);
       const weekEnding = currentSaturday.toISOString().split('T')[0];
 
-      // Get all employees from schedule
-      const scheduleData = await storage.getScheduleData();
+      // Get schedule data using the same source as the working individual employee API
+      const scheduleResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule`);
+      const scheduleData = await scheduleResponse.json();
       const totalEmployees = scheduleData?.employees?.length || 0;
-
-      // Get scheduled employees for current week by checking actual schedule data
-      // Count employees who have any shifts scheduled for this week
+      
+      // Get scheduled employees for current week using individual API calls (known to work)
       let scheduledCount = 0;
-      if (scheduleData?.employees && scheduleData?.shifts) {
-        // Calculate week range for filtering shifts
-        const endDate = new Date(weekEnding); 
-        const startDate = new Date(endDate);
-        startDate.setDate(endDate.getDate() - 6); // Go back 6 days to Sunday
-
-        // For each employee, check if they have shifts for this week
+      if (scheduleData?.employees) {
         for (const employee of scheduleData.employees) {
-          const employeeShifts = scheduleData.shifts.filter((shift: any) => {
-            const shiftDate = new Date(shift.date);
-            return shift.employeeNumber === employee.employeeNumber &&
-                   shiftDate >= startDate && 
-                   shiftDate <= endDate;
-          });
-          
-          if (employeeShifts.length > 0) {
-            scheduledCount++;
+          try {
+            const empScheduleResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${employee.employeeNumber}/week/${weekEnding}`);
+            if (empScheduleResponse.ok) {
+              const empSchedule = await empScheduleResponse.json();
+              if (empSchedule && empSchedule.length > 0) {
+                scheduledCount++;
+              }
+            }
+          } catch (error) {
+            // Continue counting other employees
           }
         }
       }
