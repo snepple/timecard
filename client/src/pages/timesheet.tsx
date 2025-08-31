@@ -96,8 +96,8 @@ const timesheetSchema = z.object({
   // Employee edit fields
   isEditingPreviousSubmission: z.boolean().default(false),
   editComments: z.string().optional().refine((val, ctx) => {
-    const isEditing = ctx.parent.isEditingPreviousSubmission;
-    if (isEditing && (!val || val.trim().length === 0)) {
+    const formData = ctx.parent as any;
+    if (formData.isEditingPreviousSubmission && (!val || val.trim().length === 0)) {
       return false;
     }
     return true;
@@ -2387,10 +2387,8 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
               </Button>
             </div>
           </div>
-        )}
-      </div>
-    </form>
-  </Form>
+        </form>
+      </Form>
       </main>
 
 

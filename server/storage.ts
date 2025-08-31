@@ -282,6 +282,14 @@ export class MemStorage implements IStorage {
   async getAllActivityLog(): Promise<TimecardActivityLog[]> {
     return [];
   }
+
+  async getScheduleData(): Promise<any> {
+    return { employees: [] };
+  }
+
+  async getScheduledEmployeesForWeek(weekEnding: string): Promise<any[]> {
+    return [];
+  }
 }
 
 export class DatabaseStorage implements IStorage {

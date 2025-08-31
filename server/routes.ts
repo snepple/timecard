@@ -105,7 +105,7 @@ async function sendEmployeeEditNotificationEmail(editedTimesheet: any, originalT
     }
 
     // Create email transporter
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 587,
       secure: false,
@@ -181,7 +181,7 @@ async function sendEditNotificationEmail(editedTimesheet: any, originalTimesheet
     }
 
     // Create email transporter (similar to other email functions in the app)
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 587,
       secure: false,
