@@ -18,7 +18,6 @@ import { generateTimeSheetPDF } from "@/lib/pdf-generator";
 import { apiRequest } from "@/lib/queryClient";
 import SignaturePad from "@/components/ui/signature-pad";
 import { getCurrentWeekEndingDate, isSaturday, getNextSaturday, getPreviousSaturday, formatDateShort } from "@/lib/date-utils";
-import { SubmissionReadinessIndicator } from "@/components/SubmissionReadinessIndicator";
 import { TimesheetSidebar, generateTimesheetSections } from "@/components/TimesheetSidebar";
 import { ValidityFooter } from "@/components/ValidityFooter";
 import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle, Check, RotateCcw, LogOut, Plus, Trash2, Download } from "lucide-react";
@@ -645,16 +644,6 @@ export default function TimesheetPage() {
                 {/* Time Entry Section */}
                 {selectedEmployeeNumber && watchedValues.weekEnding && (
                   <div id="section-time">
-                    <SubmissionReadinessIndicator
-                      hasEmployee={!!(watchedValues.memberName && watchedValues.memberNumber)}
-                      hasWeekEnding={!!watchedValues.weekEnding}
-                      hasTimeEntries={totalHours > 0}
-                      hasAcknowledgment={!!watchedValues.acknowledgmentChecked}
-                      hasSignature={!!(signatureData && signatureData.trim() !== '')}
-                      totalHours={totalHours}
-                      compact={false}
-                    />
-
                     <Card>
                       <CardContent className="p-6">
                         <h2 className="ios-headline mb-4">Daily Time Entry</h2>
