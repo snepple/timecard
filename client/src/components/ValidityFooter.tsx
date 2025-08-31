@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertCircle, CheckCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, User } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ValidityFooterProps {
@@ -59,16 +59,19 @@ export function ValidityFooter({
         {/* Left side - Member info */}
         <div className="flex items-center gap-4 text-sm text-gray-600">
           {memberName && memberNumber ? (
-            <>
-              <button 
-                onClick={onMemberNameClick}
-                className="text-blue-600 hover:text-blue-800 underline cursor-pointer"
-                data-testid="member-name-button"
-              >
-                {memberName}
-              </button>
-              <span>#{memberNumber}</span>
-              {memberEmail && <span>{memberEmail}</span>}
+            <div className="flex items-center gap-3">
+              <User className="w-5 h-5 text-gray-500" />
+              <div className="flex flex-col">
+                <button 
+                  onClick={onMemberNameClick}
+                  className="text-blue-600 hover:text-blue-800 underline cursor-pointer font-bold text-base leading-tight"
+                  data-testid="member-name-button"
+                >
+                  {memberName}
+                </button>
+                <span className="text-xs text-gray-500">Member #{memberNumber}</span>
+              </div>
+              {memberEmail && <span className="text-xs">{memberEmail}</span>}
               <button 
                 onClick={onChangeMember}
                 className="ml-2 px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded text-gray-700"
@@ -76,7 +79,7 @@ export function ValidityFooter({
               >
                 Change Member
               </button>
-            </>
+            </div>
           ) : (
             <span>Oakland Fire Department</span>
           )}
