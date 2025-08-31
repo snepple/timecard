@@ -779,6 +779,7 @@ export default function TimesheetPage() {
                                   <Checkbox
                                     checked={field.value}
                                     onCheckedChange={field.onChange}
+                                    className="w-6 h-6"
                                     data-testid="checkbox-rescue-monday"
                                   />
                                 </FormControl>
@@ -798,6 +799,7 @@ export default function TimesheetPage() {
                                   <Checkbox
                                     checked={field.value}
                                     onCheckedChange={field.onChange}
+                                    className="w-6 h-6"
                                     data-testid="checkbox-rescue-tuesday"
                                   />
                                 </FormControl>
@@ -817,6 +819,7 @@ export default function TimesheetPage() {
                                   <Checkbox
                                     checked={field.value}
                                     onCheckedChange={field.onChange}
+                                    className="w-6 h-6"
                                     data-testid="checkbox-rescue-wednesday"
                                   />
                                 </FormControl>
@@ -836,6 +839,7 @@ export default function TimesheetPage() {
                                   <Checkbox
                                     checked={field.value}
                                     onCheckedChange={field.onChange}
+                                    className="w-6 h-6"
                                     data-testid="checkbox-rescue-thursday"
                                   />
                                 </FormControl>
