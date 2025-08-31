@@ -705,7 +705,7 @@ export default function TimesheetPage() {
                                 <div className="text-right">
                                   <p className="text-sm text-muted-foreground">Total Hours</p>
                                   <p className="text-lg font-bold" data-testid={`text-${key}-total-hours`}>
-                                    {dayTotalHours.toFixed(2)}
+                                    {Number(dayTotalHours || 0).toFixed(2)}
                                   </p>
                                 </div>
                               </div>
