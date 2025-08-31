@@ -550,7 +550,7 @@ export default function TimesheetPage() {
   };
 
   return (
-    <div className="bg-background min-h-screen flex">
+    <div className="bg-background h-screen flex overflow-hidden">
       {/* Loading Overlay */}
       {(isLoading || emailTimesheetMutation.isPending) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -573,8 +573,8 @@ export default function TimesheetPage() {
       )}
 
       {/* Main Content Area */}
-      <div className={`flex-1 ${selectedEmployeeNumber ? 'ml-64' : ''}`}>
-        <main className="min-h-screen p-6 pb-2 bg-background">
+      <div className={`flex-1 ${selectedEmployeeNumber ? 'ml-64' : ''} flex flex-col h-screen`}>
+        <main className="flex-1 p-6 pb-2 bg-background overflow-y-auto">
           <div className="ios-mobile-spacing">
             <div className="flex justify-between items-center mb-6">
               <h1 className="ios-title-1 text-foreground">Weekly Timesheet</h1>
