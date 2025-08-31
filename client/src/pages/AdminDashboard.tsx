@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Users, FileText, Clock, TrendingUp, AlertCircle, CheckCircle, BarChart3, Settings, Download, UserCheck, Calendar as CalendarIcon, Home, LogOut } from 'lucide-react';
-import { Link, useLocation } from 'wouter';
+import { Calendar, Users, FileText, Clock, TrendingUp, AlertCircle, CheckCircle, BarChart3, Settings, Download, UserCheck, Calendar as CalendarIcon } from 'lucide-react';
+import { Link } from 'wouter';
+import { AdminLayout } from '@/components/AdminLayout';
 
 interface DashboardStats {
   currentWeek: {
@@ -18,8 +19,6 @@ interface DashboardStats {
 }
 
 export default function AdminDashboard() {
-  const [location, setLocation] = useLocation();
-  
   // Fetch dashboard statistics
   const statsQuery = useQuery({
     queryKey: ['/api/admin/dashboard-stats'],
@@ -32,51 +31,6 @@ export default function AdminDashboard() {
 
   const stats = statsQuery.data;
   const isLoading = statsQuery.isLoading;
-
-  const sidebarItems = [
-    {
-      label: 'Dashboard',
-      href: '/admin',
-      icon: <Home className="h-5 w-5" />,
-      active: location === '/admin'
-    },
-    {
-      label: 'Timecard Summary',
-      href: '/admin/timecard-summary',
-      icon: <FileText className="h-5 w-5" />,
-      active: location === '/admin/timecard-summary'
-    },
-    {
-      label: 'Rescue Coverage',
-      href: '/admin/rescue-coverage',
-      icon: <UserCheck className="h-5 w-5" />,
-      active: location === '/admin/rescue-coverage'
-    },
-    {
-      label: 'Member Management',
-      href: '/admin/member-management',
-      icon: <Users className="h-5 w-5" />,
-      active: location === '/admin/member-management'
-    },
-    {
-      label: 'Activity Logs',
-      href: '/admin/activity-logs',
-      icon: <BarChart3 className="h-5 w-5" />,
-      active: location === '/admin/activity-logs'
-    },
-    {
-      label: 'Email Settings',
-      href: '/admin/email-settings',
-      icon: <Settings className="h-5 w-5" />,
-      active: location === '/admin/email-settings'
-    },
-    {
-      label: 'Schedule Management',
-      href: '/admin/schedule',
-      icon: <CalendarIcon className="h-5 w-5" />,
-      active: location === '/admin/schedule'
-    }
-  ];
 
   const quickLinks = [
     {
@@ -144,41 +98,8 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <div className="w-64 bg-white shadow-lg">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Admin Panel</h2>
-          <nav className="space-y-2">
-            {sidebarItems.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <div className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                  item.active 
-                    ? 'bg-blue-100 text-blue-700' 
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}>
-                  {item.icon}
-                  {item.label}
-                </div>
-              </Link>
-            ))}
-          </nav>
-        </div>
-        
-        {/* Logout Section */}
-        <div className="absolute bottom-6 left-6 right-6">
-          <Link href="/">
-            <div className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 cursor-pointer">
-              <LogOut className="h-5 w-5" />
-              Back to Timesheets
-            </div>
-          </Link>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="max-w-7xl mx-auto px-6 py-8">
+    <AdminLayout>
+      <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
@@ -390,7 +311,6 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
-    </div>
-    </div>
+    </AdminLayout>
   );
 }
