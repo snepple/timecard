@@ -355,6 +355,15 @@ export default function TimesheetPage() {
         const isNightDuty = shift.position === "Night Duty" || 
                            (shift.description && shift.description.includes("PositionName:Night Duty"));
         
+        // Debug date calculation
+        console.log(`🔍 Processing shift on ${shift.date}:`, {
+          shiftDate: shiftDate.toDateString(),
+          dayOfWeek,
+          dayKey,
+          position: shift.position,
+          isNightDuty
+        });
+        
         if (isNightDuty) {
           // For Night Duty shifts, check the appropriate rescue coverage checkbox
           // Map day of week to rescue coverage field names (Monday-Thursday only)
