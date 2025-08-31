@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -16,17 +16,36 @@ import {
   Activity,
   Mail,
   Lock,
-  Sliders
+  Sliders,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
+interface SidebarItem {
+  label: string;
+  href?: string;
+  icon: React.ReactNode;
+  active?: boolean;
+  children?: SidebarItem[];
+}
+
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [location] = useLocation();
+  const [expandedItems, setExpandedItems] = useState<string[]>(['reports']);
 
-  const sidebarItems = [
+  const toggleExpanded = (label: string) => {
+    setExpandedItems(prev => 
+      prev.includes(label) 
+        ? prev.filter(item => item !== label)
+        : [...prev, label]
+    );
+  };
+
+  const sidebarItems: SidebarItem[] = [
     {
       label: 'Dashboard',
       href: '/admin',
@@ -34,16 +53,22 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       active: location === '/admin'
     },
     {
-      label: 'Timecard Summary',
-      href: '/admin/timecard-summary',
-      icon: <FileText className="h-5 w-5" />,
-      active: location === '/admin/timecard-summary'
-    },
-    {
-      label: 'Rescue Coverage',
-      href: '/admin/rescue-coverage',
-      icon: <UserCheck className="h-5 w-5" />,
-      active: location === '/admin/rescue-coverage'
+      label: 'Reports',
+      icon: <BarChart3 className="h-5 w-5" />,
+      children: [
+        {
+          label: 'Timecard Summary',
+          href: '/admin/timecard-summary',
+          icon: <FileText className="h-4 w-4" />,
+          active: location === '/admin/timecard-summary'
+        },
+        {
+          label: 'Rescue Coverage',
+          href: '/admin/rescue-coverage',
+          icon: <UserCheck className="h-4 w-4" />,
+          active: location === '/admin/rescue-coverage'
+        }
+      ]
     },
     {
       label: 'Activity Logs',
@@ -90,17 +115,60 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <ScrollArea className="flex-1 p-4">
           <nav className="space-y-2">
             {sidebarItems.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <div className={cn(
-                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer',
-                  item.active 
-                    ? 'bg-blue-100 text-blue-700' 
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                )}>
-                  {item.icon}
-                  {item.label}
-                </div>
-              </Link>
+              <div key={item.label}>
+                {item.children ? (
+                  // Parent item with children
+                  <div>
+                    <button
+                      onClick={() => toggleExpanded(item.label.toLowerCase())}
+                      className={cn(
+                        'w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                        'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        {item.icon}
+                        {item.label}
+                      </div>
+                      {expandedItems.includes(item.label.toLowerCase()) ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </button>
+                    {expandedItems.includes(item.label.toLowerCase()) && (
+                      <div className="ml-6 mt-1 space-y-1">
+                        {item.children.map((child) => (
+                          <Link key={child.href || child.label} href={child.href}>
+                            <div className={cn(
+                              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer',
+                              child.active 
+                                ? 'bg-blue-100 text-blue-700' 
+                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                            )}>
+                              {child.icon}
+                              {child.label}
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  // Regular item
+                  <Link href={item.href!}>
+                    <div className={cn(
+                      'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer',
+                      item.active 
+                        ? 'bg-blue-100 text-blue-700' 
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    )}>
+                      {item.icon}
+                      {item.label}
+                    </div>
+                  </Link>
+                )}
+              </div>
             ))}
           </nav>
         </ScrollArea>
