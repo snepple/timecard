@@ -464,7 +464,7 @@ export default function TimesheetPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="bg-gray-50 flex h-full">
       {/* Loading Overlay */}
       {(isLoading || emailTimesheetMutation.isPending) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -484,7 +484,7 @@ export default function TimesheetPage() {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
-        <main className="flex-1 p-6 overflow-auto pb-20">
+        <main className="flex-1 p-6 overflow-auto pb-6">
           <div className="ios-mobile-spacing">
             <h1 className="ios-title-1 text-foreground mb-6">Weekly Timesheet</h1>
             
