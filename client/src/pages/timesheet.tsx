@@ -191,7 +191,12 @@ export default function TimesheetPage() {
     }
     const saturday = new Date(today);
     saturday.setDate(today.getDate() + daysToSaturday);
-    const correctWeekEnding = saturday.toISOString().split('T')[0];
+    
+    // Use timezone-safe date formatting to avoid ISO string timezone issues
+    const year = saturday.getFullYear();
+    const month = String(saturday.getMonth() + 1).padStart(2, '0');
+    const day = String(saturday.getDate()).padStart(2, '0');
+    const correctWeekEnding = `${year}-${month}-${day}`;
     
     setValue("weekEnding", correctWeekEnding);
   }, [setValue]);
