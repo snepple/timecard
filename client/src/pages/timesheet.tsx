@@ -319,6 +319,10 @@ export default function TimesheetPage() {
       if (timesheet.signatureData) {
         setSignatureData(timesheet.signatureData);
         setValue("signatureData", timesheet.signatureData);
+      } else {
+        // Clear signature data if no signature in timesheet
+        setSignatureData("");
+        setValue("signatureData", "");
       }
       
       setValue("status", timesheet.status || "draft");
@@ -411,6 +415,10 @@ export default function TimesheetPage() {
   const handleEmployeeSelect = (employeeNumber: string) => {
     setSelectedEmployeeNumber(employeeNumber);
     setValue("memberNumber", employeeNumber);
+    
+    // Clear signature data when switching employees
+    setSignatureData("");
+    setValue("signatureData", "");
     
     // Get employee name from schedule data
     const employee = scheduleQuery.data?.employees?.find(emp => emp.employeeNumber === employeeNumber);
@@ -538,6 +546,7 @@ export default function TimesheetPage() {
     hasRescueCoverage: true,
     hasSignature: !!(signatureData && signatureData.trim() !== ''),
   });
+
 
   const handleSectionClick = (sectionId: string) => {
     setActiveSection(sectionId);
