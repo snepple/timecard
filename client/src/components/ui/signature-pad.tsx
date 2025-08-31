@@ -6,12 +6,14 @@ interface SignaturePadProps {
   onSignatureChange: (signature: string) => void;
   width?: number;
   height?: number;
+  existingSignature?: string;
 }
 
 export default function SignaturePad({ 
   onSignatureChange, 
   width = 600, 
-  height = 200 
+  height = 200,
+  existingSignature = ""
 }: SignaturePadProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -51,7 +53,17 @@ export default function SignaturePad({
     // Clear canvas with white background
     context.fillStyle = "#fff";
     context.fillRect(0, 0, displayWidth, displayHeight);
-  }, [width, height]);
+
+    // Load existing signature if provided
+    if (existingSignature) {
+      const img = new Image();
+      img.onload = () => {
+        context.drawImage(img, 0, 0, displayWidth, displayHeight);
+        setHasSignature(true);
+      };
+      img.src = existingSignature;
+    }
+  }, [width, height, existingSignature]);
 
   const getEventPos = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement> | React.PointerEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;

@@ -270,14 +270,14 @@ export default function TimesheetPage() {
     },
   });
 
-  // Calculate total hours
-  const totalHours = (watchedValues.sundayTotalHours || 0) +
-                    (watchedValues.mondayTotalHours || 0) +
-                    (watchedValues.tuesdayTotalHours || 0) +
-                    (watchedValues.wednesdayTotalHours || 0) +
-                    (watchedValues.thursdayTotalHours || 0) +
-                    (watchedValues.fridayTotalHours || 0) +
-                    (watchedValues.saturdayTotalHours || 0);
+  // Calculate total hours - convert to numbers since database values come as strings
+  const totalHours = (Number(watchedValues.sundayTotalHours) || 0) +
+                    (Number(watchedValues.mondayTotalHours) || 0) +
+                    (Number(watchedValues.tuesdayTotalHours) || 0) +
+                    (Number(watchedValues.wednesdayTotalHours) || 0) +
+                    (Number(watchedValues.thursdayTotalHours) || 0) +
+                    (Number(watchedValues.fridayTotalHours) || 0) +
+                    (Number(watchedValues.saturdayTotalHours) || 0);
 
 
   // Populate dates when week ending changes
@@ -949,6 +949,7 @@ export default function TimesheetPage() {
                                     setSignatureData(signature);
                                     setValue("signatureData", signature);
                                   }}
+                                  existingSignature={signatureData}
                                   data-testid="signature-pad"
                                 />
                               </FormControl>
