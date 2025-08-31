@@ -446,6 +446,16 @@ export default function TimesheetPage() {
 
   const handleSubmit = async () => {
     try {
+      // Validate signature is present
+      if (!signatureData || signatureData.trim() === '') {
+        toast({
+          title: "Signature Required",
+          description: "Please provide a digital signature before submitting your timesheet.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       setIsLoading(true);
       const formData = form.getValues();
       
@@ -477,6 +487,16 @@ export default function TimesheetPage() {
 
   const handleSubmitForApproval = async () => {
     try {
+      // Validate signature is present
+      if (!signatureData || signatureData.trim() === '') {
+        toast({
+          title: "Signature Required",
+          description: "Please provide a digital signature before submitting your timesheet.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const formData = form.getValues();
       await submitTimesheetMutation.mutateAsync({
         ...formData,
@@ -977,7 +997,7 @@ export default function TimesheetPage() {
                           type="button"
                           className="ios-button ios-button-primary"
                           onClick={handleSubmitForApproval}
-                          disabled={submitTimesheetMutation.isPending}
+                          disabled={submitTimesheetMutation.isPending || !signatureData || signatureData.trim() === ''}
                           data-testid="button-submit"
                         >
                           <Send className="mr-2 h-4 w-4" />
@@ -989,7 +1009,7 @@ export default function TimesheetPage() {
                         type="button"
                         className="ios-button ios-button-primary bg-accent hover:bg-accent/90"
                         onClick={handleSubmit}
-                        disabled={isLoading || emailTimesheetMutation.isPending}
+                        disabled={isLoading || emailTimesheetMutation.isPending || !signatureData || signatureData.trim() === ''}
                         data-testid="button-submit"
                       >
                         <Send className="mr-2 h-4 w-4" />
