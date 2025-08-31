@@ -245,10 +245,7 @@ export default function TimesheetPage() {
   });
 
   const emailTimesheetMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('/api/email-timesheet', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+    mutationFn: (data: any) => apiRequest('POST', '/api/email-timesheet', data),
     onSuccess: () => {
       toast({
         title: "Success",
@@ -258,10 +255,7 @@ export default function TimesheetPage() {
   });
 
   const submitTimesheetMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('/api/submit-timesheet', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+    mutationFn: (data: any) => apiRequest('POST', '/api/submit-timesheet', data),
     onSuccess: () => {
       toast({
         title: "Success",
