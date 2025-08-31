@@ -15,7 +15,23 @@ interface WeekPickerProps {
 // Helper function to get the Saturday of the week containing the given date
 function getWeekEndingDate(date: Date): string {
   const day = date.getDay(); // 0 = Sunday, 6 = Saturday
-  const daysToSaturday = day === 6 ? 0 : (6 - day); // If already Saturday, stay on same day
+  
+  // For timesheet purposes, we want the most recent Saturday
+  // If today is Sunday, we want yesterday's Saturday
+  // If today is Monday-Saturday, we want the upcoming Saturday
+  let daysToSaturday;
+  
+  if (day === 0) {
+    // Sunday: go back 1 day to get yesterday's Saturday
+    daysToSaturday = -1;
+  } else if (day === 6) {
+    // Already Saturday: stay on same day
+    daysToSaturday = 0;
+  } else {
+    // Monday-Friday: go forward to upcoming Saturday
+    daysToSaturday = 6 - day;
+  }
+  
   const saturday = new Date(date);
   saturday.setDate(date.getDate() + daysToSaturday);
   
