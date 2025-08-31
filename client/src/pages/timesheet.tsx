@@ -145,6 +145,8 @@ export default function TimesheetPage() {
   const [currentEmployeeEmail, setCurrentEmployeeEmail] = useState<string>("");
   const [activeSection, setActiveSection] = useState("employee");
   const [isLoading, setIsLoading] = useState(false);
+  const [currentTimesheet, setCurrentTimesheet] = useState<any>(null);
+  const [dataSource, setDataSource] = useState<'schedule' | 'existing' | 'manual'>('manual');
   const [memberSearchQuery, setMemberSearchQuery] = useState("");
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [employeeEmail, setEmployeeEmail] = useState("");
@@ -160,7 +162,7 @@ export default function TimesheetPage() {
     defaultValues: {
       memberName: "",
       memberNumber: "",
-      weekEnding: "",
+      weekEnding: getCurrentWeekEndingDate(),
       sundayShifts: [],
       mondayShifts: [],
       tuesdayShifts: [],
@@ -204,9 +206,16 @@ export default function TimesheetPage() {
   });
 
   const timesheetQuery = useQuery({
-    queryKey: ['/api/timesheets', selectedEmployeeNumber, watchedValues.weekEnding],
-    queryFn: () => Promise.resolve(null),
+    queryKey: [`/api/timesheets/employee/${selectedEmployeeNumber}/${watchedValues.weekEnding}`],
     enabled: !!(selectedEmployeeNumber && watchedValues.weekEnding),
+    retry: false,
+  });
+
+  // Query for employee shifts from schedule
+  const employeeShiftsQuery = useQuery({
+    queryKey: [`/api/schedule/employee/${selectedEmployeeNumber}/week/${watchedValues.weekEnding}`],
+    enabled: !!(selectedEmployeeNumber && watchedValues.weekEnding),
+    retry: false,
   });
 
   const emailTimesheetMutation = useMutation({
@@ -244,7 +253,6 @@ export default function TimesheetPage() {
                     (watchedValues.fridayTotalHours || 0) +
                     (watchedValues.saturdayTotalHours || 0);
 
-  const currentTimesheet = timesheetQuery.data;
 
   // Populate dates when week ending changes
   useEffect(() => {
@@ -255,6 +263,84 @@ export default function TimesheetPage() {
       });
     }
   }, [watchedValues.weekEnding, setValue]);
+
+  // Load existing timesheet data when found
+  useEffect(() => {
+    if (timesheetQuery.data && typeof timesheetQuery.data === 'object' && timesheetQuery.data.id) {
+      const timesheet = timesheetQuery.data;
+      console.log('📋 Loading existing timesheet data:', timesheet);
+      setCurrentTimesheet(timesheet);
+      setDataSource('existing');
+      
+      // Populate form with existing timesheet data
+      setValue("memberName", timesheet.employeeName || "");
+      setValue("memberNumber", timesheet.employeeNumber || "");
+      setValue("weekEnding", timesheet.weekEnding || "");
+      
+      // Populate daily data
+      DAYS_OF_WEEK.forEach(({ key }) => {
+        setValue(`${key}Date` as keyof TimesheetFormData, timesheet[`${key}Date`] || "");
+        setValue(`${key}Shifts` as keyof TimesheetFormData, timesheet[`${key}Shifts`] || []);
+        setValue(`${key}TotalHours` as keyof TimesheetFormData, timesheet[`${key}TotalHours`] || 0);
+      });
+      
+      // Populate rescue coverage
+      setValue("rescueCoverageMonday", timesheet.rescueCoverageMonday || false);
+      setValue("rescueCoverageTuesday", timesheet.rescueCoverageTuesday || false);
+      setValue("rescueCoverageWednesday", timesheet.rescueCoverageWednesday || false);
+      setValue("rescueCoverageThursday", timesheet.rescueCoverageThursday || false);
+      
+      // Load signature data
+      if (timesheet.signatureData) {
+        setSignatureData(timesheet.signatureData);
+        setValue("signatureData", timesheet.signatureData);
+      }
+      
+      setValue("acknowledgmentChecked", timesheet.acknowledgmentChecked || false);
+      setValue("status", timesheet.status || "draft");
+      setValue("id", timesheet.id);
+      
+      console.log('✅ Existing timesheet loaded successfully');
+    }
+  }, [timesheetQuery.data, setValue]);
+
+  // Load schedule shifts when no existing timesheet found
+  useEffect(() => {
+    if (employeeShiftsQuery.data && !timesheetQuery.data && selectedEmployeeNumber && watchedValues.weekEnding) {
+      console.log('📅 Loading schedule shifts:', employeeShiftsQuery.data);
+      setDataSource('schedule');
+      
+      // Clear existing shifts first
+      DAYS_OF_WEEK.forEach(({ key }) => {
+        setValue(`${key}Shifts` as keyof TimesheetFormData, []);
+        setValue(`${key}TotalHours` as keyof TimesheetFormData, 0);
+      });
+      
+      // Process schedule shifts
+      employeeShiftsQuery.data.forEach((shift: any) => {
+        const shiftDate = new Date(shift.date);
+        const dayOfWeek = shiftDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        const dayKey = DAYS_OF_WEEK[dayOfWeek].key;
+        
+        if (shift.startTime && shift.endTime) {
+          const currentShifts = form.getValues(`${dayKey}Shifts` as keyof TimesheetFormData) as DayShift[] || [];
+          const hours = calculateHours(shift.startTime, shift.endTime);
+          
+          const newShift: DayShift = {
+            startTime: shift.startTime,
+            endTime: shift.endTime,
+            hours: hours
+          };
+          
+          const updatedShifts = [...currentShifts, newShift];
+          setValue(`${dayKey}Shifts` as keyof TimesheetFormData, updatedShifts);
+          updateDayTotalHours(dayKey, updatedShifts);
+        }
+      });
+      
+      console.log('✅ Schedule shifts loaded successfully');
+    }
+  }, [employeeShiftsQuery.data, timesheetQuery.data, selectedEmployeeNumber, watchedValues.weekEnding, setValue, form]);
 
   const handleEmployeeSelect = (employeeNumber: string) => {
     setSelectedEmployeeNumber(employeeNumber);
