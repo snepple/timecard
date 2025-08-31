@@ -1086,6 +1086,7 @@ export default function TimesheetPage() {
           hasEmployee={!!(watchedValues.memberName && watchedValues.memberNumber)}
           hasWeekEnding={!!watchedValues.weekEnding}
           hasTimeEntries={totalHours > 0}
+          hasRescueCoverage={watchedValues.rescueCoverageMonday || watchedValues.rescueCoverageTuesday || watchedValues.rescueCoverageWednesday || watchedValues.rescueCoverageThursday}
           hasSignature={!!(signatureData && signatureData.trim() !== '')}
           totalHours={totalHours}
           memberName={watchedValues.memberName}

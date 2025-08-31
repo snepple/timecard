@@ -6,6 +6,7 @@ interface ValidityFooterProps {
   hasEmployee: boolean;
   hasWeekEnding: boolean;
   hasTimeEntries: boolean;
+  hasRescueCoverage: boolean;
   hasSignature: boolean;
   totalHours: number;
   memberName?: string;
@@ -19,6 +20,7 @@ export function ValidityFooter({
   hasEmployee,
   hasWeekEnding,
   hasTimeEntries,
+  hasRescueCoverage,
   hasSignature,
   totalHours,
   memberName,
@@ -30,7 +32,7 @@ export function ValidityFooter({
   const requirements = [
     { name: 'Employee Selection', completed: hasEmployee },
     { name: 'Week Ending Date', completed: hasWeekEnding },
-    { name: 'Time Entries', completed: hasTimeEntries },
+    { name: 'Time Entries or Rescue Coverage', completed: hasTimeEntries || hasRescueCoverage },
     { name: 'Digital Signature', completed: hasSignature },
   ];
 
