@@ -574,7 +574,7 @@ export default function TimesheetPage() {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
-        <main className="flex-1 p-6 overflow-auto pb-2">
+        <main className="flex-1 p-6 pb-2">
           <div className="ios-mobile-spacing">
             <div className="flex justify-between items-center mb-6">
               <h1 className="ios-title-1 text-foreground">Weekly Timesheet</h1>
