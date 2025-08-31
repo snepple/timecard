@@ -346,12 +346,21 @@ export default function TimesheetPage() {
         const dayKey = DAYS_OF_WEEK[dayOfWeek].key;
         
         if (shift.startTime && shift.endTime) {
+          // Convert ISO timestamp to HH:MM format
+          const formatTimeFromISO = (isoString: string): string => {
+            const date = new Date(isoString);
+            return date.toTimeString().substring(0, 5); // Gets HH:MM
+          };
+          
+          const startTimeFormatted = formatTimeFromISO(shift.startTime);
+          const endTimeFormatted = formatTimeFromISO(shift.endTime);
+          
           const currentShifts = form.getValues(`${dayKey}Shifts` as keyof TimesheetFormData) as DayShift[] || [];
-          const hours = calculateHours(shift.startTime, shift.endTime);
+          const hours = calculateHours(startTimeFormatted, endTimeFormatted);
           
           const newShift: DayShift = {
-            startTime: shift.startTime,
-            endTime: shift.endTime,
+            startTime: startTimeFormatted,
+            endTime: endTimeFormatted,
             hours: hours
           };
           
