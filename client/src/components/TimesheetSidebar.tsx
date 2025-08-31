@@ -65,25 +65,17 @@ export function TimesheetSidebar({ sections, onSectionClick, activeSection }: Ti
 
 // Helper function to generate sections data
 export function generateTimesheetSections({
-  hasEmployee,
   hasWeekEnding,
   hasTimeEntries,
   hasRescueCoverage,
   hasSignature,
 }: {
-  hasEmployee: boolean;
   hasWeekEnding: boolean;
   hasTimeEntries: boolean;
   hasRescueCoverage: boolean;
   hasSignature: boolean;
 }): TimesheetSection[] {
   return [
-    {
-      id: 'employee',
-      label: 'Employee Info',
-      icon: <User className="w-4 h-4" />,
-      completed: hasEmployee,
-    },
     {
       id: 'week',
       label: 'Week Selection',

@@ -539,7 +539,6 @@ export default function TimesheetPage() {
   };
 
   const sections = generateTimesheetSections({
-    hasEmployee: !!(watchedValues.memberName && watchedValues.memberNumber),
     hasWeekEnding: !!watchedValues.weekEnding,
     hasTimeEntries: totalHours > 0,
     hasRescueCoverage: true,
