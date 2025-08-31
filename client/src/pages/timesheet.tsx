@@ -347,22 +347,14 @@ export default function TimesheetPage() {
       
       // Process schedule shifts
       employeeShiftsQuery.data.forEach((shift: any) => {
-        const shiftDate = new Date(shift.date);
+        // Fix date parsing to avoid timezone issues
+        const shiftDate = new Date(shift.date + 'T12:00:00');
         const dayOfWeek = shiftDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
         const dayKey = DAYS_OF_WEEK[dayOfWeek].key;
         
         // Check if this is a Night Duty shift
         const isNightDuty = shift.position === "Night Duty" || 
                            (shift.description && shift.description.includes("PositionName:Night Duty"));
-        
-        // Debug date calculation
-        console.log(`🔍 Processing shift on ${shift.date}:`, {
-          shiftDate: shiftDate.toDateString(),
-          dayOfWeek,
-          dayKey,
-          position: shift.position,
-          isNightDuty
-        });
         
         if (isNightDuty) {
           // For Night Duty shifts, check the appropriate rescue coverage checkbox
