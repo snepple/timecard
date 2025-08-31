@@ -6,11 +6,21 @@ export function getCurrentWeekEndingDate(): string {
   const today = new Date();
   const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
   
-  // Calculate days until Saturday
-  const daysUntilSaturday = 6 - dayOfWeek;
+  // For timesheet purposes, we want the most recent Saturday
+  // If today is Sunday, we want yesterday's Saturday
+  // If today is Monday-Saturday, we want the upcoming Saturday
+  let daysToSaturday;
+  
+  if (dayOfWeek === 0) {
+    // Sunday: go back 1 day to get yesterday's Saturday
+    daysToSaturday = -1;
+  } else {
+    // Monday-Saturday: go forward to upcoming Saturday
+    daysToSaturday = 6 - dayOfWeek;
+  }
   
   const saturday = new Date(today);
-  saturday.setDate(today.getDate() + daysUntilSaturday);
+  saturday.setDate(today.getDate() + daysToSaturday);
   
   return saturday.toISOString().split('T')[0];
 }
