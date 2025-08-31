@@ -474,12 +474,14 @@ export default function TimesheetPage() {
         </div>
       )}
 
-      {/* Sidebar Navigation */}
-      <TimesheetSidebar
-        sections={sections}
-        onSectionClick={handleSectionClick}
-        activeSection={activeSection}
-      />
+      {/* Sidebar Navigation - only show after member is selected */}
+      {selectedEmployeeNumber && (
+        <TimesheetSidebar
+          sections={sections}
+          onSectionClick={handleSectionClick}
+          activeSection={activeSection}
+        />
+      )}
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
@@ -982,15 +984,17 @@ export default function TimesheetPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Validity Footer */}
-      <ValidityFooter
-        hasEmployee={!!(watchedValues.memberName && watchedValues.memberNumber)}
-        hasWeekEnding={!!watchedValues.weekEnding}
-        hasTimeEntries={totalHours > 0}
-        hasAcknowledgment={!!watchedValues.acknowledgmentChecked}
-        hasSignature={!!(signatureData && signatureData.trim() !== '')}
-        totalHours={totalHours}
-      />
+      {/* Validity Footer - only show after member is selected */}
+      {selectedEmployeeNumber && (
+        <ValidityFooter
+          hasEmployee={!!(watchedValues.memberName && watchedValues.memberNumber)}
+          hasWeekEnding={!!watchedValues.weekEnding}
+          hasTimeEntries={totalHours > 0}
+          hasAcknowledgment={!!watchedValues.acknowledgmentChecked}
+          hasSignature={!!(signatureData && signatureData.trim() !== '')}
+          totalHours={totalHours}
+        />
+      )}
     </div>
   );
 }
