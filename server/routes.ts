@@ -2274,10 +2274,14 @@ Submission Date: {submissionDate}`
   // Admin Dashboard Statistics
   app.get('/api/admin/dashboard-stats', authenticateAdmin, async (req, res) => {
     try {
-      // Get current week ending date (this Saturday)
+      // Get current week ending date (most recent Saturday)
       const now = new Date();
       const currentSaturday = new Date(now);
-      currentSaturday.setDate(now.getDate() + (6 - now.getDay())); // Get this Saturday
+      
+      // If today is Sunday (0), we want last Saturday (-1 day)
+      // If today is Monday-Saturday (1-6), we want this Saturday
+      const daysToSaturday = now.getDay() === 0 ? -1 : (6 - now.getDay());
+      currentSaturday.setDate(now.getDate() + daysToSaturday);
       currentSaturday.setHours(0, 0, 0, 0);
       const weekEnding = currentSaturday.toISOString().split('T')[0];
 
