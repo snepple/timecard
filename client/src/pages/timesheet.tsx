@@ -20,6 +20,7 @@ import SignaturePad from "@/components/ui/signature-pad";
 import { getCurrentWeekEndingDate, isSaturday, getNextSaturday, getPreviousSaturday, formatDateShort } from "@/lib/date-utils";
 import { TimesheetSidebar, generateTimesheetSections } from "@/components/TimesheetSidebar";
 import { ValidityFooter } from "@/components/ValidityFooter";
+import { SubmissionNotification } from "@/components/ui/submission-notification";
 import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle, Check, RotateCcw, LogOut, Plus, Trash2, Download, Shield } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -525,6 +526,14 @@ export default function TimesheetPage() {
                 Admin Login
               </a>
             </div>
+            
+            {/* Submission Notification for existing timesheets */}
+            {currentTimesheet && currentTimesheet.lastActivityInfo && (
+              <SubmissionNotification 
+                lastActivityInfo={currentTimesheet.lastActivityInfo}
+                weekEnding={currentTimesheet.weekEnding}
+              />
+            )}
             
             <Form {...form}>
               <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
