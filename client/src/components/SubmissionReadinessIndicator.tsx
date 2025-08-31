@@ -5,7 +5,6 @@ interface SubmissionReadinessIndicatorProps {
   hasEmployee: boolean;
   hasWeekEnding: boolean;
   hasTimeEntries: boolean;
-  hasAcknowledgment: boolean;
   hasSignature: boolean;
   totalHours: number;
   compact?: boolean;
@@ -15,7 +14,6 @@ export function SubmissionReadinessIndicator({
   hasEmployee,
   hasWeekEnding,
   hasTimeEntries,
-  hasAcknowledgment,
   hasSignature,
   totalHours,
   compact = false
@@ -24,7 +22,6 @@ export function SubmissionReadinessIndicator({
     { name: 'Employee Selected', completed: hasEmployee },
     { name: 'Week Selected', completed: hasWeekEnding },
     { name: 'Time Entries', completed: hasTimeEntries },
-    { name: 'Acknowledgment', completed: hasAcknowledgment },
     { name: 'Digital Signature', completed: hasSignature }
   ];
 

@@ -6,7 +6,6 @@ interface ValidityFooterProps {
   hasEmployee: boolean;
   hasWeekEnding: boolean;
   hasTimeEntries: boolean;
-  hasAcknowledgment: boolean;
   hasSignature: boolean;
   totalHours: number;
 }
@@ -15,7 +14,6 @@ export function ValidityFooter({
   hasEmployee,
   hasWeekEnding,
   hasTimeEntries,
-  hasAcknowledgment,
   hasSignature,
   totalHours
 }: ValidityFooterProps) {
@@ -23,7 +21,6 @@ export function ValidityFooter({
     { name: 'Employee Selection', completed: hasEmployee },
     { name: 'Week Ending Date', completed: hasWeekEnding },
     { name: 'Time Entries', completed: hasTimeEntries },
-    { name: 'Acknowledgment', completed: hasAcknowledgment },
     { name: 'Digital Signature', completed: hasSignature },
   ];
 

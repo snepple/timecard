@@ -69,14 +69,12 @@ export function generateTimesheetSections({
   hasWeekEnding,
   hasTimeEntries,
   hasRescueCoverage,
-  hasAcknowledgment,
   hasSignature,
 }: {
   hasEmployee: boolean;
   hasWeekEnding: boolean;
   hasTimeEntries: boolean;
   hasRescueCoverage: boolean;
-  hasAcknowledgment: boolean;
   hasSignature: boolean;
 }): TimesheetSection[] {
   return [
@@ -106,9 +104,9 @@ export function generateTimesheetSections({
     },
     {
       id: 'finalization',
-      label: 'Acknowledgment & Signature',
+      label: 'Digital Signature',
       icon: <PenTool className="w-4 h-4" />,
-      completed: hasAcknowledgment && hasSignature,
+      completed: hasSignature,
     },
   ];
 }

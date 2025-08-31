@@ -89,9 +89,6 @@ const timesheetSchema = z.object({
   rescueCoverageThursday: z.boolean().default(false),
   
   signatureData: z.string().min(1, "Digital signature is required before submitting"),
-  acknowledgmentChecked: z.boolean().refine(val => val === true, {
-    message: "You must acknowledge that you have reviewed all times and totals for accuracy"
-  }),
   
   // Employee edit fields
   isEditingPreviousSubmission: z.boolean().default(false),
@@ -174,7 +171,6 @@ export default function TimesheetPage() {
       rescueCoverageTuesday: false,
       rescueCoverageWednesday: false,
       rescueCoverageThursday: false,
-      acknowledgmentChecked: false,
       signatureData: "",
       isEditingPreviousSubmission: false,
     },
@@ -319,7 +315,6 @@ export default function TimesheetPage() {
         setValue("signatureData", timesheet.signatureData);
       }
       
-      setValue("acknowledgmentChecked", timesheet.acknowledgmentChecked || false);
       setValue("status", timesheet.status || "draft");
       setValue("id", timesheet.id);
       
@@ -509,7 +504,6 @@ export default function TimesheetPage() {
     hasWeekEnding: !!watchedValues.weekEnding,
     hasTimeEntries: totalHours > 0,
     hasRescueCoverage: true,
-    hasAcknowledgment: !!watchedValues.acknowledgmentChecked,
     hasSignature: !!(signatureData && signatureData.trim() !== ''),
   });
 
@@ -937,36 +931,11 @@ export default function TimesheetPage() {
                         
                         <FormField
                           control={form.control}
-                          name="acknowledgmentChecked"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 mb-6">
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                  data-testid="checkbox-acknowledgment"
-                                />
-                              </FormControl>
-                              <div className="space-y-1 leading-none">
-                                <FormLabel className="text-sm font-medium text-secondary">
-                                  I acknowledge that I have reviewed all times and totals for accuracy
-                                </FormLabel>
-                                <FormDescription className="text-sm text-muted-foreground">
-                                  By checking this box, you confirm that all time entries are correct and complete.
-                                </FormDescription>
-                              </div>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
                           name="signatureData"
                           render={() => (
                             <FormItem>
                               <FormDescription className="text-sm text-muted-foreground mb-4">
-                                By signing, I attest that the hours submitted are a complete and accurate record of my time worked.
+                                By signing below, I acknowledge that I have reviewed all times and totals for accuracy, confirm that all time entries are correct and complete, and attest that the hours submitted are a complete and accurate record of my time worked.
                               </FormDescription>
                               <FormControl>
                                 <SignaturePad
@@ -1067,7 +1036,6 @@ export default function TimesheetPage() {
           hasEmployee={!!(watchedValues.memberName && watchedValues.memberNumber)}
           hasWeekEnding={!!watchedValues.weekEnding}
           hasTimeEntries={totalHours > 0}
-          hasAcknowledgment={!!watchedValues.acknowledgmentChecked}
           hasSignature={!!(signatureData && signatureData.trim() !== '')}
           totalHours={totalHours}
         />
