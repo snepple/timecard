@@ -20,7 +20,7 @@ import SignaturePad from "@/components/ui/signature-pad";
 import { getCurrentWeekEndingDate, isSaturday, getNextSaturday, getPreviousSaturday, formatDateShort } from "@/lib/date-utils";
 import { TimesheetSidebar, generateTimesheetSections } from "@/components/TimesheetSidebar";
 import { ValidityFooter } from "@/components/ValidityFooter";
-import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle, Check, RotateCcw, LogOut, Plus, Trash2, Download } from "lucide-react";
+import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle, Check, RotateCcw, LogOut, Plus, Trash2, Download, Shield } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
@@ -485,7 +485,17 @@ export default function TimesheetPage() {
       <div className="flex-1 flex flex-col">
         <main className="flex-1 p-6 overflow-auto pb-6">
           <div className="ios-mobile-spacing">
-            <h1 className="ios-title-1 text-foreground mb-6">Weekly Timesheet</h1>
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="ios-title-1 text-foreground">Weekly Timesheet</h1>
+              <a
+                href="/admin"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 px-3 py-2 text-sm inline-flex items-center rounded-md font-medium transition-colors"
+                data-testid="nav-admin"
+              >
+                <Shield className="h-4 w-4 mr-1" />
+                Admin Login
+              </a>
+            </div>
             
             <Form {...form}>
               <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
