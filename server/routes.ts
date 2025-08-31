@@ -2289,9 +2289,18 @@ Submission Date: {submissionDate}`
       const scheduleData = await storage.getScheduleData();
       const totalEmployees = scheduleData?.employees?.length || 0;
 
-      // Get scheduled employees for current week
-      const scheduledEmployees = await storage.getScheduledEmployeesForWeek(weekEnding);
-      const scheduledCount = scheduledEmployees.length;
+      // Get scheduled employees for current week by checking actual schedule data
+      // Count employees who have any shifts scheduled for this week
+      let scheduledCount = 0;
+      if (scheduleData?.employees) {
+        // For each employee, check if they have shifts for this week
+        for (const employee of scheduleData.employees) {
+          const employeeSchedule = await storage.getEmployeeScheduleForWeek(employee.employeeNumber, weekEnding);
+          if (employeeSchedule && employeeSchedule.length > 0) {
+            scheduledCount++;
+          }
+        }
+      }
 
       // Get submitted timecards for current week
       const allTimecards = await storage.getAllTimesheets();
