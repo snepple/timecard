@@ -1634,7 +1634,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
           <h1 className="ios-title-1 text-foreground mb-2">Weekly Timesheet</h1>
           
           {/* Combined notification for submitted timesheets */}
-          {currentTimesheet && (currentTimesheet.status === 'submitted' || currentTimesheet.status === 'approved') && (
+          {currentTimesheet && (currentTimesheet.status === 'submitted' || currentTimesheet.status === 'approved') ? (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
               <div className="flex items-start gap-3">
                 <div className="flex flex-col items-center gap-1 mt-1">
@@ -1681,7 +1681,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
           </div>
           
           {/* Digital Signature Section */}
@@ -1897,7 +1897,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
           {/* Week Selection Section */}
           <div id="section-week">
             {/* Week Selection Card - Only show when employee is selected */}
-            {selectedEmployeeNumber && (
+            {selectedEmployeeNumber ? (
               <div className="ios-card">
                 <div className="p-6">
                   <h2 className="ios-headline mb-4" data-testid="heading-week-selection">
@@ -1918,10 +1918,10 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                   />
                 </div>
               </div>
-            )}
+            ) : null}
 
             {/* Show rest of form only when both employee and week are selected */}
-            {selectedEmployeeNumber && watchedValues.weekEnding && (
+            {selectedEmployeeNumber && watchedValues.weekEnding ? (
               <div className="space-y-4">
                 {/* Submission Readiness Indicator - Full Version */}
                 <SubmissionReadinessIndicator
@@ -2387,9 +2387,11 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
               </Button>
             </div>
           </div>
-        </form>
-      </Form>
-      </main>
+          </div>
+            ) : null}
+          </form>
+        </Form>
+        </main>
 
 
       {/* Employee ID Prompt Dialog */}
