@@ -305,7 +305,12 @@ export default function TimesheetPage() {
       // Populate daily data
       DAYS_OF_WEEK.forEach(({ key }) => {
         setValue(`${key}Date` as keyof TimesheetFormData, timesheet[`${key}Date`] || "");
-        setValue(`${key}Shifts` as keyof TimesheetFormData, timesheet[`${key}Shifts`] || []);
+        
+        // Parse shifts from JSON string to array
+        const shiftsData = timesheet[`${key}Shifts`];
+        const parsedShifts = typeof shiftsData === 'string' ? JSON.parse(shiftsData) : shiftsData || [];
+        setValue(`${key}Shifts` as keyof TimesheetFormData, parsedShifts);
+        
         setValue(`${key}TotalHours` as keyof TimesheetFormData, timesheet[`${key}TotalHours`] || 0);
       });
       
@@ -691,7 +696,9 @@ export default function TimesheetPage() {
                         <h2 className="ios-headline mb-4">Daily Time Entry</h2>
                         
                         {DAYS_OF_WEEK.map(({ key, label }) => {
-                          const dayShifts = watchedValues[`${key}Shifts` as keyof TimesheetFormData] as DayShift[] || [];
+                          // Ensure dayShifts is always an array
+                          const shiftsValue = watchedValues[`${key}Shifts` as keyof TimesheetFormData];
+                          const dayShifts = Array.isArray(shiftsValue) ? shiftsValue : [];
                           const dayDate = watchedValues[`${key}Date` as keyof TimesheetFormData] as string || "";
                           const dayTotalHours = watchedValues[`${key}TotalHours` as keyof TimesheetFormData] as number || 0;
 
