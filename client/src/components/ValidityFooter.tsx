@@ -8,6 +8,11 @@ interface ValidityFooterProps {
   hasTimeEntries: boolean;
   hasSignature: boolean;
   totalHours: number;
+  memberName?: string;
+  memberNumber?: string;
+  memberEmail?: string;
+  onMemberNameClick?: () => void;
+  onChangeMember?: () => void;
 }
 
 export function ValidityFooter({
@@ -15,7 +20,12 @@ export function ValidityFooter({
   hasWeekEnding,
   hasTimeEntries,
   hasSignature,
-  totalHours
+  totalHours,
+  memberName,
+  memberNumber,
+  memberEmail,
+  onMemberNameClick,
+  onChangeMember
 }: ValidityFooterProps) {
   const requirements = [
     { name: 'Employee Selection', completed: hasEmployee },
@@ -46,9 +56,30 @@ export function ValidityFooter({
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3 z-50">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
-        {/* Left side - Additional info */}
+        {/* Left side - Member info */}
         <div className="flex items-center gap-4 text-sm text-gray-600">
-          <span>Oakland Fire Department</span>
+          {memberName && memberNumber ? (
+            <>
+              <button 
+                onClick={onMemberNameClick}
+                className="text-blue-600 hover:text-blue-800 underline cursor-pointer"
+                data-testid="member-name-button"
+              >
+                {memberName}
+              </button>
+              <span>#{memberNumber}</span>
+              {memberEmail && <span>{memberEmail}</span>}
+              <button 
+                onClick={onChangeMember}
+                className="ml-2 px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded text-gray-700"
+                data-testid="change-member-footer-button"
+              >
+                Change Member
+              </button>
+            </>
+          ) : (
+            <span>Oakland Fire Department</span>
+          )}
           {hasTimeEntries && (
             <span>Total Hours: {totalHours.toFixed(1)}</span>
           )}

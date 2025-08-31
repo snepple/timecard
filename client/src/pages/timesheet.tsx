@@ -148,6 +148,8 @@ export default function TimesheetPage() {
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [employeeEmail, setEmployeeEmail] = useState("");
   const [showChangeMemberDialog, setShowChangeMemberDialog] = useState(false);
+  const [showEditEmailDialog, setShowEditEmailDialog] = useState(false);
+  const [editingEmail, setEditingEmail] = useState('');
   const [showEmployeeIdPrompt, setShowEmployeeIdPrompt] = useState(false);
   const [employeeIdInput, setEmployeeIdInput] = useState("");
   const [tempEmployeeData, setTempEmployeeData] = useState<any>(null);
@@ -593,7 +595,7 @@ export default function TimesheetPage() {
               <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
                 {/* Employee Selection Section */}
                 <div id="section-employee">
-                  {!selectedEmployeeNumber ? (
+                  {!selectedEmployeeNumber && (
                     <Card>
                       <CardContent className="p-6">
                         <h2 className="ios-headline mb-4" data-testid="heading-employee-selection">
@@ -681,38 +683,6 @@ export default function TimesheetPage() {
                                 {memberSearchQuery ? 'No members found matching your search.' : 'No active members found.'}
                               </div>
                             )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <Card className="bg-primary/5 border-l-4 border-primary">
-                      <CardContent className="p-6">
-                        <div className="flex justify-between items-center mb-4">
-                          <h2 className="ios-headline" data-testid="heading-selected-member">
-                            Selected Member
-                          </h2>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setShowChangeMemberDialog(true)}
-                            className="text-sm"
-                            data-testid="change-member-button"
-                          >
-                            <Users className="mr-2 h-4 w-4" />
-                            Select Different Member
-                          </Button>
-                        </div>
-                        
-                        <div className="flex items-center space-x-4">
-                          <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                            <User className="h-6 w-6 text-primary" />
-                          </div>
-                          <div>
-                            <p className="ios-body font-medium text-foreground">
-                              {scheduleQuery.data?.employees?.find((emp) => emp.employeeNumber === selectedEmployeeNumber)?.fullName}
-                            </p>
-                            <p className="ios-footnote text-muted-foreground">Member #: {selectedEmployeeNumber}</p>
                           </div>
                         </div>
                       </CardContent>
@@ -1055,6 +1025,49 @@ export default function TimesheetPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Edit Email Dialog */}
+      <Dialog open={showEditEmailDialog} onOpenChange={setShowEditEmailDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Email Address</DialogTitle>
+            <DialogDescription>
+              Update the email address for {watchedValues.memberName}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Email Address</label>
+              <input
+                type="email"
+                value={editingEmail}
+                onChange={(e) => setEditingEmail(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded mt-1"
+                placeholder="Enter email address"
+                data-testid="input-edit-email"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowEditEmailDialog(false)}
+                data-testid="button-cancel-email"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setCurrentEmployeeEmail(editingEmail);
+                  setShowEditEmailDialog(false);
+                }}
+                data-testid="button-save-email"
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Validity Footer - only show after member is selected */}
       {selectedEmployeeNumber && (
         <ValidityFooter
@@ -1063,6 +1076,14 @@ export default function TimesheetPage() {
           hasTimeEntries={totalHours > 0}
           hasSignature={!!(signatureData && signatureData.trim() !== '')}
           totalHours={totalHours}
+          memberName={watchedValues.memberName}
+          memberNumber={watchedValues.memberNumber}
+          memberEmail={currentEmployeeEmail}
+          onMemberNameClick={() => {
+            setEditingEmail(currentEmployeeEmail);
+            setShowEditEmailDialog(true);
+          }}
+          onChangeMember={() => setShowChangeMemberDialog(true)}
         />
       )}
     </div>
