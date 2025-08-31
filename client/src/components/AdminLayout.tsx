@@ -35,7 +35,7 @@ interface SidebarItem {
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [location] = useLocation();
-  const [expandedItems, setExpandedItems] = useState<string[]>(['reports']);
+  const [expandedItems, setExpandedItems] = useState<string[]>(['reports', 'settings']);
 
   const toggleExpanded = (label: string) => {
     setExpandedItems(prev => 
@@ -83,16 +83,22 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       active: location === '/admin/member-management'
     },
     {
-      label: 'Email Settings',
-      href: '/admin/email-settings',
-      icon: <Mail className="h-5 w-5" />,
-      active: location === '/admin/email-settings'
-    },
-    {
-      label: 'Schedule Management',
-      href: '/admin/schedule',
-      icon: <CalendarIcon className="h-5 w-5" />,
-      active: location === '/admin/schedule'
+      label: 'Settings',
+      icon: <Settings className="h-5 w-5" />,
+      children: [
+        {
+          label: 'Email Settings',
+          href: '/admin/email-settings',
+          icon: <Mail className="h-4 w-4" />,
+          active: location === '/admin/email-settings'
+        },
+        {
+          label: 'Schedule Management',
+          href: '/admin/schedule',
+          icon: <CalendarIcon className="h-4 w-4" />,
+          active: location === '/admin/schedule'
+        }
+      ]
     }
   ];
 
