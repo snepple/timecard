@@ -804,12 +804,12 @@ export default function TimesheetPage() {
                   </div>
                 )}
 
-                {/* Rescue Coverage Section */}
+                {/* Weekday Rescue Coverage Section */}
                 {selectedEmployeeNumber && watchedValues.weekEnding && (
                   <div id="section-rescue">
                     <Card>
                       <CardContent className="p-6">
-                        <h2 className="ios-headline mb-4">Rescue Coverage</h2>
+                        <h2 className="ios-headline mb-4">Weekday Rescue Coverage</h2>
                         <p className="text-sm text-muted-foreground mb-4">
                           Check the days you provided rescue coverage (optional).
                         </p>
