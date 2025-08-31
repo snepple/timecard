@@ -463,7 +463,7 @@ export default function TimesheetPage() {
   };
 
   return (
-    <div className="bg-gray-50 flex h-screen max-h-screen">
+    <div className="bg-gray-50 flex h-screen max-h-screen overflow-hidden">
       {/* Loading Overlay */}
       {(isLoading || emailTimesheetMutation.isPending) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -476,11 +476,13 @@ export default function TimesheetPage() {
 
       {/* Sidebar Navigation - only show after member is selected */}
       {selectedEmployeeNumber && (
-        <TimesheetSidebar
-          sections={sections}
-          onSectionClick={handleSectionClick}
-          activeSection={activeSection}
-        />
+        <div className="animate-in slide-in-from-left-full duration-500 ease-out">
+          <TimesheetSidebar
+            sections={sections}
+            onSectionClick={handleSectionClick}
+            activeSection={activeSection}
+          />
+        </div>
       )}
 
       {/* Main Content Area */}
