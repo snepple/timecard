@@ -196,15 +196,7 @@ export default function TimesheetPage() {
     saturday.setDate(today.getDate() + daysToSaturday);
     const correctWeekEnding = saturday.toISOString().split('T')[0];
     
-    console.log('🔧 Today is:', today.toDateString(), 'Day of week:', dayOfWeek);
-    console.log('🔧 Days to Saturday:', daysToSaturday);
-    console.log('🔧 Saturday date object:', saturday.toDateString());
-    console.log('🔧 Setting correct week ending date:', correctWeekEnding);
-    
-    // Force the specific date we know is correct for today
-    const forcedCorrectDate = "2025-08-30";
-    console.log('🔧 FORCING date to:', forcedCorrectDate);
-    setValue("weekEnding", forcedCorrectDate);
+    setValue("weekEnding", correctWeekEnding);
   }, [setValue]);
   const watchedValues = watch();
 
@@ -785,7 +777,7 @@ export default function TimesheetPage() {
                           <div className="flex justify-between items-center">
                             <span className="text-lg font-semibold">Total Weekly Hours:</span>
                             <span className="text-2xl font-bold text-blue-600" data-testid="text-total-weekly-hours">
-                              {totalHours.toFixed(2)}
+                              {Number(totalHours || 0).toFixed(2)}
                             </span>
                           </div>
                         </div>
