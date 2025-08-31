@@ -71,9 +71,20 @@ interface TimecardSummaryResponse {
 function getCurrentWeekEnding(): string {
   const today = new Date();
   const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
-  const daysUntilSaturday = (6 - dayOfWeek) % 7;
+  
+  // Calculate days to the most recent completed Saturday
+  // Work week: Sunday to Saturday, so we want the Saturday that just passed
+  let daysToSaturday;
+  if (dayOfWeek === 0) { // If today is Sunday
+    daysToSaturday = -1; // Use yesterday (Saturday)
+  } else if (dayOfWeek === 6) { // If today is Saturday
+    daysToSaturday = -7; // Use last Saturday (previous week)
+  } else { // Monday through Friday
+    daysToSaturday = dayOfWeek - 6; // Use last Saturday
+  }
+  
   const saturday = new Date(today);
-  saturday.setDate(today.getDate() + daysUntilSaturday);
+  saturday.setDate(today.getDate() + daysToSaturday);
   return saturday.toISOString().split('T')[0];
 }
 
