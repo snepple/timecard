@@ -125,6 +125,12 @@ const DAYS_OF_WEEK = [
 
 interface ScheduleData {
   shifts: any[];
+  employees?: Array<{
+    employeeNumber: string;
+    fullName: string;
+    firstName?: string;
+    lastName?: string;
+  }>;
 }
 
 interface Shift {
@@ -175,15 +181,20 @@ export default function TimesheetPage() {
   const { watch, setValue, handleSubmit: formHandleSubmit } = form;
   const watchedValues = watch();
 
-  // Mock queries for now - replace with actual API calls
-  const scheduleQuery = useQuery({
+  // Fetch schedule data (includes employee information)
+  const scheduleQuery = useQuery<ScheduleData>({
     queryKey: ['/api/schedule'],
-    queryFn: () => Promise.resolve({ shifts: [] } as ScheduleData),
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
-  const employeeNumbersQuery = useQuery({
-    queryKey: ['/api/employees'],
-    queryFn: () => Promise.resolve([]),
+  // Fetch employee numbers from database
+  const employeeNumbersQuery = useQuery<Array<{ id: string; employeeName: string; employeeNumber: string; active: boolean }>>({
+    queryKey: ['/api/employee-numbers'],
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const employeeEmailQuery = useQuery({
@@ -248,9 +259,14 @@ export default function TimesheetPage() {
   const handleEmployeeSelect = (employeeNumber: string) => {
     setSelectedEmployeeNumber(employeeNumber);
     setValue("memberNumber", employeeNumber);
+    
     // Get employee name from schedule data
-    // This would be replaced with actual employee data
-    setValue("memberName", "Employee Name");
+    const employee = scheduleQuery.data?.employees?.find(emp => emp.employeeNumber === employeeNumber);
+    if (employee) {
+      setValue("memberName", employee.fullName);
+    }
+    
+    setMemberSearchQuery('');
   };
 
   const handleWeekEndingChange = (weekEnding: string) => {
@@ -417,23 +433,67 @@ export default function TimesheetPage() {
                           </div>
                           
                           <div className="space-y-2 max-h-64 overflow-y-auto">
-                            <Button
-                              key="test-employee"
-                              variant="ghost"
-                              className="w-full h-16 flex items-center justify-start p-4 text-left"
-                              onClick={() => handleEmployeeSelect("123")}
-                              data-testid="select-employee-123"
-                            >
-                              <div className="flex items-center w-full">
-                                <div className="flex-1">
-                                  <div className="font-medium text-base">Test Employee</div>
-                                  <div className="text-sm text-muted-foreground">Member #123</div>
-                                </div>
-                                {selectedEmployeeNumber === "123" && (
-                                  <Check className="ml-2 h-5 w-5 text-primary" />
-                                )}
+                            {scheduleQuery.isLoading ? (
+                              <div className="space-y-2">
+                                {Array.from({ length: 3 }).map((_, index) => (
+                                  <div key={index} className="h-16 bg-muted animate-pulse rounded"></div>
+                                ))}
                               </div>
-                            </Button>
+                            ) : (
+                              scheduleQuery.data?.employees
+                                ?.filter((employee) => {
+                                  const dbEmployee = employeeNumbersQuery.data?.find(emp => emp.employeeNumber === employee.employeeNumber);
+                                  const isActive = !dbEmployee || dbEmployee.active !== false;
+                                  const searchLower = memberSearchQuery.toLowerCase();
+                                  const matchesSearch = searchLower === '' || 
+                                    employee.fullName.toLowerCase().includes(searchLower) ||
+                                    employee.employeeNumber.toLowerCase().includes(searchLower);
+                                  return isActive && matchesSearch;
+                                })
+                                .sort((a, b) => {
+                                  const aLastName = a.lastName || a.fullName.split(' ').pop() || '';
+                                  const bLastName = b.lastName || b.fullName.split(' ').pop() || '';
+                                  return aLastName.localeCompare(bLastName);
+                                })
+                                .map((employee) => (
+                                  <Button
+                                    key={employee.employeeNumber}
+                                    variant={selectedEmployeeNumber === employee.employeeNumber ? "default" : "ghost"}
+                                    className="w-full h-16 flex items-center justify-start p-4 text-left"
+                                    onClick={() => handleEmployeeSelect(employee.employeeNumber)}
+                                    data-testid={`select-employee-${employee.employeeNumber}`}
+                                  >
+                                    <div className="flex items-center w-full">
+                                      <div className="flex-1">
+                                        <div className="font-medium text-base">
+                                          {`${employee.lastName || employee.fullName.split(' ').pop()}, ${employee.firstName || employee.fullName.split(' ').slice(0, -1).join(' ')}`}
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">
+                                          Member #{employee.employeeNumber}
+                                        </div>
+                                      </div>
+                                      {selectedEmployeeNumber === employee.employeeNumber && (
+                                        <Check className="ml-2 h-5 w-5 text-primary" />
+                                      )}
+                                    </div>
+                                  </Button>
+                                ))
+                            )}
+                            
+                            {scheduleQuery.data?.employees
+                              ?.filter((employee) => {
+                                const dbEmployee = employeeNumbersQuery.data?.find(emp => emp.employeeNumber === employee.employeeNumber);
+                                const isActive = !dbEmployee || dbEmployee.active !== false;
+                                const searchLower = memberSearchQuery.toLowerCase();
+                                const matchesSearch = searchLower === '' || 
+                                  employee.fullName.toLowerCase().includes(searchLower) ||
+                                  employee.employeeNumber.toLowerCase().includes(searchLower);
+                                return isActive && matchesSearch;
+                              }).length === 0 && !scheduleQuery.isLoading && (
+                              <div className="text-center py-8 text-muted-foreground">
+                                {memberSearchQuery ? 'No members found matching your search.' : 'No active members found.'}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </CardContent>
@@ -462,7 +522,9 @@ export default function TimesheetPage() {
                             <User className="h-6 w-6 text-primary" />
                           </div>
                           <div>
-                            <p className="ios-body font-medium text-foreground">Test Employee</p>
+                            <p className="ios-body font-medium text-foreground">
+                              {scheduleQuery.data?.employees?.find((emp) => emp.employeeNumber === selectedEmployeeNumber)?.fullName}
+                            </p>
                             <p className="ios-footnote text-muted-foreground">Member #: {selectedEmployeeNumber}</p>
                           </div>
                         </div>
