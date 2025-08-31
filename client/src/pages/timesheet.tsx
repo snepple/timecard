@@ -221,8 +221,13 @@ export default function TimesheetPage() {
   });
 
   const employeeEmailQuery = useQuery({
-    queryKey: ['/api/employee-email', selectedEmployeeNumber],
-    queryFn: () => Promise.resolve(""),
+    queryKey: ['/api/employee-numbers', selectedEmployeeNumber, 'email'],
+    queryFn: async () => {
+      const response = await fetch(`/api/employee-numbers/${selectedEmployeeNumber}/email`);
+      if (!response.ok) return "";
+      const data = await response.json();
+      return data.email || "";
+    },
     enabled: !!selectedEmployeeNumber,
   });
 
@@ -401,6 +406,13 @@ export default function TimesheetPage() {
       console.log('✅ Schedule shifts loaded successfully');
     }
   }, [employeeShiftsQuery.data, timesheetQuery.data, selectedEmployeeNumber, watchedValues.weekEnding, setValue, form]);
+
+  // Initialize employee email when loaded
+  useEffect(() => {
+    if (employeeEmailQuery.data && selectedEmployeeNumber) {
+      setCurrentEmployeeEmail(employeeEmailQuery.data);
+    }
+  }, [employeeEmailQuery.data, selectedEmployeeNumber]);
 
   const handleEmployeeSelect = (employeeNumber: string) => {
     setSelectedEmployeeNumber(employeeNumber);
