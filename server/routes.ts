@@ -2292,19 +2292,23 @@ Submission Date: {submissionDate}`
       // Get scheduled employees for current week by checking actual schedule data
       // Count employees who have any shifts scheduled for this week
       let scheduledCount = 0;
-      if (scheduleData?.employees) {
-        // For each employee, check if they have shifts for this week by calling the API
+      if (scheduleData?.employees && scheduleData?.shifts) {
+        // Calculate week range for filtering shifts
+        const endDate = new Date(weekEnding); 
+        const startDate = new Date(endDate);
+        startDate.setDate(endDate.getDate() - 6); // Go back 6 days to Sunday
+
+        // For each employee, check if they have shifts for this week
         for (const employee of scheduleData.employees) {
-          try {
-            const employeeScheduleResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${employee.employeeNumber}/week/${weekEnding}`);
-            if (employeeScheduleResponse.ok) {
-              const employeeSchedule = await employeeScheduleResponse.json();
-              if (employeeSchedule && employeeSchedule.length > 0) {
-                scheduledCount++;
-              }
-            }
-          } catch (error) {
-            console.error(`Error fetching schedule for employee ${employee.employeeNumber}:`, error);
+          const employeeShifts = scheduleData.shifts.filter((shift: any) => {
+            const shiftDate = new Date(shift.date);
+            return shift.employeeNumber === employee.employeeNumber &&
+                   shiftDate >= startDate && 
+                   shiftDate <= endDate;
+          });
+          
+          if (employeeShifts.length > 0) {
+            scheduledCount++;
           }
         }
       }
