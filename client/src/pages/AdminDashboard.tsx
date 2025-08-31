@@ -24,7 +24,7 @@ export default function AdminDashboard() {
     queryFn: async () => {
       const response = await fetch('/api/admin/dashboard-stats');
       if (!response.ok) throw new Error('Failed to fetch dashboard stats');
-      return response.json() as DashboardStats;
+      return response.json();
     },
   });
 

@@ -41,6 +41,20 @@ function AuthenticatedRouter() {
         />
       );
     }
+    return <SupervisorDashboard />;
+  };
+
+  const AdminRoute = () => {
+    if (!isAdminAuthenticated) {
+      return (
+        <LoginScreen 
+          type="admin" 
+          onSuccess={() => {
+            setShowAdminLogin(false);
+          }} 
+        />
+      );
+    }
     return <AdminDashboard />;
   };
 
@@ -51,7 +65,7 @@ function AuthenticatedRouter() {
         <Switch>
           <Route path="/" component={() => <TimesheetPage logout={logout} />} />
           <Route path="/supervisor" component={SupervisorRoute} />
-          <Route path="/admin" component={SupervisorRoute} />
+          <Route path="/admin" component={AdminRoute} />
           <Route path="/admin/:rest*" component={SupervisorRoute} />
           <Route component={NotFound} />
         </Switch>
