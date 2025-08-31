@@ -180,6 +180,13 @@ export default function TimesheetPage() {
   });
 
   const { watch, setValue, handleSubmit: formHandleSubmit } = form;
+
+  // Force correct week ending date on mount
+  useEffect(() => {
+    const correctWeekEnding = getCurrentWeekEndingDate();
+    console.log('🔧 Setting correct week ending date:', correctWeekEnding);
+    setValue("weekEnding", correctWeekEnding);
+  }, [setValue]);
   const watchedValues = watch();
 
   // Fetch schedule data (includes employee information)
