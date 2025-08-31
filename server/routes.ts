@@ -2293,11 +2293,18 @@ Submission Date: {submissionDate}`
       // Count employees who have any shifts scheduled for this week
       let scheduledCount = 0;
       if (scheduleData?.employees) {
-        // For each employee, check if they have shifts for this week
+        // For each employee, check if they have shifts for this week by calling the API
         for (const employee of scheduleData.employees) {
-          const employeeSchedule = await storage.getEmployeeScheduleForWeek(employee.employeeNumber, weekEnding);
-          if (employeeSchedule && employeeSchedule.length > 0) {
-            scheduledCount++;
+          try {
+            const employeeScheduleResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${employee.employeeNumber}/week/${weekEnding}`);
+            if (employeeScheduleResponse.ok) {
+              const employeeSchedule = await employeeScheduleResponse.json();
+              if (employeeSchedule && employeeSchedule.length > 0) {
+                scheduledCount++;
+              }
+            }
+          } catch (error) {
+            console.error(`Error fetching schedule for employee ${employee.employeeNumber}:`, error);
           }
         }
       }
