@@ -72,15 +72,13 @@ function getCurrentWeekEnding(): string {
   const today = new Date();
   const dayOfWeek = today.getDay(); // 0 = Sunday, 6 = Saturday
   
-  // Calculate days to the most recent completed Saturday
-  // Work week: Sunday to Saturday, so we want the Saturday that just passed
+  // Calculate days to the current week's Saturday
+  // Work week: Sunday to Saturday, we want this week's Saturday (including today if it's Saturday)
   let daysToSaturday;
   if (dayOfWeek === 0) { // If today is Sunday
     daysToSaturday = -1; // Use yesterday (Saturday)
-  } else if (dayOfWeek === 6) { // If today is Saturday
-    daysToSaturday = -7; // Use last Saturday (previous week)
-  } else { // Monday through Friday
-    daysToSaturday = dayOfWeek - 6; // Use last Saturday
+  } else { // Monday through Saturday
+    daysToSaturday = 6 - dayOfWeek; // Use this week's Saturday (0 if today is Saturday)
   }
   
   const saturday = new Date(today);

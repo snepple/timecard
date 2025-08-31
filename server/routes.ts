@@ -2279,7 +2279,7 @@ Submission Date: {submissionDate}`
       const currentSaturday = new Date(now);
       
       // If today is Sunday (0), we want last Saturday (-1 day)
-      // If today is Monday-Saturday (1-6), we want this Saturday
+      // If today is Monday-Saturday (1-6), we want this Saturday (including today if it's Saturday)
       const daysToSaturday = now.getDay() === 0 ? -1 : (6 - now.getDay());
       currentSaturday.setDate(now.getDate() + daysToSaturday);
       currentSaturday.setHours(0, 0, 0, 0);
