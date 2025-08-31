@@ -107,7 +107,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Key Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {/* Current Week Submission Rate */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -133,71 +133,6 @@ export default function AdminDashboard() {
                   <p className="text-xs text-muted-foreground mt-1">
                     Week ending {stats?.currentWeek.weekEnding || 'N/A'}
                   </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Pending Approvals */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="space-y-2">
-                  <div className="h-7 bg-gray-200 animate-pulse rounded"></div>
-                  <div className="h-4 bg-gray-200 animate-pulse rounded w-1/2"></div>
-                </div>
-              ) : (
-                <>
-                  <div className="text-2xl font-bold">{stats?.pending || 0}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {stats?.pending === 0 ? 'All caught up!' : 'Requires attention'}
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Total Employees */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Employees</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="space-y-2">
-                  <div className="h-7 bg-gray-200 animate-pulse rounded"></div>
-                  <div className="h-4 bg-gray-200 animate-pulse rounded w-2/3"></div>
-                </div>
-              ) : (
-                <>
-                  <div className="text-2xl font-bold">{stats?.totalEmployees || 0}</div>
-                  <p className="text-xs text-muted-foreground">Active members</p>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Average Hours */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Hours/Week</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="space-y-2">
-                  <div className="h-7 bg-gray-200 animate-pulse rounded"></div>
-                  <div className="h-4 bg-gray-200 animate-pulse rounded w-1/2"></div>
-                </div>
-              ) : (
-                <>
-                  <div className="text-2xl font-bold">{stats?.avgHoursPerWeek?.toFixed(1) || '0.0'}</div>
-                  <p className="text-xs text-muted-foreground">Per employee</p>
                 </>
               )}
             </CardContent>
