@@ -345,7 +345,26 @@ export default function TimesheetPage() {
         const dayOfWeek = shiftDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
         const dayKey = DAYS_OF_WEEK[dayOfWeek].key;
         
-        if (shift.startTime && shift.endTime) {
+        // Check if this is a Night Duty shift
+        const isNightDuty = shift.position === "Night Duty" || 
+                           (shift.description && shift.description.includes("PositionName:Night Duty"));
+        
+        if (isNightDuty) {
+          // For Night Duty shifts, check the appropriate rescue coverage checkbox
+          // Map day of week to rescue coverage field names (Monday-Thursday only)
+          const rescueCoverageMap: { [key: number]: string } = {
+            1: 'rescueCoverageMonday',    // Monday
+            2: 'rescueCoverageTuesday',   // Tuesday  
+            3: 'rescueCoverageWednesday', // Wednesday
+            4: 'rescueCoverageThursday'   // Thursday
+          };
+          
+          const rescueField = rescueCoverageMap[dayOfWeek];
+          if (rescueField) {
+            setValue(rescueField as keyof TimesheetFormData, true);
+          }
+        } else if (shift.startTime && shift.endTime) {
+          // Regular shifts: add to time entry
           // Convert ISO timestamp to HH:MM format
           const formatTimeFromISO = (isoString: string): string => {
             const date = new Date(isoString);
