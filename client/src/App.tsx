@@ -47,7 +47,7 @@ function AuthenticatedRouter() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Main content */}
-      <main className="flex-1 pb-safe">
+      <main className="flex-1 pb-safe overflow-hidden">
         <Switch>
           <Route path="/" component={() => <TimesheetPage logout={logout} />} />
           <Route path="/supervisor" component={SupervisorRoute} />

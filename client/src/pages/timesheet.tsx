@@ -463,7 +463,7 @@ export default function TimesheetPage() {
   };
 
   return (
-    <div className="bg-gray-50 flex h-full">
+    <div className="bg-gray-50 flex h-screen max-h-screen">
       {/* Loading Overlay */}
       {(isLoading || emailTimesheetMutation.isPending) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
