@@ -333,11 +333,17 @@ export default function TimesheetPage() {
       console.log('📅 Loading schedule shifts:', employeeShiftsQuery.data);
       setDataSource('schedule');
       
-      // Clear existing shifts first
+      // Clear existing shifts and rescue coverage first
       DAYS_OF_WEEK.forEach(({ key }) => {
         setValue(`${key}Shifts` as keyof TimesheetFormData, []);
         setValue(`${key}TotalHours` as keyof TimesheetFormData, 0);
       });
+      
+      // Clear rescue coverage checkboxes
+      setValue("rescueCoverageMonday", false);
+      setValue("rescueCoverageTuesday", false);
+      setValue("rescueCoverageWednesday", false);
+      setValue("rescueCoverageThursday", false);
       
       // Process schedule shifts
       employeeShiftsQuery.data.forEach((shift: any) => {
