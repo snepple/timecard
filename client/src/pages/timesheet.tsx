@@ -1659,7 +1659,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                   </p>
 
                   {/* Most recent activity if available */}
-                  {currentTimesheet?.lastActivityInfo && (
+                  {currentTimesheet?.lastActivityInfo ? (
                     <p className="text-sm text-amber-700 mb-2">
                       Most recent activity: {currentTimesheet.lastActivityInfo.type} by {currentTimesheet.lastActivityInfo.by} on{' '}
                       {formatDateShort(currentTimesheet.lastActivityInfo.timestamp)} at{' '}
@@ -1670,7 +1670,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
                         hour12: true
                       })}
                     </p>
-                  )}
+                  ) : null}
 
                   {/* Editing warning if applicable */}
                   {watchedValues.isEditingPreviousSubmission && (
@@ -1701,6 +1701,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
               </Button>
             </div>
           )}
+        </div>
         </div>
         
         <Form {...form}>
@@ -1893,6 +1894,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
               </div>
             </div>
           )}
+        </div>
           
           {/* Week Selection Section */}
           <div id="section-week">
@@ -2387,10 +2389,11 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
               </Button>
             </div>
           </div>
-          </div>
             ) : null}
+          </div>
           </form>
         </Form>
+      </div>
         </main>
 
 
@@ -2622,9 +2625,7 @@ export default function TimesheetPage({ logout }: TimesheetPageProps = {}) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-          </div>
         </div>
-        </main>
       </div>
 
       {/* Validity Footer */}
