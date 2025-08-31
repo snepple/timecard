@@ -456,7 +456,9 @@ export default function TimesheetPage() {
 
   const handleSectionClick = (sectionId: string) => {
     setActiveSection(sectionId);
-    const element = document.getElementById(`section-${sectionId}`);
+    // Map finalization to acknowledgment section for scrolling
+    const targetId = sectionId === 'finalization' ? 'acknowledgment' : sectionId;
+    const element = document.getElementById(`section-${targetId}`);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
     }

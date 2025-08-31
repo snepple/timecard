@@ -105,16 +105,10 @@ export function generateTimesheetSections({
       completed: hasRescueCoverage,
     },
     {
-      id: 'acknowledgment',
-      label: 'Acknowledgment',
-      icon: <CheckSquare className="w-4 h-4" />,
-      completed: hasAcknowledgment,
-    },
-    {
-      id: 'signature',
-      label: 'Digital Signature',
+      id: 'finalization',
+      label: 'Acknowledgment & Signature',
       icon: <PenTool className="w-4 h-4" />,
-      completed: hasSignature,
+      completed: hasAcknowledgment && hasSignature,
     },
   ];
 }
