@@ -762,45 +762,50 @@ export default function TimesheetPage() {
                                 </div>
                               ) : (
                                 dayShifts.map((shift, index) => (
-                                  <div key={index} className="grid grid-cols-12 gap-2 items-center py-2 bg-gray-50 rounded mb-2 p-3">
-                                    <div className="col-span-4">
-                                      <Label className="text-xs text-gray-600">Start Time</Label>
-                                      <TimePicker
-                                        value={shift.startTime || ""}
-                                        onChange={(value) => updateShiftTime(key, index, 'startTime', value)}
-                                        placeholder="Select start time"
-                                        className="w-full"
-                                        type="start"
-                                      />
-                                    </div>
-                                    <div className="col-span-4">
-                                      <Label className="text-xs text-gray-600">End Time</Label>
-                                      <TimePicker
-                                        value={shift.endTime || ""}
-                                        onChange={(value) => updateShiftTime(key, index, 'endTime', value)}
-                                        placeholder="Select end time"
-                                        className="w-full"
-                                        type="end"
-                                        startTime={shift.startTime}
-                                      />
-                                    </div>
-                                    <div className="col-span-3 text-center">
-                                      <Label className="text-xs text-gray-600">Hours</Label>
-                                      <div className="text-sm font-medium pt-1" data-testid={`text-${key}-shift-${index}-hours`}>
-                                        {shift.hours?.toFixed(2) || "0.00"}
+                                  <div key={index} className="bg-gray-50 rounded-lg mb-3 p-4">
+                                    {/* Mobile Layout - Stack vertically on small screens */}
+                                    <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-12 md:gap-4 md:items-end">
+                                      <div className="md:col-span-4">
+                                        <Label className="text-sm text-gray-600 mb-2 block">Start Time</Label>
+                                        <TimePicker
+                                          value={shift.startTime || ""}
+                                          onChange={(value) => updateShiftTime(key, index, 'startTime', value)}
+                                          placeholder="Select start time"
+                                          className="w-full h-12 text-base"
+                                          type="start"
+                                        />
                                       </div>
-                                    </div>
-                                    <div className="col-span-1 text-center">
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => removeShift(key, index)}
-                                        className="h-8 w-8 p-0"
-                                        data-testid={`button-remove-${key}-shift-${index}`}
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
+                                      <div className="md:col-span-4">
+                                        <Label className="text-sm text-gray-600 mb-2 block">End Time</Label>
+                                        <TimePicker
+                                          value={shift.endTime || ""}
+                                          onChange={(value) => updateShiftTime(key, index, 'endTime', value)}
+                                          placeholder="Select end time"
+                                          className="w-full h-12 text-base"
+                                          type="end"
+                                          startTime={shift.startTime}
+                                        />
+                                      </div>
+                                      <div className="flex justify-between items-center md:col-span-4 md:block">
+                                        <div className="md:text-center">
+                                          <Label className="text-sm text-gray-600 mb-2 block">Hours</Label>
+                                          <div className="text-lg font-semibold bg-white px-3 py-2 rounded border md:text-center" data-testid={`text-${key}-shift-${index}-hours`}>
+                                            {shift.hours?.toFixed(2) || "0.00"}
+                                          </div>
+                                        </div>
+                                        <div className="ml-4 md:ml-0 md:mt-2 md:text-center">
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => removeShift(key, index)}
+                                            className="h-12 w-12 p-0 md:h-10 md:w-10 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                            data-testid={`button-remove-${key}-shift-${index}`}
+                                          >
+                                            <Trash2 className="h-5 w-5 md:h-4 md:w-4" />
+                                          </Button>
+                                        </div>
+                                      </div>
                                     </div>
                                   </div>
                                 ))
@@ -810,20 +815,20 @@ export default function TimesheetPage() {
                                 type="button"
                                 variant="outline"
                                 onClick={() => addShift(key)}
-                                className="w-full mt-2"
+                                className="w-full mt-4 h-12 text-base font-medium"
                                 data-testid={`button-add-${key}-shift`}
                               >
-                                <Plus className="mr-2 h-4 w-4" />
+                                <Plus className="mr-2 h-5 w-5" />
                                 Add Shift
                               </Button>
                             </div>
                           );
                         })}
 
-                        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                          <div className="flex justify-between items-center">
-                            <span className="text-lg font-semibold">Total Weekly Hours:</span>
-                            <span className="text-2xl font-bold text-blue-600" data-testid="text-total-weekly-hours">
+                        <div className="mt-6 p-6 bg-blue-50 rounded-lg">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0">
+                            <span className="text-lg font-semibold text-center sm:text-left">Total Weekly Hours:</span>
+                            <span className="text-3xl font-bold text-blue-600 text-center sm:text-right" data-testid="text-total-weekly-hours">
                               {Number(totalHours || 0).toFixed(2)}
                             </span>
                           </div>
@@ -843,7 +848,7 @@ export default function TimesheetPage() {
                           Check the days you provided rescue coverage (optional).
                         </p>
                         
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-4">
                           <FormField
                             control={form.control}
                             name="rescueCoverageMonday"
