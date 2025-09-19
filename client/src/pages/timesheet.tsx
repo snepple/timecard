@@ -559,7 +559,7 @@ export default function TimesheetPage() {
   };
 
   return (
-    <div className="bg-background min-h-screen">
+    <div className="bg-background min-h-[100dvh]">
       {/* Loading Overlay */}
       {(isLoading || emailTimesheetMutation.isPending) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -570,9 +570,9 @@ export default function TimesheetPage() {
         </div>
       )}
 
-      {/* Sidebar Navigation - only show after member is selected */}
+      {/* Sidebar Navigation - only show after member is selected and on medium+ screens */}
       {selectedEmployeeNumber && (
-        <div className="fixed left-0 top-0 h-screen z-10 animate-in slide-in-from-left-full duration-500 ease-out">
+        <div className="hidden md:block fixed left-0 top-0 h-screen z-10 animate-in slide-in-from-left-full duration-500 ease-out">
           <TimesheetSidebar
             sections={sections}
             onSectionClick={handleSectionClick}
@@ -582,9 +582,9 @@ export default function TimesheetPage() {
       )}
 
       {/* Main Content Area */}
-      <div className={`${selectedEmployeeNumber ? 'ml-64' : ''} pb-20`}>
-        <main className="p-6 bg-background">
-          <div className="ios-mobile-spacing">
+      <div className={`${selectedEmployeeNumber ? 'md:ml-64' : ''} pb-20`}>
+        <main className="p-4 sm:p-6 bg-background">
+          <div className="ios-mobile-spacing pt-safe-area-inset-top pb-safe-area-inset-bottom">
             <div className="flex justify-between items-center mb-6">
               <h1 className="ios-title-1 text-foreground">Weekly Timesheet</h1>
               <a
@@ -858,7 +858,7 @@ export default function TimesheetPage() {
                                   <Checkbox
                                     checked={field.value}
                                     onCheckedChange={field.onChange}
-                                    className="w-6 h-6"
+                                    className="w-8 h-8 sm:w-6 sm:h-6"
                                     data-testid="checkbox-rescue-monday"
                                   />
                                 </FormControl>
@@ -878,7 +878,7 @@ export default function TimesheetPage() {
                                   <Checkbox
                                     checked={field.value}
                                     onCheckedChange={field.onChange}
-                                    className="w-6 h-6"
+                                    className="w-8 h-8 sm:w-6 sm:h-6"
                                     data-testid="checkbox-rescue-tuesday"
                                   />
                                 </FormControl>
@@ -898,7 +898,7 @@ export default function TimesheetPage() {
                                   <Checkbox
                                     checked={field.value}
                                     onCheckedChange={field.onChange}
-                                    className="w-6 h-6"
+                                    className="w-8 h-8 sm:w-6 sm:h-6"
                                     data-testid="checkbox-rescue-wednesday"
                                   />
                                 </FormControl>
@@ -918,7 +918,7 @@ export default function TimesheetPage() {
                                   <Checkbox
                                     checked={field.value}
                                     onCheckedChange={field.onChange}
-                                    className="w-6 h-6"
+                                    className="w-8 h-8 sm:w-6 sm:h-6"
                                     data-testid="checkbox-rescue-thursday"
                                   />
                                 </FormControl>
