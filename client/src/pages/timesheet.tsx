@@ -138,6 +138,7 @@ interface Shift {
 
 export default function TimesheetPage() {
   const [signatureData, setSignatureData] = useState<string>("");
+  const [initialSignature, setInitialSignature] = useState<string>("");
   const [selectedEmployeeNumber, setSelectedEmployeeNumber] = useState<string>("");
   const [currentEmployeeEmail, setCurrentEmployeeEmail] = useState<string>("");
   const [activeSection, setActiveSection] = useState("employee");
@@ -318,10 +319,12 @@ export default function TimesheetPage() {
       // Load signature data
       if (timesheet.signatureData) {
         setSignatureData(timesheet.signatureData);
+        setInitialSignature(timesheet.signatureData);
         setValue("signatureData", timesheet.signatureData);
       } else {
         // Clear signature data if no signature in timesheet
         setSignatureData("");
+        setInitialSignature("");
         setValue("signatureData", "");
       }
       
@@ -417,6 +420,7 @@ export default function TimesheetPage() {
     
     // Clear signature data when switching employees
     setSignatureData("");
+    setInitialSignature("");
     setValue("signatureData", "");
     
     // Get employee name from schedule data
@@ -967,7 +971,7 @@ export default function TimesheetPage() {
                                     setSignatureData(signature);
                                     setValue("signatureData", signature);
                                   }}
-                                  existingSignature={signatureData}
+                                  existingSignature={initialSignature}
                                   data-testid="signature-pad"
                                 />
                               </FormControl>
