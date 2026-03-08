@@ -837,7 +837,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Fetch fresh data from calendar
-      const icsUrl = "https://calendar.google.com/calendar/ical/a8849ae98edd64f3a91a66f2c0efc31ab7b867e0637db7f1386ea74e61cdd406%40group.calendar.google.com/public/basic.ics";
+      const icsUrl = "https://calendar.google.com/calendar/ical/c303c9aa08e0a090db126a0b15eb0bc0e8b66cc1af810aa971059b7b01b6d25a%40group.calendar.google.com/public/basic.ics";
       const response = await fetch(icsUrl);
       
       if (!response.ok) {
@@ -1016,7 +1016,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const employees = await storage.getEmployeeNumbers();
       
       // Get historical schedule data by fetching calendar with extended range
-      const icsUrl = "https://calendar.google.com/calendar/ical/a8849ae98edd64f3a91a66f2c0efc31ab7b867e0637db7f1386ea74e61cdd406%40group.calendar.google.com/public/basic.ics";
+      const icsUrl = "https://calendar.google.com/calendar/ical/c303c9aa08e0a090db126a0b15eb0bc0e8b66cc1af810aa971059b7b01b6d25a%40group.calendar.google.com/public/basic.ics";
       const response = await fetch(icsUrl);
       
       if (!response.ok) {
