@@ -2019,7 +2019,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get email configuration
-      const recipientEmail = await storage.getSetting('timesheet_recipient_email') || 'supervisor@oaklandfire.gov';
+      const recipientEmail = await storage.getSetting('timesheet_recipient_email');
+      if (!recipientEmail || !recipientEmail.trim()) {
+        return res.status(400).json({ 
+          message: "Fire chief / supervisor email is not configured. Please set it in the admin Email Settings before submitting timesheets." 
+        });
+      }
       const emailTemplate = await storage.getSetting('timesheet_email_template') || `Subject: Weekly Timesheet Submission - {employeeName}
 
 Dear Supervisor,

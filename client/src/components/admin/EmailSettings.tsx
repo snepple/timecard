@@ -133,18 +133,18 @@ export function EmailSettings() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="recipient-email">Recipient Email Address</Label>
+            <Label htmlFor="recipient-email">Fire Chief / Supervisor Email Address</Label>
             <Input
               id="recipient-email"
               type="email"
               value={recipientEmail}
               onChange={(e) => setRecipientEmail(e.target.value)}
-              placeholder="admin@oaklandfire.gov"
+              placeholder="firechief@oaklandfire.gov"
               className="mt-1"
               data-testid="input-recipient-email"
             />
             <p className="text-sm text-gray-600 mt-1">
-              Email address that will receive timecard submission notifications.
+              The fire chief or supervisor who will receive all timesheet submissions as attachments.
             </p>
           </div>
         </CardContent>
