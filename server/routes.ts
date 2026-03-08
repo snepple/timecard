@@ -2046,14 +2046,25 @@ Oakland Fire-Rescue Timesheet System`;
       const subject = subjectMatch ? subjectMatch[1] : `Weekly Timesheet Submission - ${timesheetData.employeeName}`;
       const emailBody = emailTemplate.replace(/^Subject:.*$/m, '').trim();
 
+      // Format weekEnding as m/d/yy
+      const formatWeekEndingShort = (dateStr: string): string => {
+        const parts = dateStr.split('-');
+        if (parts.length === 3) {
+          const [year, month, day] = parts.map(Number);
+          return `${month}/${day}/${year.toString().slice(-2)}`;
+        }
+        return dateStr;
+      };
+      const formattedWeekEnding = formatWeekEndingShort(timesheetData.weekEnding);
+
       // Replace placeholders in subject and body
       const processedSubject = subject
         .replace(/\{employeeName\}/g, timesheetData.employeeName)
-        .replace(/\{weekEnding\}/g, timesheetData.weekEnding);
+        .replace(/\{weekEnding\}/g, formattedWeekEnding);
       
       const processedBody = emailBody
         .replace(/\{employeeName\}/g, timesheetData.employeeName)
-        .replace(/\{weekEnding\}/g, timesheetData.weekEnding);
+        .replace(/\{weekEnding\}/g, formattedWeekEnding);
 
       // Check if SMTP credentials are configured
       if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {

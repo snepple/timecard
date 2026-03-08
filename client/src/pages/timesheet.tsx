@@ -23,7 +23,7 @@ import { ValidityFooter } from "@/components/ValidityFooter";
 import { SubmissionNotification } from "@/components/ui/submission-notification";
 import { Flame, User, IdCard, Calendar, Save, Mail, Printer, HelpCircle, Users, RefreshCw, Send, CheckCircle, Clock, XCircle, AlertCircle, Check, RotateCcw, LogOut, Plus, Trash2, Download, Shield } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 // Check if timecard editing is allowed (before Saturday 11:59 PM ET of current week)
 const isTimecardEditingAllowed = (weekEnding: string): boolean => {
@@ -148,6 +148,9 @@ export default function TimesheetPage() {
   const [memberSearchQuery, setMemberSearchQuery] = useState("");
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [employeeEmail, setEmployeeEmail] = useState("");
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const [generatedPdfUrl, setGeneratedPdfUrl] = useState<string>("");
+  const [pendingEmailPayload, setPendingEmailPayload] = useState<any>(null);
   const [showChangeMemberDialog, setShowChangeMemberDialog] = useState(false);
   const [showEditEmailDialog, setShowEditEmailDialog] = useState(false);
   const [editingEmail, setEditingEmail] = useState('');
@@ -549,8 +552,8 @@ export default function TimesheetPage() {
         signatureData: signatureData,
       });
 
-      // Submit via email with the correct data format
-      await emailTimesheetMutation.mutateAsync({
+      // Store PDF and email payload, then show preview modal
+      const emailPayload = {
         employeeNumber: formData.memberNumber,
         employeeEmail: currentEmployeeEmail || '',
         timesheetData: {
@@ -585,15 +588,40 @@ export default function TimesheetPage() {
           rescueCoverageThursday: formData.rescueCoverageThursday,
           signatureData: signatureData,
         },
-      });
+      };
+
+      setGeneratedPdfUrl(pdfBytes);
+      setPendingEmailPayload(emailPayload);
+      setShowPdfPreview(true);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to submit timesheet. Please try again.",
+        description: "Failed to generate timesheet. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleEmailTimesheet = async () => {
+    try {
+      await emailTimesheetMutation.mutateAsync(pendingEmailPayload);
+      setShowPdfPreview(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send email. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePrintPdf = () => {
+    if (!generatedPdfUrl) return;
+    const printWindow = window.open(generatedPdfUrl, '_blank');
+    if (printWindow) {
+      printWindow.onload = () => printWindow.print();
     }
   };
 
@@ -1204,6 +1232,51 @@ export default function TimesheetPage() {
           onChangeMember={() => setShowChangeMemberDialog(true)}
         />
       )}
+
+      {/* PDF Preview Modal */}
+      <Dialog open={showPdfPreview} onOpenChange={setShowPdfPreview}>
+        <DialogContent className="max-w-4xl w-full h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-3 shrink-0">
+            <DialogTitle>Review Your Timesheet</DialogTitle>
+            <DialogDescription>
+              Review your timesheet below, then choose to email it or print it.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 px-6">
+            {generatedPdfUrl && (
+              <iframe
+                src={generatedPdfUrl}
+                className="w-full h-full rounded border"
+                title="Timesheet Preview"
+              />
+            )}
+          </div>
+          <DialogFooter className="px-6 py-4 shrink-0 flex gap-2 sm:justify-between">
+            <Button
+              variant="outline"
+              onClick={() => setShowPdfPreview(false)}
+            >
+              Close
+            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handlePrintPdf}
+              >
+                <Printer className="h-4 w-4 mr-2" />
+                Print PDF
+              </Button>
+              <Button
+                onClick={handleEmailTimesheet}
+                disabled={emailTimesheetMutation.isPending}
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                {emailTimesheetMutation.isPending ? "Sending..." : "Email Timesheet"}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
