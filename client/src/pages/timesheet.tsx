@@ -414,7 +414,6 @@ export default function TimesheetPage() {
 
   const handleEmployeeSelect = (employeeNumber: string) => {
     setSelectedEmployeeNumber(employeeNumber);
-    setValue("memberNumber", employeeNumber);
     
     // Clear signature data when switching employees
     setSignatureData("");
@@ -424,6 +423,11 @@ export default function TimesheetPage() {
     const employee = scheduleQuery.data?.employees?.find(emp => emp.employeeNumber === employeeNumber);
     if (employee) {
       setValue("memberName", employee.fullName);
+      // Look up actual member number from DB by name (calendar may have name-based IDs)
+      const dbEmployee = employeeNumbersQuery.data?.find(emp => emp.employeeName === employee.fullName);
+      setValue("memberNumber", dbEmployee?.employeeNumber || employeeNumber);
+    } else {
+      setValue("memberNumber", employeeNumber);
     }
     
     setMemberSearchQuery('');
@@ -645,12 +649,13 @@ export default function TimesheetPage() {
                             ) : (
                               scheduleQuery.data?.employees
                                 ?.filter((employee) => {
-                                  const dbEmployee = employeeNumbersQuery.data?.find(emp => emp.employeeNumber === employee.employeeNumber);
+                                  const dbEmployee = employeeNumbersQuery.data?.find(emp => emp.employeeName === employee.fullName);
                                   const isActive = !dbEmployee || dbEmployee.active !== false;
                                   const searchLower = memberSearchQuery.toLowerCase();
+                                  const displayNumber = dbEmployee?.employeeNumber || employee.employeeNumber;
                                   const matchesSearch = searchLower === '' || 
                                     employee.fullName.toLowerCase().includes(searchLower) ||
-                                    employee.employeeNumber.toLowerCase().includes(searchLower);
+                                    displayNumber.toLowerCase().includes(searchLower);
                                   return isActive && matchesSearch;
                                 })
                                 .sort((a, b) => {
@@ -658,7 +663,10 @@ export default function TimesheetPage() {
                                   const bLastName = b.lastName || b.fullName.split(' ').pop() || '';
                                   return aLastName.localeCompare(bLastName);
                                 })
-                                .map((employee) => (
+                                .map((employee) => {
+                                  const dbEmployee = employeeNumbersQuery.data?.find(emp => emp.employeeName === employee.fullName);
+                                  const displayNumber = dbEmployee?.employeeNumber || employee.employeeNumber;
+                                  return (
                                   <Button
                                     key={employee.employeeNumber}
                                     variant={selectedEmployeeNumber === employee.employeeNumber ? "default" : "ghost"}
@@ -672,7 +680,7 @@ export default function TimesheetPage() {
                                           {`${employee.lastName || employee.fullName.split(' ').pop()}, ${employee.firstName || employee.fullName.split(' ').slice(0, -1).join(' ')}`}
                                         </div>
                                         <div className="text-sm text-muted-foreground">
-                                          Member #{employee.employeeNumber}
+                                          Member #{displayNumber}
                                         </div>
                                       </div>
                                       {selectedEmployeeNumber === employee.employeeNumber && (
@@ -680,17 +688,19 @@ export default function TimesheetPage() {
                                       )}
                                     </div>
                                   </Button>
-                                ))
+                                  );
+                                })
                             )}
                             
                             {scheduleQuery.data?.employees
                               ?.filter((employee) => {
-                                const dbEmployee = employeeNumbersQuery.data?.find(emp => emp.employeeNumber === employee.employeeNumber);
+                                const dbEmployee = employeeNumbersQuery.data?.find(emp => emp.employeeName === employee.fullName);
                                 const isActive = !dbEmployee || dbEmployee.active !== false;
                                 const searchLower = memberSearchQuery.toLowerCase();
+                                const displayNumber = dbEmployee?.employeeNumber || employee.employeeNumber;
                                 const matchesSearch = searchLower === '' || 
                                   employee.fullName.toLowerCase().includes(searchLower) ||
-                                  employee.employeeNumber.toLowerCase().includes(searchLower);
+                                  displayNumber.toLowerCase().includes(searchLower);
                                 return isActive && matchesSearch;
                               }).length === 0 && !scheduleQuery.isLoading && (
                               <div className="text-center py-8 text-muted-foreground">
