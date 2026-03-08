@@ -15,6 +15,35 @@ interface ScheduleCache {
 
 let scheduleCache: ScheduleCache | null = null;
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+const ICS_URL = "https://calendar.google.com/calendar/ical/c303c9aa08e0a090db126a0b15eb0bc0e8b66cc1af810aa971059b7b01b6d25a%40group.calendar.google.com/public/basic.ics";
+
+async function getScheduleData(forceRefresh = false): Promise<any> {
+  const now = new Date();
+  if (!forceRefresh && scheduleCache &&
+      (now.getTime() - new Date(scheduleCache.lastFetched).getTime()) < CACHE_DURATION) {
+    return scheduleCache.data;
+  }
+  const response = await fetch(ICS_URL);
+  if (!response.ok) throw new Error(`Failed to fetch calendar: ${response.status}`);
+  const icsData = await response.text();
+  const scheduleData = parseICSDataOnServer(icsData);
+  scheduleCache = { data: scheduleData, lastFetched: now.toISOString() };
+  return scheduleData;
+}
+
+async function getEmployeeShiftsForWeek(employeeNumber: string, weekEnding: string): Promise<any[]> {
+  const scheduleData = await getScheduleData();
+  if (!scheduleData.shifts) return [];
+  const endDate = new Date(weekEnding);
+  const startDate = new Date(endDate);
+  startDate.setDate(endDate.getDate() - 6);
+  return scheduleData.shifts.filter((shift: any) => {
+    const shiftDate = new Date(shift.date);
+    return shift.employeeNumber === employeeNumber &&
+           shiftDate >= startDate &&
+           shiftDate <= endDate;
+  });
+}
 
 // Authentication middleware for admin routes
 const authenticateAdmin = async (req: Request, res: Response, next: NextFunction) => {
@@ -827,34 +856,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get schedule data (employees and shifts)
   app.get("/api/schedule", async (req, res) => {
     try {
-      // Force fresh fetch for debugging - check if cache is valid (less than 24 hours old)
-      const now = new Date();
       const forceRefresh = req.query.refresh === 'true';
-      if (!forceRefresh && scheduleCache && 
-          (now.getTime() - new Date(scheduleCache.lastFetched).getTime()) < CACHE_DURATION) {
-        res.json(scheduleCache.data);
-        return;
-      }
-
-      // Fetch fresh data from calendar
-      const icsUrl = "https://calendar.google.com/calendar/ical/c303c9aa08e0a090db126a0b15eb0bc0e8b66cc1af810aa971059b7b01b6d25a%40group.calendar.google.com/public/basic.ics";
-      const response = await fetch(icsUrl);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch calendar: ${response.status}`);
-      }
-
-      const icsData = await response.text();
-      
-      // Parse ICS data (we'll need to import the parser here)
-      const scheduleData = parseICSDataOnServer(icsData);
-      
-      // Update cache
-      scheduleCache = {
-        data: scheduleData,
-        lastFetched: now.toISOString(),
-      };
-
+      const scheduleData = await getScheduleData(forceRefresh);
       res.json(scheduleData);
     } catch (error) {
       console.error("Error fetching schedule:", error);
@@ -867,9 +870,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { employeeNumber, weekEnding } = req.params;
       
-      // Get schedule data
-      const scheduleResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule`);
-      const scheduleData = await scheduleResponse.json();
+      // Get schedule data directly from cache/ICS (no internal HTTP call)
+      const scheduleData = await getScheduleData();
       
       if (!scheduleData.shifts) {
         res.status(404).json({ message: "No schedule data available" });
@@ -1112,8 +1114,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/employee-numbers/sync", async (req, res) => {
     try {
       // Get current schedule data
-      const scheduleResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule`);
-      const scheduleData = await scheduleResponse.json();
+      const scheduleData = await getScheduleData();
       
       // Use employee-based approach to update existing employees
       if (scheduleData.employees) {
@@ -1183,10 +1184,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (existingEmployee && !existingEmployee.employeeNumber) {
             try {
               // Get shifts for this employee to try extracting actual employee number
-              const shiftResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${nameBasedId}/week/2025-09-20`);
-              if (shiftResponse.ok) {
-                const shifts = await shiftResponse.json();
-                if (shifts.length > 0) {
+              const shifts = await getEmployeeShiftsForWeek(nameBasedId, '2025-09-20');
+              if (shifts.length > 0) {
                   const shift = shifts[0];
                   const description = shift.description || '';
                   const actualEmployeeNumber = extractFromDescriptionServer(description, 'EmployeeNumber');
@@ -1205,7 +1204,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     console.log(`✅ Updated ${fullName} with employee number: ${employeeNumberToUse}`);
                     syncedCount++;
                   }
-                }
               }
             } catch (error) {
               console.log(`⚠️ Could not extract employee number for ${fullName}:`, error);
@@ -1237,8 +1235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const endDate = new Date(parseInt(year), parseInt(month), 0);
       
       // Get all employees
-      const employeesResponse = await fetch(`${req.protocol}://${req.get('host')}/api/employee-numbers`);
-      const employees = employeesResponse.ok ? await employeesResponse.json() : [];
+      const employees = await storage.getEmployeeNumbers();
       
       // Helper to get week boundaries for a given date
       const getWeekBoundaries = (date: Date) => {
@@ -1351,8 +1348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Always fetch scheduled night duty for comparison
           try {
-            const shiftsResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${employee.employeeNumber}/week/${week.weekEnding}`);
-            const shifts = shiftsResponse.ok ? await shiftsResponse.json() : [];
+            const shifts = await getEmployeeShiftsForWeek(employee.employeeNumber, week.weekEnding);
             
             // Count scheduled night duty shifts by day, only if day is in selected month
             shifts.forEach((shift: any) => {
@@ -1576,8 +1572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const overtimeThreshold = parseFloat(await storage.getSetting('overtime_threshold') || '42');
       
       // Get all employees from schedule
-      const scheduleResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule`);
-      const scheduleData = await scheduleResponse.json();
+      const scheduleData = await getScheduleData();
       
       // Get all submitted timesheets for this week
       const timesheets = await storage.getTimesheetsByWeek(weekEnding);
@@ -1612,8 +1607,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
           
           try {
-            const shiftsResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${employee.employeeNumber}/week/${weekEnding}`);
-            const shifts = shiftsResponse.ok ? await shiftsResponse.json() : [];
+            const shifts = await getEmployeeShiftsForWeek(employee.employeeNumber, weekEnding);
             
             // Build scheduled shift times for comparison
             shifts.forEach((shift: any) => {
@@ -1707,8 +1701,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           // Employee didn't submit - use scheduled hours
           try {
-            const shiftsResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${employee.employeeNumber}/week/${weekEnding}`);
-            const shifts = shiftsResponse.ok ? await shiftsResponse.json() : [];
+            const shifts = await getEmployeeShiftsForWeek(employee.employeeNumber, weekEnding);
             
             // Calculate daily totals and times from schedule
             const dailyHours = {
@@ -1789,8 +1782,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const overtimeThreshold = parseFloat(await storage.getSetting('overtime_threshold') || '42');
       
       // Get all employees from schedule
-      const scheduleResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule`);
-      const scheduleData = await scheduleResponse.json();
+      const scheduleData = await getScheduleData();
       
       // Get all submitted timesheets for this week
       const timesheets = await storage.getTimesheetsByWeek(weekEnding);
@@ -1839,8 +1831,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           // Employee didn't submit - use scheduled hours
           try {
-            const shiftsResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${employee.employeeNumber}/week/${weekEnding}`);
-            const shifts = shiftsResponse.ok ? await shiftsResponse.json() : [];
+            const shifts = await getEmployeeShiftsForWeek(employee.employeeNumber, weekEnding);
             
             // Calculate daily totals from schedule
             const dailyHours = {
@@ -2285,22 +2276,18 @@ Submission Date: {submissionDate}`
       currentSaturday.setHours(0, 0, 0, 0);
       const weekEnding = currentSaturday.toISOString().split('T')[0];
 
-      // Get schedule data using the same source as the working individual employee API
-      const scheduleResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule`);
-      const scheduleData = await scheduleResponse.json();
+      // Get schedule data
+      const scheduleData = await getScheduleData();
       const totalEmployees = scheduleData?.employees?.length || 0;
       
-      // Get scheduled employees for current week using individual API calls (known to work)
+      // Get scheduled employees for current week
       let scheduledCount = 0;
       if (scheduleData?.employees) {
         for (const employee of scheduleData.employees) {
           try {
-            const empScheduleResponse = await fetch(`${req.protocol}://${req.get('host')}/api/schedule/employee/${employee.employeeNumber}/week/${weekEnding}`);
-            if (empScheduleResponse.ok) {
-              const empSchedule = await empScheduleResponse.json();
-              if (empSchedule && empSchedule.length > 0) {
-                scheduledCount++;
-              }
+            const empSchedule = await getEmployeeShiftsForWeek(employee.employeeNumber, weekEnding);
+            if (empSchedule && empSchedule.length > 0) {
+              scheduledCount++;
             }
           } catch (error) {
             // Continue counting other employees
