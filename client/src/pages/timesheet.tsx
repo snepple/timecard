@@ -246,7 +246,7 @@ export default function TimesheetPage() {
   });
 
   const emailTimesheetMutation = useMutation({
-    mutationFn: (data: any) => apiRequest('POST', '/api/email-timesheet', data),
+    mutationFn: (data: any) => apiRequest('POST', '/api/timesheet/submit-email', data),
     onSuccess: () => {
       toast({
         title: "Success",
@@ -497,11 +497,42 @@ export default function TimesheetPage() {
         signature: signatureData,
       });
 
-      // Submit via email
+      // Submit via email with the correct data format
       await emailTimesheetMutation.mutateAsync({
-        ...formData,
-        pdfBuffer: pdfBytes,
-        totalHours,
+        employeeNumber: formData.memberNumber,
+        employeeEmail: currentEmployeeEmail || '',
+        timesheetData: {
+          employeeName: formData.memberName,
+          weekEnding: formData.weekEnding,
+          pdfBuffer: pdfBytes,
+          sundayDate: formData.sundayDate,
+          sundayTotalHours: formData.sundayTotalHours,
+          sundayShifts: JSON.stringify(formData.sundayShifts || []),
+          mondayDate: formData.mondayDate,
+          mondayTotalHours: formData.mondayTotalHours,
+          mondayShifts: JSON.stringify(formData.mondayShifts || []),
+          tuesdayDate: formData.tuesdayDate,
+          tuesdayTotalHours: formData.tuesdayTotalHours,
+          tuesdayShifts: JSON.stringify(formData.tuesdayShifts || []),
+          wednesdayDate: formData.wednesdayDate,
+          wednesdayTotalHours: formData.wednesdayTotalHours,
+          wednesdayShifts: JSON.stringify(formData.wednesdayShifts || []),
+          thursdayDate: formData.thursdayDate,
+          thursdayTotalHours: formData.thursdayTotalHours,
+          thursdayShifts: JSON.stringify(formData.thursdayShifts || []),
+          fridayDate: formData.fridayDate,
+          fridayTotalHours: formData.fridayTotalHours,
+          fridayShifts: JSON.stringify(formData.fridayShifts || []),
+          saturdayDate: formData.saturdayDate,
+          saturdayTotalHours: formData.saturdayTotalHours,
+          saturdayShifts: JSON.stringify(formData.saturdayShifts || []),
+          totalWeeklyHours: totalHours,
+          rescueCoverageMonday: formData.rescueCoverageMonday,
+          rescueCoverageTuesday: formData.rescueCoverageTuesday,
+          rescueCoverageWednesday: formData.rescueCoverageWednesday,
+          rescueCoverageThursday: formData.rescueCoverageThursday,
+          signatureData: signatureData,
+        },
       });
     } catch (error) {
       toast({

@@ -60,7 +60,7 @@ const authenticateAdmin = async (req: Request, res: Response, next: NextFunction
 
 const emailSubmissionSchema = z.object({
   employeeNumber: z.string(),
-  employeeEmail: z.string().email(),
+  employeeEmail: z.string().email().optional().or(z.literal('')),
   timesheetData: z.object({
     employeeName: z.string(),
     weekEnding: z.string(),
@@ -2085,10 +2085,11 @@ Oakland Fire-Rescue Timesheet System`;
       console.log("PDF buffer size:", pdfBuffer.length, "bytes");
 
       // Send email
-      const mailOptions = {
-        from: employeeEmail,
+      const fromAddress = employeeEmail || process.env.SMTP_USER;
+      const mailOptions: any = {
+        from: fromAddress,
         to: recipientEmail,
-        cc: employeeEmail,
+        ...(employeeEmail ? { cc: employeeEmail } : {}),
         subject: processedSubject,
         text: processedBody,
         attachments: [
