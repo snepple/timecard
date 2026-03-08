@@ -2090,11 +2090,19 @@ Oakland Fire-Rescue Timesheet System`;
       console.log("PDF buffer size:", pdfBuffer.length, "bytes");
 
       // Send email
-      const fromAddress = employeeEmail || process.env.SMTP_USER;
+      // from: display as employee name, sent via SMTP account
+      const employeeName = timesheetData.employeeName || '';
+      const fromDisplay = `${employeeName} <${process.env.SMTP_USER}>`;
+
+      // to: fire chief + employee (if email available)
+      const toAddresses = employeeEmail
+        ? [recipientEmail, employeeEmail]
+        : [recipientEmail];
+
       const mailOptions: any = {
-        from: fromAddress,
-        to: recipientEmail,
-        ...(employeeEmail ? { cc: employeeEmail } : {}),
+        from: fromDisplay,
+        to: toAddresses.join(', '),
+        ...(employeeEmail ? { replyTo: employeeEmail } : {}),
         subject: processedSubject,
         text: processedBody,
         attachments: [
