@@ -488,13 +488,65 @@ export default function TimesheetPage() {
       setIsLoading(true);
       const formData = form.getValues();
       
-      // Generate PDF
+      // Compute dates for each day from the week ending date
+      const weekEndDate = new Date(formData.weekEnding + 'T00:00:00');
+      const getDayDate = (offset: number) => {
+        const d = new Date(weekEndDate);
+        d.setDate(weekEndDate.getDate() - (6 - offset));
+        return d.toISOString().split('T')[0];
+      };
+      const firstStart = (shifts: DayShift[]) => shifts?.[0]?.startTime || '';
+      const firstEnd = (shifts: DayShift[]) => shifts?.[0]?.endTime || '';
+
+      // Generate PDF with all required fields
       const pdfBytes = await generateTimeSheetPDF({
-        memberName: formData.memberName,
-        memberNumber: formData.memberNumber,
+        employeeName: formData.memberName,
+        employeeNumber: formData.memberNumber,
         weekEnding: formData.weekEnding,
-        totalHours,
-        signature: signatureData,
+
+        sundayDate: formData.sundayDate || getDayDate(0),
+        sundayStartTime: firstStart(formData.sundayShifts),
+        sundayEndTime: firstEnd(formData.sundayShifts),
+        sundayTotalHours: formData.sundayTotalHours || 0,
+
+        mondayDate: formData.mondayDate || getDayDate(1),
+        mondayStartTime: firstStart(formData.mondayShifts),
+        mondayEndTime: firstEnd(formData.mondayShifts),
+        mondayTotalHours: formData.mondayTotalHours || 0,
+
+        tuesdayDate: formData.tuesdayDate || getDayDate(2),
+        tuesdayStartTime: firstStart(formData.tuesdayShifts),
+        tuesdayEndTime: firstEnd(formData.tuesdayShifts),
+        tuesdayTotalHours: formData.tuesdayTotalHours || 0,
+
+        wednesdayDate: formData.wednesdayDate || getDayDate(3),
+        wednesdayStartTime: firstStart(formData.wednesdayShifts),
+        wednesdayEndTime: firstEnd(formData.wednesdayShifts),
+        wednesdayTotalHours: formData.wednesdayTotalHours || 0,
+
+        thursdayDate: formData.thursdayDate || getDayDate(4),
+        thursdayStartTime: firstStart(formData.thursdayShifts),
+        thursdayEndTime: firstEnd(formData.thursdayShifts),
+        thursdayTotalHours: formData.thursdayTotalHours || 0,
+
+        fridayDate: formData.fridayDate || getDayDate(5),
+        fridayStartTime: firstStart(formData.fridayShifts),
+        fridayEndTime: firstEnd(formData.fridayShifts),
+        fridayTotalHours: formData.fridayTotalHours || 0,
+
+        saturdayDate: formData.saturdayDate || getDayDate(6),
+        saturdayStartTime: firstStart(formData.saturdayShifts),
+        saturdayEndTime: firstEnd(formData.saturdayShifts),
+        saturdayTotalHours: formData.saturdayTotalHours || 0,
+
+        totalWeeklyHours: totalHours,
+
+        rescueCoverageMonday: formData.rescueCoverageMonday,
+        rescueCoverageTuesday: formData.rescueCoverageTuesday,
+        rescueCoverageWednesday: formData.rescueCoverageWednesday,
+        rescueCoverageThursday: formData.rescueCoverageThursday,
+
+        signatureData: signatureData,
       });
 
       // Submit via email with the correct data format
