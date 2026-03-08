@@ -119,9 +119,12 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
     console.log('Available form fields:', fieldNames);
     
     // Helper function to safely fill text fields
-    const fillTextField = (fieldName: string, value: string) => {
+    const fillTextField = (fieldName: string, value: string, fontSize?: number) => {
       try {
         const field = form.getTextField(fieldName);
+        if (fontSize !== undefined) {
+          field.setFontSize(fontSize);
+        }
         field.setText(value);
         console.log(`Filled ${fieldName} with: ${value}`);
       } catch (e) {
@@ -212,10 +215,10 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
         `Hours${day.prefix}`, `Hours_${day.prefix}`, `${day.prefix}Hrs`, `${day.prefix}_Hrs`
       ];
       
-      // Try to fill each field type with formatted dates
+      // Try to fill each field type with formatted dates (small font so date fits)
       for (const fieldName of possibleDateFields) {
         if (day.date) {
-          fillTextField(fieldName, formatDateForPDF(day.date));
+          fillTextField(fieldName, formatDateForPDF(day.date), 8);
         }
       }
       
