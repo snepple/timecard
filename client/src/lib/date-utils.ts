@@ -1,3 +1,5 @@
+import { parseISO } from "date-fns";
+
 /**
  * Get the current week's Saturday (week ending date)
  * @returns ISO date string for the Saturday of the current week
@@ -31,8 +33,8 @@ export function getCurrentWeekEndingDate(): string {
  * @returns true if the date is a Saturday
  */
 export function isSaturday(dateString: string): boolean {
-  // Add noon time to avoid timezone parsing issues
-  const date = new Date(dateString + 'T12:00:00');
+  // Use parseISO to avoid timezone parsing issues
+  const date = parseISO(dateString);
   return date.getDay() === 6;
 }
 
@@ -42,8 +44,8 @@ export function isSaturday(dateString: string): boolean {
  * @returns ISO date string for the next Saturday
  */
 export function getNextSaturday(dateString: string): string {
-  // Add noon time to avoid timezone parsing issues
-  const date = new Date(dateString + 'T12:00:00');
+  // Use parseISO to avoid timezone parsing issues
+  const date = parseISO(dateString);
   const dayOfWeek = date.getDay();
   
   // Calculate days until next Saturday
@@ -61,8 +63,8 @@ export function getNextSaturday(dateString: string): string {
  * @returns ISO date string for the previous Saturday
  */
 export function getPreviousSaturday(dateString: string): string {
-  // Add noon time to avoid timezone parsing issues
-  const date = new Date(dateString + 'T12:00:00');
+  // Use parseISO to avoid timezone parsing issues
+  const date = parseISO(dateString);
   const dayOfWeek = date.getDay();
   
   // Calculate days back to previous Saturday

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { parseISO } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -382,7 +383,7 @@ export function RescueCoverageReport() {
     // Calculate the actual date for this day
     const dayOfWeekMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
     const dayOffset = dayOfWeekMap[dayName as keyof typeof dayOfWeekMap];
-    const weekEndingDate = new Date(week.weekEnding + 'T00:00:00'); // Ensure proper parsing as local date
+    const weekEndingDate = parseISO(week.weekEnding); // Use parseISO for consistent parsing
     
     // The week ending is Saturday (day 6), so we need to go back to Sunday (day 0)
     // Saturday minus 6 days = Sunday

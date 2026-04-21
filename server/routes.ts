@@ -5,6 +5,7 @@ import { insertTimesheetSchema, employeeNumbers, insertEmployeeNumberSchema } fr
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
+import { parseISO } from "date-fns";
 import nodemailer from "nodemailer";
 import * as XLSX from "xlsx";
 
@@ -1471,7 +1472,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Calculate the actual date for this day
               const dayOfWeekMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
               const dayOffset = dayOfWeekMap[day as keyof typeof dayOfWeekMap];
-              const weekEndingDate = new Date(week.weekEnding + 'T00:00:00');
+              const weekEndingDate = parseISO(week.weekEnding);
               const sundayDate = new Date(weekEndingDate);
               sundayDate.setDate(weekEndingDate.getDate() - 6);
               const currentDayDate = new Date(sundayDate);

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { parseISO } from "date-fns";
 import { z } from "zod";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -359,7 +360,7 @@ export default function TimesheetPage() {
       // Process schedule shifts
       employeeShiftsQuery.data.forEach((shift: any) => {
         // Fix date parsing to avoid timezone issues
-        const shiftDate = new Date(shift.date + 'T12:00:00');
+        const shiftDate = parseISO(shift.date);
         const dayOfWeek = shiftDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
         const dayKey = DAYS_OF_WEEK[dayOfWeek].key;
         
@@ -492,7 +493,7 @@ export default function TimesheetPage() {
       const formData = form.getValues();
       
       // Compute dates for each day from the week ending date
-      const weekEndDate = new Date(formData.weekEnding + 'T00:00:00');
+      const weekEndDate = parseISO(formData.weekEnding);
       const getDayDate = (offset: number) => {
         const d = new Date(weekEndDate);
         d.setDate(weekEndDate.getDate() - (6 - offset));
