@@ -14,6 +14,17 @@ import { Trash2, Plus, Save, AlertTriangle, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { generateTimeSheetPDF } from "@/lib/pdf-generator";
+import { Timesheet } from "@shared/schema";
+
+export interface TimesheetWithActivity extends Timesheet {
+  updatedAt?: string | Date | null;
+  lastActivityInfo?: {
+    type: string;
+    by: string;
+    timestamp: string;
+    description: string;
+  } | null;
+}
 
 const dayShiftSchema = z.object({
   startTime: z.string().min(1, "Start time is required"),
@@ -110,7 +121,7 @@ export function SupervisorTimecardForm({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
-  const [existingTimecard, setExistingTimecard] = useState<any>(null);
+  const [existingTimecard, setExistingTimecard] = useState<TimesheetWithActivity | null>(null);
   const [dataSource, setDataSource] = useState<'new' | 'existing' | 'schedule'>('new');
   
   // Determine actual employee info and week ending from either prop pattern
