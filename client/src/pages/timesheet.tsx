@@ -259,6 +259,29 @@ export default function TimesheetPage({ logout }: { logout?: () => void }) {
     },
   });
 
+  const saveDraftMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", "/api/timesheets", data),
+    onSuccess: (data) => {
+      setCurrentTimesheet(data);
+      setDataSource("existing");
+      toast({
+        title: "Success",
+        description: "Timesheet draft saved successfully.",
+      });
+    },
+  });
+
+  const updateDraftMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("PATCH", `/api/timesheets/${currentTimesheet?.id}`, data),
+    onSuccess: (data) => {
+      setCurrentTimesheet(data);
+      toast({
+        title: "Success",
+        description: "Timesheet draft updated successfully.",
+      });
+    },
+  });
+
   const submitTimesheetMutation = useMutation({
     mutationFn: (data: any) => apiRequest('POST', '/api/submit-timesheet', data),
     onSuccess: () => {
@@ -483,6 +506,48 @@ export default function TimesheetPage({ logout }: { logout?: () => void }) {
     setValue(`${day}TotalHours` as keyof TimesheetFormData, total);
   };
 
+  const handleSaveDraft = async () => {
+    try {
+      const formData = form.getValues();
+      const draftData = {
+        ...formData,
+        status: "draft",
+        totalHours,
+        signatureData: signatureData || null,
+        // Calculate dates for each day
+        sundayDate: formData.sundayDate || populateWeekDates(formData.weekEnding)["sunday"],
+        mondayDate: formData.mondayDate || populateWeekDates(formData.weekEnding)["monday"],
+        tuesdayDate: formData.tuesdayDate || populateWeekDates(formData.weekEnding)["tuesday"],
+        wednesdayDate: formData.wednesdayDate || populateWeekDates(formData.weekEnding)["wednesday"],
+        thursdayDate: formData.thursdayDate || populateWeekDates(formData.weekEnding)["thursday"],
+        fridayDate: formData.fridayDate || populateWeekDates(formData.weekEnding)["friday"],
+        saturdayDate: formData.saturdayDate || populateWeekDates(formData.weekEnding)["saturday"],
+        // Convert shifts to string for saving
+        sundayShifts: JSON.stringify(formData.sundayShifts || []),
+        mondayShifts: JSON.stringify(formData.mondayShifts || []),
+        tuesdayShifts: JSON.stringify(formData.tuesdayShifts || []),
+        wednesdayShifts: JSON.stringify(formData.wednesdayShifts || []),
+        thursdayShifts: JSON.stringify(formData.thursdayShifts || []),
+        fridayShifts: JSON.stringify(formData.fridayShifts || []),
+        saturdayShifts: JSON.stringify(formData.saturdayShifts || []),
+        employeeName: formData.memberName,
+        employeeNumber: formData.memberNumber
+      };
+
+      if (currentTimesheet?.id) {
+        await updateDraftMutation.mutateAsync(draftData);
+      } else {
+        await saveDraftMutation.mutateAsync(draftData);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save draft. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       // Validate signature is present
@@ -632,32 +697,6 @@ export default function TimesheetPage({ logout }: { logout?: () => void }) {
     }
   };
 
-  const handleSubmitForApproval = async () => {
-    try {
-      // Validate signature is present
-      if (!signatureData || signatureData.trim() === '') {
-        toast({
-          title: "Signature Required",
-          description: "Please provide a digital signature before submitting your timesheet.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const formData = form.getValues();
-      await submitTimesheetMutation.mutateAsync({
-        ...formData,
-        status: "submitted",
-        totalHours,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to submit for approval. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleClearAll = () => {
     form.reset();
@@ -1119,16 +1158,17 @@ export default function TimesheetPage({ logout }: { logout?: () => void }) {
                     </div>
                     
                     <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
-                      {currentTimesheet && currentTimesheet.status === "draft" && (
+
+                      {(!currentTimesheet || currentTimesheet.status === "draft") && (
                         <Button
                           type="button"
-                          className="ios-button ios-button-primary"
-                          onClick={handleSubmitForApproval}
-                          disabled={submitTimesheetMutation.isPending || !signatureData || signatureData.trim() === ''}
-                          data-testid="button-submit"
+                          className="ios-button ios-button-secondary bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                          onClick={handleSaveDraft}
+                          disabled={saveDraftMutation.isPending || updateDraftMutation.isPending}
+                          data-testid="button-save-draft"
                         >
-                          <Send className="mr-2 h-4 w-4" />
-                          {submitTimesheetMutation.isPending ? "Submitting..." : "Submit for Approval"}
+                          <Save className="mr-2 h-4 w-4" />
+                          {saveDraftMutation.isPending || updateDraftMutation.isPending ? "Saving..." : "Save Draft"}
                         </Button>
                       )}
                       
