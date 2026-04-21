@@ -1,11 +1,21 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
+interface User {
+  id: string;
+  username: string;
+  role: 'admin' | 'user';
+}
+
 interface AuthContextType {
+  user: User | null;
   isAppAuthenticated: boolean;
   isAdminAuthenticated: boolean;
-  login: (password: string, type: 'app' | 'admin') => Promise<boolean>;
-  logout: (type?: 'app' | 'admin') => void;
+  isLoading: boolean;
+  error: Error | null;
+  login: (username: string, password: string) => Promise<boolean>;
+  logout: () => void;
   checkSession: () => void;
+  registerSetup: (username: string, password: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,58 +33,43 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [isAppAuthenticated, setIsAppAuthenticated] = useState(false);
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  // Check session on app load
   useEffect(() => {
     checkSession();
   }, []);
 
-  const checkSession = () => {
-    const appAuth = localStorage.getItem('app_auth');
-    const adminAuth = localStorage.getItem('admin_auth');
-    
-    if (appAuth) {
-      const appAuthData = JSON.parse(appAuth);
-      // Check if session is still valid (24 hours)
-      if (Date.now() - appAuthData.timestamp < 24 * 60 * 60 * 1000) {
-        setIsAppAuthenticated(true);
-      } else {
-        localStorage.removeItem('app_auth');
+  const checkSession = async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch("/api/user");
+      if (!res.ok) {
+        setUser(null);
+        return;
       }
-    }
-    
-    if (adminAuth) {
-      const adminAuthData = JSON.parse(adminAuth);
-      // Check if session is still valid (24 hours)
-      if (Date.now() - adminAuthData.timestamp < 24 * 60 * 60 * 1000) {
-        setIsAdminAuthenticated(true);
-      } else {
-        localStorage.removeItem('admin_auth');
-      }
+      const userData = await res.json();
+      setUser(userData);
+    } catch (err) {
+      setUser(null);
+      setError(err as Error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const login = async (password: string, type: 'app' | 'admin'): Promise<boolean> => {
+  const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password, type }),
+        body: JSON.stringify({ username, password }),
       });
 
       if (response.ok) {
-        const authData = { timestamp: Date.now() };
-        
-        if (type === 'app') {
-          setIsAppAuthenticated(true);
-          localStorage.setItem('app_auth', JSON.stringify(authData));
-        } else {
-          setIsAdminAuthenticated(true);
-          localStorage.setItem('admin_auth', JSON.stringify(authData));
-        }
-        
+        const userData = await response.json();
+        setUser(userData);
         return true;
       }
       
@@ -85,25 +80,50 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const logout = (type?: 'app' | 'admin') => {
-    if (!type || type === 'app') {
-      setIsAppAuthenticated(false);
-      localStorage.removeItem('app_auth');
-    }
-    
-    if (!type || type === 'admin') {
-      setIsAdminAuthenticated(false);
-      localStorage.removeItem('admin_auth');
+  const registerSetup = async (username: string, password: string): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Setup error:', error);
+      return false;
     }
   };
 
+  const logout = async () => {
+    try {
+      await fetch('/api/logout', { method: 'POST' });
+      setUser(null);
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+  };
+
+  const isAppAuthenticated = user !== null;
+  const isAdminAuthenticated = user?.role === 'admin';
+
   return (
     <AuthContext.Provider value={{
+      user,
       isAppAuthenticated,
       isAdminAuthenticated,
+      isLoading,
+      error,
       login,
       logout,
       checkSession,
+      registerSetup
     }}>
       {children}
     </AuthContext.Provider>
