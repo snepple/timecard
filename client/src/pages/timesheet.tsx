@@ -137,7 +137,7 @@ interface Shift {
   hours: number;
 }
 
-export default function TimesheetPage() {
+export default function TimesheetPage({ logout }: { logout?: () => void }) {
   const [signatureData, setSignatureData] = useState<string>("");
   const [initialSignature, setInitialSignature] = useState<string>("");
   const [selectedEmployeeNumber, setSelectedEmployeeNumber] = useState<string>("");

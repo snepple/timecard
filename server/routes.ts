@@ -2088,30 +2088,6 @@ Oakland Fire-Rescue Timesheet System`;
 
 
   // Authentication routes
-  app.post("/api/auth/login", async (req, res) => {
-    try {
-      const { password, type } = req.body;
-      
-      if (!password || !type) {
-        res.status(400).json({ message: "Password and type are required" });
-        return;
-      }
-
-      const settingKey = type === 'admin' ? 'admin_password' : 'app_password';
-      const storedPassword = await storage.getSetting(settingKey);
-
-      if (password === storedPassword) {
-        res.json({ success: true, type });
-      } else {
-        res.status(401).json({ message: "Invalid password" });
-      }
-    } catch (error) {
-      console.error("Error during authentication:", error);
-      res.status(500).json({ message: "Authentication failed" });
-    }
-  });
-
-  // Password management routes (admin only)
   app.get("/api/settings/passwords", async (req, res) => {
     try {
       const appPassword = await storage.getSetting('app_password');

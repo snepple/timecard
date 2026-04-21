@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Shield, Smartphone, Monitor } from 'lucide-react';
-import NumberPad from './NumberPad';
 
 interface LoginScreenProps {
   type: 'app' | 'admin';
@@ -15,115 +13,102 @@ interface LoginScreenProps {
 }
 
 export default function LoginScreen({ type, onSuccess }: LoginScreenProps) {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isMobile, setIsMobile] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
-  const { login } = useAuth();
+  const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
+
+  const { login, registerSetup } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Detect if user is on a mobile device
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 768 || 'ontouchstart' in window);
     };
-    
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Auto-login effect
   useEffect(() => {
-    if (isLoading || autoLoginAttempted) return;
-
-    const isAppLogin = type === 'app';
-    
-    if (isAppLogin) {
-      // For app login: auto-login when exactly 4 digits are entered and valid
-      if (password.length === 4 && /^\d{4}$/.test(password)) {
-        setAutoLoginAttempted(true);
-        handleSubmit();
-      }
-    } else {
-      // For admin login: auto-login after longer delay and only for longer passwords
-      const timer = setTimeout(() => {
-        if (password.length >= 8 && !autoLoginAttempted) {
-          setAutoLoginAttempted(true);
-          handleSubmit();
+    const checkSetupStatus = async () => {
+      try {
+        const res = await fetch('/api/setup-status');
+        if (res.ok) {
+          const data = await res.json();
+          setNeedsSetup(data.needsSetup);
         }
-      }, 1500);
+      } catch (err) {
+        console.error("Failed to check setup status", err);
+      }
+    };
+    checkSetupStatus();
+  }, []);
 
-      return () => clearTimeout(timer);
-    }
-  }, [password, isLoading, autoLoginAttempted, type]);
-
-  // Reset auto-login flag when password changes
-  useEffect(() => {
-    setAutoLoginAttempted(false);
-  }, [password]);
-
-  const handleSubmit = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!password.trim() || isLoading) return;
-
-    // For app login, ensure we have exactly 4 digits
-    if (type === 'app' && (password.length !== 4 || !/^\d{4}$/.test(password))) {
-      return; // Don't attempt login if not 4 digits
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username.trim() || !password.trim() || isLoading) return;
 
     setIsLoading(true);
     
     try {
-      const success = await login(password, type);
-      
-      if (success) {
-        toast({
-          title: 'Login successful',
-          description: `Welcome to ${type === 'admin' ? 'Admin Area' : 'Timesheet App'}`,
-        });
-        onSuccess();
+      if (needsSetup) {
+        const success = await registerSetup(username, password);
+        if (success) {
+          toast({
+            title: 'Setup successful',
+            description: 'Admin account created successfully.',
+          });
+          onSuccess();
+        } else {
+          toast({
+            title: 'Setup failed',
+            description: 'Could not create admin account.',
+            variant: 'destructive',
+          });
+        }
       } else {
-        toast({
-          title: 'Invalid password',
-          description: 'Please check your password and try again.',
-          variant: 'destructive',
-        });
-        setPassword('');
-        setAutoLoginAttempted(false); // Reset for retry
+        const success = await login(username, password);
+
+        if (success) {
+          toast({
+            title: 'Login successful',
+            description: `Welcome to ${type === 'admin' ? 'Admin Area' : 'Timesheet App'}`,
+          });
+          onSuccess();
+        } else {
+          toast({
+            title: 'Invalid credentials',
+            description: 'Please check your username and password and try again.',
+            variant: 'destructive',
+          });
+          setPassword('');
+        }
       }
     } catch (error) {
       toast({
-        title: 'Login error',
-        description: 'An error occurred during login. Please try again.',
+        title: needsSetup ? 'Setup error' : 'Login error',
+        description: 'An error occurred. Please try again.',
         variant: 'destructive',
       });
       setPassword('');
-      setAutoLoginAttempted(false); // Reset for retry
     }
     
     setIsLoading(false);
   };
 
-  const handleNumberPress = (number: string) => {
-    if (isLoading) return; // Prevent input during loading
-    
-    if (type === 'admin' || password.length < 20) {
-      const newPassword = password + number;
-      setPassword(newPassword);
-    }
-  };
+  if (needsSetup === null) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
 
-  const handleBackspace = () => {
-    setPassword(prev => prev.slice(0, -1));
-  };
+  const title = needsSetup
+    ? 'Initial Admin Setup'
+    : (type === 'admin' ? 'Admin Access' : 'Oakland Fire-Rescue');
 
-  const handleClear = () => {
-    setPassword('');
-  };
-
-  const isAppLogin = type === 'app';
-  const passwordPattern = isAppLogin ? /^\d+$/ : /.+/; // Numbers only for app, any characters for admin
+  const subtitle = needsSetup
+    ? 'Create the first admin account'
+    : (type === 'admin' ? 'Enter admin credentials' : 'Enter your credentials to continue');
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -132,97 +117,70 @@ export default function LoginScreen({ type, onSuccess }: LoginScreenProps) {
           <div className="flex justify-center mb-4">
             <Shield className="h-12 w-12 text-primary" />
           </div>
-          <CardTitle className="text-2xl">
-            {type === 'admin' ? 'Admin Access' : 'Oakland Fire-Rescue'}
-          </CardTitle>
-          <p className="text-gray-600">
-            {type === 'admin' 
-              ? 'Enter admin password to access management area'
-              : 'Enter your access code to continue'
-            }
-          </p>
+          <CardTitle className="text-2xl">{title}</CardTitle>
+          <p className="text-gray-600">{subtitle}</p>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Device Type Indicator */}
           <div className="flex justify-center">
             <div className="flex items-center text-sm text-gray-500">
               {isMobile ? (
-                <>
-                  <Smartphone className="h-4 w-4 mr-2" />
-                  Mobile Device Detected
-                </>
+                <><Smartphone className="h-4 w-4 mr-2" /> Mobile Device Detected</>
               ) : (
-                <>
-                  <Monitor className="h-4 w-4 mr-2" />
-                  Desktop Device Detected
-                </>
+                <><Monitor className="h-4 w-4 mr-2" /> Desktop Device Detected</>
               )}
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Password Display */}
-            <div>
-              <Label htmlFor="password">
-                {type === 'admin' ? 'Admin Password' : 'Access Code'}
-              </Label>
-              <PasswordInput
-                id="password"
-                value={password}
-                onChange={(e) => {
-                  if (isAppLogin) {
-                    // Only allow numbers for app login
-                    const numericValue = e.target.value.replace(/\D/g, '');
-                    setPassword(numericValue);
-                  } else {
-                    setPassword(e.target.value);
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !isAppLogin && password.length >= 3) {
-                    e.preventDefault();
-                    setAutoLoginAttempted(true);
-                    handleSubmit();
-                  }
-                }}
-                placeholder={isAppLogin ? "Enter 4-digit code" : "Enter admin password"}
-                className="text-center text-lg tracking-widest"
-                maxLength={isAppLogin ? 10 : 50}
-                autoComplete="off"
-                data-testid="password-input"
-                readOnly={isMobile && isAppLogin} // Make read-only on mobile for app login
-              />
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter username"
+                  className="w-full"
+                  autoComplete="username"
+                  data-testid="username-input"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={needsSetup ? "Create admin password" : "Enter password"}
+                  className="w-full"
+                  autoComplete={needsSetup ? "new-password" : "current-password"}
+                  data-testid="password-input"
+                  required
+                />
+              </div>
             </div>
 
-            {/* Number Pad for Mobile App Login */}
-            {isMobile && isAppLogin && (
-              <NumberPad
-                onNumberPress={handleNumberPress}
-                onBackspace={handleBackspace}
-                onClear={handleClear}
-              />
-            )}
-
-            {/* Login Button */}
             <Button
               type="submit"
               className="w-full"
               size="lg"
-              disabled={!password.trim() || isLoading || (isAppLogin && !passwordPattern.test(password))}
+              disabled={!username.trim() || !password.trim() || isLoading}
               data-testid="login-button"
             >
-              {isLoading ? 'Signing In...' : 'Sign In'}
+              {isLoading
+                ? (needsSetup ? 'Creating Account...' : 'Signing In...')
+                : (needsSetup ? 'Create Admin Account' : 'Sign In')}
             </Button>
           </form>
 
-          {/* Help Text */}
-          <div className="text-center text-sm text-gray-500">
-            {type === 'admin' ? (
-              <p>Contact IT support if you've forgotten your admin password</p>
-            ) : (
-              <p>Contact your supervisor if you need the access code</p>
-            )}
-          </div>
+          {!needsSetup && (
+            <div className="text-center text-sm text-gray-500">
+              <p>Contact your supervisor if you need access</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
