@@ -442,15 +442,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async initializeDefaultSettings(): Promise<void> {
-    // Initialize default passwords if they don't exist
+    // Initialize default passwords from environment variables if they don't exist in settings
     const appPassword = await this.getSetting('app_password');
-    if (!appPassword) {
-      await this.setSetting('app_password', '1888');
+    if (!appPassword && process.env.APP_PASSWORD) {
+      await this.setSetting('app_password', process.env.APP_PASSWORD);
     }
 
     const adminPassword = await this.getSetting('admin_password');
-    if (!adminPassword) {
-      await this.setSetting('admin_password', 'OFDAdmin1888');
+    if (!adminPassword && process.env.ADMIN_PASSWORD) {
+      await this.setSetting('admin_password', process.env.ADMIN_PASSWORD);
     }
 
     // Initialize default email settings

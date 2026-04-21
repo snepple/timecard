@@ -2117,8 +2117,8 @@ Oakland Fire-Rescue Timesheet System`;
       const adminPassword = await storage.getSetting('admin_password');
       
       res.json({
-        app_password: appPassword || '1888',
-        admin_password: adminPassword || 'OFDAdmin1888'
+        app_password: appPassword || '',
+        admin_password: adminPassword || ''
       });
     } catch (error) {
       console.error("Error fetching passwords:", error);
