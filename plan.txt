@@ -1,0 +1,8 @@
+1. Modify `shared/schema.ts`:
+   - Add `receiveReminders: boolean("receive_reminders").default(false)` to `employeeNumbers` table.
+
+2. Modify `server/routes.ts`:
+   - Send email reminders to users who have opted in. Check the time.
+
+3. Update `client/src/components/EmployeeManagement.tsx`:
+   - Add a switch in the form for `receiveReminders`
