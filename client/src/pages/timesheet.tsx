@@ -368,8 +368,11 @@ export default function TimesheetPage() {
         const isNightDuty = shift.position === "Night Duty" || 
                            (shift.description && shift.description.includes("PositionName:Night Duty"));
         
-        if (isNightDuty) {
-          // For Night Duty shifts, check the appropriate rescue coverage checkbox
+        // Check if the shift is a 6pm-6am Night Duty shift (ignore Friday, Saturday, Sunday)
+        // The requirement is to NOT enter them as shifts, but rather check the checkboxes
+        // for Monday, Tuesday, Wednesday, Thursday
+        if (isNightDuty && dayOfWeek >= 1 && dayOfWeek <= 4) {
+          // For Night Duty shifts on Mon-Thu, check the appropriate rescue coverage checkbox
           // Map day of week to rescue coverage field names (Monday-Thursday only)
           const rescueCoverageMap: { [key: number]: string } = {
             1: 'rescueCoverageMonday',    // Monday
@@ -382,6 +385,9 @@ export default function TimesheetPage() {
           if (rescueField) {
             setValue(rescueField as keyof TimesheetFormData, true);
           }
+        } else if (isNightDuty) {
+            // Ignore night duty for Friday, Saturday, Sunday. Do not add as shift.
+            console.log(`Ignoring Night Duty on ${dayKey}`);
         } else if (shift.startTime && shift.endTime) {
           // Regular shifts: add to time entry
           // Convert ISO timestamp to HH:MM format
