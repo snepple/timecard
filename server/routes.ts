@@ -1113,104 +1113,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Sync employee database with schedule data
   app.post("/api/employee-numbers/sync", async (req, res) => {
     try {
-      // Get current schedule data
+      // Get current schedule data (includes pre-processed employees and shifts)
       const scheduleData = await getScheduleData();
       
-      // Use employee-based approach to update existing employees
-      if (scheduleData.employees) {
-        // Use the shifts data to update existing employees only
-        const employees = await storage.getEmployeeNumbers();
-        const employeeMap = new Map<string, { name: string, number: string }>();
+      if (scheduleData.employees && scheduleData.employees.length > 0) {
+        // Fetch all existing employees from DB once
+        const dbEmployees = await storage.getEmployeeNumbers();
+        // Create a map for O(1) lookup by name
+        const dbEmployeeMap = new Map(dbEmployees.map(e => [e.employeeName, e]));
         
-        scheduleData.shifts.forEach((shift: any) => {
-          // Extract employee number from description if available
-          const description = shift.description || '';
-          const actualEmployeeNumber = extractFromDescriptionServer(description, 'EmployeeNumber');
-          
-          // Use actual employee number if found, otherwise use shift's employee number
-          const employeeNumber = actualEmployeeNumber || shift.employeeNumber;
-          
-          if (employeeNumber && shift.employeeName) {
-            employeeMap.set(shift.employeeName, {
-              name: shift.employeeName,
-              number: employeeNumber
-            });
-          }
-        });
-
-        // Update existing employees only, never create new ones
         let syncedCount = 0;
-        for (const [employeeName, empData] of employeeMap) {
+        const updatePromises = [];
+
+        // scheduleData.employees already contains extracted numeric IDs where available
+        // because parseICSDataOnServer handles the extraction from shift descriptions.
+        for (const emp of scheduleData.employees) {
           try {
-            // Find existing employee by name
-            const existing = employees.find(emp => emp.employeeName === employeeName);
+            // Robustly identify employee by full name
+            const fullName = emp.fullName || (emp.firstName && emp.lastName ? `${emp.firstName} ${emp.lastName}` : '');
+            if (!fullName) continue;
+
+            const existing = dbEmployeeMap.get(fullName);
             
-            if (existing && !existing.employeeNumber) {
-              // Update employee with extracted number
-              await db
-                .update(employeeNumbers)
-                .set({ 
-                  employeeNumber: empData.number,
-                  updatedAt: new Date()
-                })
-                .where(eq(employeeNumbers.id, existing.id));
-              syncedCount++;
-              console.log(`✅ Updated ${employeeName} with employee number: ${empData.number}`);
+            // Only update if employee exists in DB but doesn't have an ID yet
+            // emp.employeeNumber is either the extracted numeric ID or name-based fallback
+            if (existing && !existing.employeeNumber && emp.employeeNumber) {
+              // Use concurrent updates for better performance
+              updatePromises.push((async () => {
+                try {
+                  await db
+                    .update(employeeNumbers)
+                    .set({
+                      employeeNumber: emp.employeeNumber,
+                      updatedAt: new Date()
+                    })
+                    .where(eq(employeeNumbers.id, existing.id));
+                  console.log(`✅ Updated ${fullName} with employee number: ${emp.employeeNumber}`);
+                  return true;
+                } catch (err) {
+                  console.error(`Error updating employee ${fullName}:`, err);
+                  return false;
+                }
+              })());
             }
           } catch (error) {
-            console.error(`Error syncing employee ${employeeName}:`, error);
+            console.error(`Error processing sync for ${emp.fullName || 'unknown employee'}:`, error);
           }
         }
 
-        res.json({ 
-          message: `Employee sync completed. ${syncedCount} employees updated with IDs.`,
-          totalEmployees: employeeMap.size,
-          syncedCount 
-        });
-      } else if (scheduleData.employees) {
-        // Only update existing employees, never create new ones to avoid duplicates
-        const employees = await storage.getEmployeeNumbers();
-        
-        let syncedCount = 0;
-        
-        // Try to update employee numbers for existing employees
-        for (const emp of scheduleData.employees) {
-          const fullName = `${emp.firstName} ${emp.lastName}`;
-          const nameBasedId = (emp.firstName + emp.lastName).toLowerCase().replace(/[^a-z]/g, '');
-          
-          // Find existing employee in database
-          const existingEmployee = employees.find(e => e.employeeName === fullName);
-          
-          if (existingEmployee && !existingEmployee.employeeNumber) {
-            try {
-              // Get shifts for this employee to try extracting actual employee number
-              const shifts = await getEmployeeShiftsForWeek(nameBasedId, '2025-09-20');
-              if (shifts.length > 0) {
-                  const shift = shifts[0];
-                  const description = shift.description || '';
-                  const actualEmployeeNumber = extractFromDescriptionServer(description, 'EmployeeNumber');
-                  
-                  // Use actual employee number if found, otherwise use name-based as fallback
-                  const employeeNumberToUse = actualEmployeeNumber || nameBasedId;
-                  
-                  if (employeeNumberToUse) {
-                    await db
-                      .update(employeeNumbers)
-                      .set({ 
-                        employeeNumber: employeeNumberToUse,
-                        updatedAt: new Date()
-                      })
-                      .where(eq(employeeNumbers.id, existingEmployee.id));
-                    console.log(`✅ Updated ${fullName} with employee number: ${employeeNumberToUse}`);
-                    syncedCount++;
-                  }
-              }
-            } catch (error) {
-              console.log(`⚠️ Could not extract employee number for ${fullName}:`, error);
-            }
-          }
-        }
-        
+        const results = await Promise.all(updatePromises);
+        syncedCount = results.filter(r => r).length;
+
         res.json({ 
           message: `Employee sync completed. ${syncedCount} employees updated with IDs.`,
           totalEmployees: scheduleData.employees.length,
