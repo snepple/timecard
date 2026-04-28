@@ -1265,16 +1265,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currentDate.setDate(currentDate.getDate() + 7);
       }
       
+      // Pre-fetch all timesheets and index them for faster lookup
+      const allTimesheets = await storage.getAllTimesheets();
+      const timesheetMap = new Map<string, any>();
+      allTimesheets.forEach(ts => {
+        if (ts.status === 'submitted') {
+          // Index by both number and name for flexible lookup
+          if (ts.employeeNumber) timesheetMap.set(`${ts.employeeNumber}_${ts.weekEnding}`, ts);
+          if (ts.employeeName) timesheetMap.set(`${ts.employeeName}_${ts.weekEnding}`, ts);
+        }
+      });
+
+      // Pre-fetch schedule data and index shifts by employee number
+      const scheduleData = await getScheduleData();
+      const shiftsByEmployee = new Map<string, any[]>();
+      if (scheduleData.shifts) {
+        scheduleData.shifts.forEach((shift: any) => {
+          if (shift.employeeNumber) {
+            if (!shiftsByEmployee.has(shift.employeeNumber)) {
+              shiftsByEmployee.set(shift.employeeNumber, []);
+            }
+            shiftsByEmployee.get(shift.employeeNumber)?.push(shift);
+          }
+        });
+      }
+
       // Initialize employee data
       const employeeData = await Promise.all(employees.map(async (employee: any) => {
+        // Get all shifts for this employee once
+        const employeeShifts = shiftsByEmployee.get(employee.employeeNumber) || [];
+
         const weeklyData = await Promise.all(weeks.map(async (week) => {
-          // Get timesheet for this week
-          const timesheets = await storage.getAllTimesheets();
-          const timesheet = timesheets.find(ts => 
-            ts.weekEnding === week.weekEnding && 
-            ts.status === 'submitted' &&
-            (ts.employeeNumber === employee.employeeNumber || ts.employeeName === employee.employeeName)
-          );
+          // Get timesheet for this week from pre-indexed map
+          const timesheetKey = `${employee.employeeNumber}_${week.weekEnding}`;
+          const timesheetNameKey = `${employee.employeeName}_${week.weekEnding}`;
+          const timesheet = timesheetMap.get(timesheetKey) || timesheetMap.get(timesheetNameKey);
           
           let rescueCounts = {
             sunday: 0,
@@ -1300,9 +1325,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           let timecardStatus: 'complete' | 'missing' | 'pending' = 'missing';
           
-          // Always fetch scheduled night duty for comparison
+          // Count scheduled night duty shifts from pre-fetched employee shifts
           try {
-            const shifts = await getEmployeeShiftsForWeek(employee.employeeNumber, week.weekEnding);
+            const endDate = new Date(week.weekEnding);
+            const startDate = new Date(endDate);
+            startDate.setDate(endDate.getDate() - 6);
+
+            // Filter this employee's shifts for the current week
+            const shifts = employeeShifts.filter((shift: any) => {
+              const shiftDate = new Date(shift.date);
+              return shiftDate >= startDate && shiftDate <= endDate;
+            });
             
             // Count scheduled night duty shifts by day, only if day is in selected month
             shifts.forEach((shift: any) => {
@@ -1319,7 +1352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             });
           } catch (error) {
-            console.error(`Error fetching shifts for ${employee.employeeName}:`, error);
+            console.error(`Error processing shifts for ${employee.employeeName}:`, error);
           }
           
           if (timesheet) {
