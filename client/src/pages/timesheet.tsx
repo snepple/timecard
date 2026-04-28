@@ -382,9 +382,12 @@ export default function TimesheetPage({ logout }: { logout?: () => void }) {
       
       // Process schedule shifts
       employeeShiftsQuery.data.forEach((shift: any) => {
-        // Fix date parsing to avoid timezone issues
-        const shiftDate = parseISO(shift.date);
-        const dayOfWeek = shiftDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        // Use Eastern Time for all schedule logic to avoid UTC date shifting
+        const shiftStart = new Date(shift.startTime || shift.date);
+        const etString = shiftStart.toLocaleString("en-US", {timeZone: "America/New_York"});
+        const etDate = new Date(etString);
+
+        const dayOfWeek = etDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
         const dayKey = DAYS_OF_WEEK[dayOfWeek].key;
         
         // Check if this is a Night Duty shift
@@ -413,10 +416,15 @@ export default function TimesheetPage({ logout }: { logout?: () => void }) {
             console.log(`Ignoring Night Duty on ${dayKey}`);
         } else if (shift.startTime && shift.endTime) {
           // Regular shifts: add to time entry
-          // Convert ISO timestamp to HH:MM format
+          // Convert ISO timestamp to HH:MM format using Eastern Time
           const formatTimeFromISO = (isoString: string): string => {
             const date = new Date(isoString);
-            return date.toTimeString().substring(0, 5); // Gets HH:MM
+            return date.toLocaleTimeString("en-US", {
+              hour12: false,
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZone: "America/New_York"
+            });
           };
           
           const startTimeFormatted = formatTimeFromISO(shift.startTime);
@@ -568,7 +576,11 @@ export default function TimesheetPage({ logout }: { logout?: () => void }) {
       const getDayDate = (offset: number) => {
         const d = new Date(weekEndDate);
         d.setDate(weekEndDate.getDate() - (6 - offset));
-        return d.toISOString().split('T')[0];
+        // Use YYYY-MM-DD manually to avoid timezone issues with ISO strings
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
       };
       const firstStart = (shifts: DayShift[]) => shifts?.[0]?.startTime || '';
       const firstEnd = (shifts: DayShift[]) => shifts?.[0]?.endTime || '';

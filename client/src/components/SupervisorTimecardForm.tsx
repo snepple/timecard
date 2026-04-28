@@ -134,7 +134,12 @@ export function SupervisorTimecardForm({
     const daysUntilSaturday = (6 - dayOfWeek) % 7;
     const saturday = new Date(today);
     saturday.setDate(today.getDate() + daysUntilSaturday);
-    return saturday.toISOString().split('T')[0];
+
+    // Use manual YYYY-MM-DD formatting to avoid timezone issues
+    const year = saturday.getFullYear();
+    const month = String(saturday.getMonth() + 1).padStart(2, '0');
+    const day = String(saturday.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   })();
 
   const form = useForm<SupervisorTimecardFormData>({
@@ -262,7 +267,11 @@ export function SupervisorTimecardForm({
     for (let i = 6; i >= 0; i--) {
       const date = new Date(endDate);
       date.setDate(endDate.getDate() - i);
-      dates.push(date.toISOString().split('T')[0]);
+      // Use manual YYYY-MM-DD formatting to avoid timezone issues
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      dates.push(`${year}-${month}-${day}`);
     }
     
     return dates;

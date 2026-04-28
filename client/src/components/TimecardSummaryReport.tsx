@@ -83,7 +83,12 @@ function getCurrentWeekEnding(): string {
   
   const saturday = new Date(today);
   saturday.setDate(today.getDate() + daysToSaturday);
-  return saturday.toISOString().split('T')[0];
+
+  // Use manual YYYY-MM-DD formatting to avoid timezone issues
+  const year = saturday.getFullYear();
+  const month = String(saturday.getMonth() + 1).padStart(2, '0');
+  const day = String(saturday.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export function TimecardSummaryReport() {

@@ -24,7 +24,11 @@ export function getCurrentWeekEndingDate(): string {
   const saturday = new Date(today);
   saturday.setDate(today.getDate() + daysToSaturday);
   
-  return saturday.toISOString().split('T')[0];
+  // Use manual YYYY-MM-DD formatting to avoid timezone issues
+  const year = saturday.getFullYear();
+  const month = String(saturday.getMonth() + 1).padStart(2, '0');
+  const day = String(saturday.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**
@@ -54,7 +58,11 @@ export function getNextSaturday(dateString: string): string {
   const saturday = new Date(date);
   saturday.setDate(date.getDate() + daysUntilSaturday);
   
-  return saturday.toISOString().split('T')[0];
+  // Use manual YYYY-MM-DD formatting to avoid timezone issues
+  const year = saturday.getFullYear();
+  const month = String(saturday.getMonth() + 1).padStart(2, '0');
+  const day = String(saturday.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**
@@ -73,7 +81,11 @@ export function getPreviousSaturday(dateString: string): string {
   const saturday = new Date(date);
   saturday.setDate(date.getDate() - daysToSaturday);
   
-  return saturday.toISOString().split('T')[0];
+  // Use manual YYYY-MM-DD formatting to avoid timezone issues
+  const year = saturday.getFullYear();
+  const month = String(saturday.getMonth() + 1).padStart(2, '0');
+  const day = String(saturday.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**
@@ -88,7 +100,12 @@ export function getUpcomingSaturdays(): string[] {
     saturdays.push(currentSaturday);
     const nextDate = new Date(currentSaturday);
     nextDate.setDate(nextDate.getDate() + 7);
-    currentSaturday = nextDate.toISOString().split('T')[0];
+
+    // Use manual YYYY-MM-DD formatting to avoid timezone issues
+    const year = nextDate.getFullYear();
+    const month = String(nextDate.getMonth() + 1).padStart(2, '0');
+    const day = String(nextDate.getDate()).padStart(2, '0');
+    currentSaturday = `${year}-${month}-${day}`;
   }
   
   return saturdays;
