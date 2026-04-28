@@ -2445,7 +2445,15 @@ function parseEventServer(eventData: string): any | null {
       position: positionName || 'Unknown',
       description, // Include full description for Night Duty detection
       duration,
-      date: startTime.toISOString().split('T')[0],
+      date: (() => {
+        // Use Eastern Time for date determination on the server
+        const etString = startTime.toLocaleString("en-US", {timeZone: "America/New_York"});
+        const etDate = new Date(etString);
+        const year = etDate.getFullYear();
+        const month = String(etDate.getMonth() + 1).padStart(2, '0');
+        const day = String(etDate.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      })(),
     };
   } catch (error) {
     console.error('Error parsing event:', error);

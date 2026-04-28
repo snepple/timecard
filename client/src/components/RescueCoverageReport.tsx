@@ -394,7 +394,12 @@ export function RescueCoverageReport() {
     const currentDayDate = new Date(sundayDate);
     currentDayDate.setDate(sundayDate.getDate() + dayOffset);
     const dayNumber = currentDayDate.getDate();
-    const dateKey = currentDayDate.toISOString().split('T')[0];
+
+    // Use manual YYYY-MM-DD formatting for dateKey to avoid timezone issues
+    const year = currentDayDate.getFullYear();
+    const month = String(currentDayDate.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDayDate.getDate()).padStart(2, '0');
+    const dateKey = `${year}-${month}-${day}`;
     
     // Check for overlaps using the reportData
     const overlappingEmployees = reportData?.dayOverlaps?.[dayName as keyof typeof reportData.dayOverlaps]?.[dateKey] || [];
