@@ -257,29 +257,18 @@ export async function generateTimeSheetPDF(data: TimesheetData): Promise<string>
     }
     
     // Fill rescue coverage checkboxes - use the exact field names from PDF template
-    const coverageFields = [
-      { 
-        fieldName: 'Monday Weeknight Rescue Coverage',
-        checked: data.rescueCoverageMonday 
-      },
-      { 
-        fieldName: 'Tuesday Weeknight Rescue Coverage',
-        checked: data.rescueCoverageTuesday 
-      },
-      { 
-        fieldName: 'Wednesday Weeknight Rescue Coverage',
-        checked: data.rescueCoverageWednesday 
-      },
-      { 
-        fieldName: 'Thuresday Weeknight Rescue Coverage', // Note: PDF template has typo "Thuresday"
-        checked: data.rescueCoverageThursday 
-      },
-    ];
-    
-    coverageFields.forEach(({ fieldName, checked }) => {
+    const rescueDays = [
+      { label: 'Monday', key: 'rescueCoverageMonday' },
+      { label: 'Tuesday', key: 'rescueCoverageTuesday' },
+      { label: 'Wednesday', key: 'rescueCoverageWednesday' },
+      { label: 'Thuresday', key: 'rescueCoverageThursday' }, // Note: PDF template has typo "Thuresday"
+    ] as const;
+
+    rescueDays.forEach(({ label, key }) => {
+      const fieldName = `${label} Weeknight Rescue Coverage`;
+      const checked = !!data[key];
       console.log(`Set ${fieldName} checkbox to: ${checked}`);
-      // Always set the checkbox state (true or false) to ensure proper unchecking
-      checkBox(fieldName, checked || false);
+      checkBox(fieldName, checked);
     });
     
     // Add supervisor completion notice if applicable
